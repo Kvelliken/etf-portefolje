@@ -16,9 +16,10 @@ nordnet:
   max_rounds: 3                # nye runder hvis antall < total_hits (listen kan flytte seg)
   min_fraction_of_previous: 0.90   # sikkerhetssjekk: avbryt hvis færre enn 90 % av forrige aktive
   raw_keep_months: 6           # behold rå-HTML for de siste N månedene (0 = behold alt)
-  # Ekstra URL-parametere, f.eks. for stabil sortering. Tom = Nordnets standard (1 års avkastning).
-  # Testes i fase 1 med ekte data: {sort_attribute: name, sort_order: asc}
-  list_params: {}
+  # Ekstra URL-parametere. Nordnet tar sortField/sortOrder (ikke sort_attribute) og
+  # oversetter til sort_attribute=name i API-kallet. Sortering på navn gir stabil sideinndeling
+  # (standard er 1 års avkastning, som kan flytte rader mellom sider underveis). Verifisert 2026-10-07.
+  list_params: {sortField: name, sortOrder: asc}
 
 account:
   type: ASK                    # ASK eller ordinær (AF). Utenfor ASK vises skatteadvarsel.

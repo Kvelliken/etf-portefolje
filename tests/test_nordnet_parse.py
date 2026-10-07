@@ -26,6 +26,9 @@ def test_parse_escaped_json():
     assert r0["isin"] == "IE00BHZRR030" and r0["symbol"] == "FLXK" and r0["clearing_place"] == "PERS_DE"
     assert r0["fee"] == 0.2 and r0["number_of_owners"] == 100 and r0["category"] == "Aksjer Global"
     assert r0["dividend_policy"] == "Akkumulerende" and r0["price"] == 12.5 and r0["yield_1y"] == 14.2
+    assert abs(r0["total_fee"] - 0.3) < 1e-9
+    assert r0["start_date"] == "2019-06-04" and r0["risk"] == 4 and r0["fund_type"] == "Aksje"
+    assert r0["spread_pct"] == 0.16 and r0["exchange_country"] == "DE"
     assert r0["is_tradable"] is True and r0["ask_eligible"] == 1 and r0["domicile"] == "IE"
     # Escaped quotes, backslashes and non-ASCII characters survive decoding.
     assert rows[1]["name"] == 'Amundi MSCI Korea "Acc" Brød \\ test'

@@ -21,6 +21,30 @@ jobs:
         run: |
           python scripts/fetch_nordnet.py --max-pages 1 --db /tmp/probe.db
           python scripts/fetch_nordnet.py --from-file "$(ls data/raw/*/page_001.html.gz | head -1)"
+      - name: Full Nordnet run + stats
+        run: |
+          python scripts/fetch_nordnet.py --db /tmp/full.db
+          python - <<'PY'
+          import sqlite3, collections
+          c = sqlite3.connect("/tmp/full.db")
+          q = lambda s: c.execute(s).fetchall()
+          print("runs:", q("SELECT run_id,total_hits,n_found,partial FROM runs"))
+          print("aktive:", q("SELECT COUNT(*), COUNT(DISTINCT isin), SUM(ask_eligible) FROM etf_master"))
+          print("ASK-unike ISIN:", q("SELECT COUNT(DISTINCT isin) FROM etf_master WHERE ask_eligible=1"))
+          print("domisil:", q("SELECT domicile, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
+          print("valuta:", q("SELECT currency, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
+          print("børs:", q("SELECT clearing_place, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
+          print("fund_type:", q("SELECT fund_type, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
+          print("utbytte:", q("SELECT dividend_policy, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
+          print("kategorier:", q("SELECT COUNT(DISTINCT category) FROM etf_master"))
+          print("startdato >5 år:", q("SELECT COUNT(*) FROM etf_master WHERE start_date <= date('now','-5 years')"))
+          cols = [r[1] for r in q("PRAGMA table_info(etf_master)")]
+          n = q("SELECT COUNT(*) FROM etf_master")[0][0]
+          for col in cols:
+              print(f"  {col:22s} {q(f'SELECT COUNT({col}) FROM etf_master')[0][0]}/{n}")
+          print("ACWI:", q("SELECT instrument_id,symbol,currency,clearing_place,fee,start_date FROM etf_master WHERE isin='IE00B6R52259'"))
+          print("dupl. ISIN eks:", q("SELECT isin, GROUP_CONCAT(symbol||'/'||currency||'/'||clearing_place) FROM etf_master GROUP BY isin HAVING COUNT(*)>1 LIMIT 8"))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:

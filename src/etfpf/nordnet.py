@@ -13,7 +13,7 @@ import math
 import re
 import shutil
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import requests
@@ -30,23 +30,30 @@ _RESULTS_ESC_RE = re.compile(r'\\"results\\"\s*:\s*\[')
 _TOTAL_RE = re.compile(r'"total_hits"\s*:\s*(\d+)')
 
 # Normalised fields we extract from each row. Each maps to candidate leaf keys in the
-# flattened row (first match wins). The raw row is always stored too, so new fields can
-# be added later without scraping again.
+# flattened row (first match wins). Verified against the live page 2026-10-07; the raw
+# row is always stored too, so new fields can be added later without scraping again.
 FIELD_CANDIDATES = {
-    "fee": ["ongoing_charges", "total_expense_ratio", "ter", "yearly_fee", "management_fee", "fee"],
-    "category": ["category_name", "category", "fund_category", "etf_category", "asset_class"],
-    "number_of_owners": ["number_of_owners", "owners", "num_owners"],
-    "dividend_policy": ["dividend_policy", "dividend_type", "distribution_policy", "income_treatment"],
-    "risk": ["risk_level", "risk", "srri", "risk_value", "sri"],
-    "rating": ["morningstar_rating", "rating", "morningstar_stars"],
-    "fund_size": ["fund_size", "aum", "total_assets", "assets_under_management", "fund_capital"],
-    "replication": ["replication_method", "replication", "index_replication"],
-    "index_name": ["index_name", "underlying_index", "benchmark", "tracked_index"],
-    "price": ["last", "last_price", "price"],
+    "fee": ["fund_yearly_fee", "fund_calculated_fee"],    # TER / løpende kostnader, %
+    "total_fee": ["fund_total_fee"],                       # inkl. transaksjonskostnader, %
+    "category": ["fund_category"],
+    "fund_type": ["fund_type"],                            # Aksje, Rente, ...
+    "number_of_owners": ["number_of_owners"],
+    "dividend_policy": ["fund_dividend_strategy"],
+    "risk": ["fund_raw_risk"],
+    "rating": ["fund_ms_rating"],
+    "fund_size": ["fund_total_market_value"],
+    "start_date": ["fund_start_date"],                     # epoch ms -> ISO-dato
+    "exchange_country": ["exchange_country"],
+    "price": ["last.price", "close.price"],
+    "spread_pct": ["spread_pct"],
+    "turnover": ["turnover_normalized"],
     "yield_1y": ["yield_1y"],
     "yield_3y": ["yield_3y"],
     "yield_5y": ["yield_5y"],
+    "yield_10y": ["yield_10y"],
 }
+NUMERIC = ("fee", "total_fee", "number_of_owners", "fund_size", "price", "spread_pct", "turnover",
+           "yield_1y", "yield_3y", "yield_5y", "yield_10y", "rating", "risk")
 INFO_FIELDS = ["name", "long_name", "symbol", "isin", "currency", "price_unit", "clearing_place",
                "issuer_name", "instrument_type", "instrument_group_type", "is_tradable",
                "is_monthly_saveable", "is_shortable"]
@@ -127,9 +134,10 @@ def flatten(obj, prefix=""):
 
 
 def _pick(flat, candidates):
+    """First non-empty value whose key ends with a candidate ('a.b' matches 'x.a.b')."""
     for cand in candidates:
         for key, val in flat.items():
-            if key.rsplit(".", 1)[-1] == cand and val not in (None, ""):
+            if (key == cand or key.endswith("." + cand)) and val not in (None, ""):
                 return val
     return None
 
@@ -145,12 +153,14 @@ def normalize_row(raw, ask_countries=None):
     flat = flatten({k: v for k, v in raw.items() if k != "instrument_info"})
     for col, cands in FIELD_CANDIDATES.items():
         row[col] = _pick(flat, cands)
-    for col in ("fee", "number_of_owners", "fund_size", "price", "yield_1y", "yield_3y", "yield_5y", "rating"):
+    for col in NUMERIC:
         if row[col] is not None:
             try:
                 row[col] = float(row[col])
             except (TypeError, ValueError):
                 pass
+    if isinstance(row["start_date"], (int, float)):
+        row["start_date"] = datetime.fromtimestamp(row["start_date"] / 1000, timezone.utc).date().isoformat()
     row["domicile"] = row["isin"][:2] if row["isin"] else None
     if ask_countries is not None:
         row["ask_eligible"] = int(bool(row["domicile"] and row["domicile"] in ask_countries))
@@ -253,7 +263,7 @@ def scrape(cfg, max_pages=0, raw_dir=None, ask_countries=None, fetch=fetch_page,
             log.info("Runde %d, side %d/%d: %d rader, %d nye, totalt %d", rnd, page, pages, len(rows), new, len(found))
             page += 1
             sleep(cfg["delay_seconds"])
-        # The list is sorted by 1y return, so rows may shift between pages mid-run.
+        # With the default sort (1y return) rows may shift between pages mid-run.
         if max_pages or not total or len(found) >= total:
             break
         log.info("Har %d av %d, tar en ny runde for å fylle hull ...", len(found), total)

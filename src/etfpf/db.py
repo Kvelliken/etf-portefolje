@@ -5,10 +5,12 @@ from datetime import datetime, timezone
 # Columns stored per ETF in both etf_master (latest value) and etf_snapshot (per run).
 DATA_COLS = ["isin", "symbol", "name", "long_name", "currency", "price_unit", "clearing_place",
              "issuer_name", "instrument_type", "instrument_group_type", "is_tradable",
-             "is_monthly_saveable", "is_shortable", "category", "fee", "number_of_owners",
-             "dividend_policy", "risk", "rating", "fund_size", "replication", "index_name",
-             "domicile", "ask_eligible"]
-SNAPSHOT_ONLY = ["price", "yield_1y", "yield_3y", "yield_5y", "raw_json"]
+             "is_monthly_saveable", "is_shortable", "category", "fund_type", "fee", "total_fee",
+             "number_of_owners", "dividend_policy", "risk", "rating", "fund_size", "start_date",
+             "exchange_country", "domicile", "ask_eligible"]
+SNAPSHOT_ONLY = ["price", "spread_pct", "turnover", "yield_1y", "yield_3y", "yield_5y", "yield_10y",
+                 "raw_json"]
+REAL_COLS = ("fee", "total_fee", "number_of_owners", "fund_size", "rating", "risk")
 # Fields whose changes are logged in `changes`.
 TRACKED = ["isin", "symbol", "name", "currency", "clearing_place", "issuer_name", "category",
            "fee", "dividend_policy", "is_tradable"]
@@ -18,7 +20,7 @@ CREATE TABLE IF NOT EXISTS runs(
     run_id INTEGER PRIMARY KEY AUTOINCREMENT, run_at TEXT, total_hits INTEGER, n_found INTEGER,
     partial INTEGER DEFAULT 0, n_new INTEGER, n_gone INTEGER, n_reappeared INTEGER, n_changed INTEGER);
 CREATE TABLE IF NOT EXISTS etf_master(
-    instrument_id INTEGER PRIMARY KEY, {", ".join(c + " " + ("REAL" if c in ("fee", "number_of_owners", "fund_size", "rating") else "TEXT") for c in DATA_COLS)},
+    instrument_id INTEGER PRIMARY KEY, {", ".join(c + " " + ("REAL" if c in REAL_COLS else "TEXT") for c in DATA_COLS)},
     first_seen TEXT, last_seen TEXT, active INTEGER DEFAULT 1, delisted_at TEXT);
 CREATE TABLE IF NOT EXISTS etf_snapshot(
     run_id INTEGER, instrument_id INTEGER, {", ".join(c for c in DATA_COLS + SNAPSHOT_ONLY)},
@@ -47,6 +49,10 @@ def _migrate(conn):
     for c in DATA_COLS:
         if c not in have:
             conn.execute(f"ALTER TABLE etf_master ADD COLUMN {c}")
+    have = {r[1] for r in conn.execute("PRAGMA table_info(etf_snapshot)")}
+    for c in DATA_COLS + SNAPSHOT_ONLY:
+        if c not in have:
+            conn.execute(f"ALTER TABLE etf_snapshot ADD COLUMN {c}")
     have = {r[1] for r in conn.execute("PRAGMA table_info(runs)")}
     for c in ["partial", "n_new", "n_gone", "n_reappeared", "n_changed"]:
         if c not in have:
