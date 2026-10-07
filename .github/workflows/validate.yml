@@ -1,0 +1,31 @@
+name: validate
+on:
+  push:
+    branches: ["claude/**"]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - name: Probe data sources
+        run: python scripts/probe_sources.py
+      - name: Nordnet --max-pages 1 + field report
+        run: |
+          python scripts/fetch_nordnet.py --max-pages 1 --db /tmp/probe.db
+          python scripts/fetch_nordnet.py --from-file "$(ls data/raw/*/page_001.html.gz | head -1)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe
+          path: |
+            probe_page1.html
+            data/raw/
+          retention-days: 7
