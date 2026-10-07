@@ -1,0 +1,28 @@
+# Alle terskler og parametere for ETF-porteføljeverktøyet.
+# Endre her, ikke i koden.
+
+paths:
+  db: data/etf.db
+  raw_dir: data/raw            # rå-HTML lagres i data/raw/<YYYY-MM-DD>/page_NNN.html.gz
+  price_cache: data/prices     # Parquet-cache for priser og valutakurser
+  site_data: site/data
+
+nordnet:
+  url: https://www.nordnet.no/etf/liste
+  page_size: 100
+  delay_seconds: 1.5           # pause mellom sidekall
+  timeout_seconds: 45
+  retries: 4                   # forsøk per side, med økende ventetid
+  max_rounds: 3                # nye runder hvis antall < total_hits (listen kan flytte seg)
+  min_fraction_of_previous: 0.90   # sikkerhetssjekk: avbryt hvis færre enn 90 % av forrige aktive
+  raw_keep_months: 6           # behold rå-HTML for de siste N månedene (0 = behold alt)
+  # Ekstra URL-parametere, f.eks. for stabil sortering. Tom = Nordnets standard (1 års avkastning).
+  # Testes i fase 1 med ekte data: {sort_attribute: name, sort_order: asc}
+  list_params: {}
+
+account:
+  type: ASK                    # ASK eller ordinær (AF). Utenfor ASK vises skatteadvarsel.
+  # ASK tillater bare fond hjemmehørende i EØS. Utledes fra ISIN-landkoden.
+  ask_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE, IS, IT, LI,
+                  LT, LU, LV, MT, NL, NO, PL, PT, RO, SE, SI, SK]
+  prefer_accumulating: true    # foretrekk akkumulerende andelsklasse ved representantvalg
