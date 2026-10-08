@@ -95,3 +95,40 @@ universe:
   dist_fee_penalty: 0.10       # utdelende regnes som +0,10 pp avgift når prefer_accumulating (ASK)
   hysteresis_fee_pp: 0.05      # bytt bare representant hvis ny er minst 0,05 pp billigere (effektiv avgift)
   report_dir: data/universe
+
+optimize:
+  reference_isin: IE00B6R52259   # iShares MSCI ACWI (referanse og «markedet» i avkastningsprioren)
+  risk_free_rate: 0.040          # årlig risikofri rente i NOK (ca. 3 mnd NIBOR/statskasseveksler). Oppdater ved behov.
+  market_risk_premium: 0.045     # forventet årlig meravkastning for referansen utover risikofri
+  history_weight: 0.05           # vekt på historisk snitt; resten er prioren rf + beta * premie (krymping)
+  lookback_weeks: 260            # 5 år ukentlige data til kovarians/beta
+  smooth_days: 5                 # snitt av siste N dagskurser per uke (demper sluttkursstøy)
+  # Begrensninger
+  max_weight: 0.20
+  min_weight: 0.02               # vekter under dette settes til 0 (løses iterativt)
+  max_assets: 10
+  max_category_weight: 0.40      # tak per Nordnet-kategori (Morningstar)
+  max_portfolio_fee: null        # maks vektet årlig avgift i %, f.eks. 0.25 (null = av)
+  frontier_points: 50
+  # Kandidatsett for risk parity, HRP og bootstrap: aktiva med vekt et sted langs frontieren
+  candidate_frontier_points: 15
+  candidate_max: 40
+  # Usikkerhet
+  bootstrap_samples: 200
+  bootstrap_block_weeks: 8
+  bootstrap_frontier_points: 20
+  seed: 42
+  # Walk-forward backtest
+  backtest_start: "2014-01-01"
+  backtest_lookback_weeks: 156   # 3 år data ved hvert ombalanseringstidspunkt
+  backtest_reoptimize: QE        # beregn nye målvekter hvert kvartal
+  backtest_strategies: [max_sharpe, min_variance, risk_parity, hrp]
+  recommended: max_sharpe        # portefølje som vises som anbefalt
+  # Kostnader (sjekk Nordnets prisliste for kurtasjeklasse «Normal»)
+  portfolio_value_nok: 500000    # brukes for minstekurtasje i kostnadsberegningen
+  courtage_pct: 0.0015           # 0,15 % per handel
+  courtage_min_nok: 99
+  fx_fee_pct: 0.0025             # valutaveksling NOK->EUR/USD (0 med valutakonto)
+  default_spread_pct: 0.20       # brukes når Nordnet mangler spread (i %, hel spread; kostnad = halv)
+  rebalance_band_pp: 5           # avviksbasert: handle når en vekt avviker mer enn ±5 pp
+  rebalance_rules: [monthly, quarterly, annual, band]

@@ -5,3 +5,4 @@ numpy>=1.26
 scipy>=1.11
 pytest>=8.0
 pyarrow>=14
+pyportfolioopt>=1.5
