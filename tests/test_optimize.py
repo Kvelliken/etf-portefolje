@@ -140,3 +140,10 @@ def test_summarize():
     v = pd.Series([100, 110, 99, 121.0], index=pd.date_range("2020-01-03", periods=4, freq="365D"))
     s = bt.summarize(v)
     assert s["max_drawdown"] == pytest.approx(-0.1) and s["cagr"] == pytest.approx(1.21 ** (365.25 / 1095) - 1, rel=1e-3)
+
+
+def test_write_json_is_valid_json(tmp_path):
+    import json
+    from etfpf import export as ex
+    ex.write_json(tmp_path / "x.json", {"a": float("nan"), "b": [np.float64(1.5), np.inf, np.int64(2)], "c": None})
+    assert json.loads((tmp_path / "x.json").read_text()) == {"a": None, "b": [1.5, None, 2], "c": None}

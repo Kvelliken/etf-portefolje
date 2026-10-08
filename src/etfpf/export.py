@@ -31,9 +31,25 @@ def _r(x, nd=6):
     return x
 
 
+def _clean(o):
+    """Recursively make an object valid JSON: NaN/inf -> null, numpy scalars -> Python."""
+    if isinstance(o, dict):
+        return {str(k): _clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_clean(v) for v in o]
+    if isinstance(o, (float, np.floating)):
+        return None if not math.isfinite(float(o)) else float(o)
+    if isinstance(o, np.integer):
+        return int(o)
+    if o is pd.NA or o is pd.NaT:
+        return None
+    return o
+
+
 def write_json(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, ensure_ascii=False, separators=(",", ":"), default=_r), encoding="utf-8")
+    text = json.dumps(_clean(obj), ensure_ascii=False, separators=(",", ":"), default=_r, allow_nan=False)
+    path.write_text(text, encoding="utf-8")
 
 
 def load_meta(conn):
@@ -215,7 +231,7 @@ def run_backtest(model, cfg):
     start = min(t.index[0] for t in targets.values())
     refv = (1 + ret_raw[ref][ret_raw.index >= start].fillna(0)).cumprod() * cfg.get("portfolio_value_nok", 500000)
     series["reference"] = refv
-    table.append({"strategy": "reference", **bt.summarize(refv), "rule": "kjøp og hold", "costs_pct_per_year": 0.0})
+    table.append({"strategy": "reference", **bt.summarize(refv, cfg.get("risk_free_rate", 0.0)), "rule": "kjøp og hold", "costs_pct_per_year": 0.0})
     rec = cfg.get("recommended", "max_sharpe")
     freq = []
     for rule in cfg.get("rebalance_rules", ["monthly", "quarterly", "annual", "band"]):
@@ -323,6 +339,7 @@ def export_all(conn, model, bt_res, cfg, account, coverage, universe_report, out
 
     # universe.json (explorer)
     met = asset_metrics(prices, rf)
+    last_px = {c: prices[c].dropna() for c in prices.columns}
     rows = []
     for i, r in meta.iterrows():
         mrow = met.loc[i] if i in met.index else {}
@@ -334,8 +351,12 @@ def export_all(conn, model, bt_res, cfg, account, coverage, universe_report, out
                      "history_years": r["history_years"], "cagr": gm("cagr"), "vol": gm("vol"),
                      "sharpe": gm("sharpe"), "max_drawdown": gm("max_drawdown"),
                      "cluster_id": r["cluster_id"], "cluster_size": r["cluster_size"],
+                     "max_te_in_cluster": r["max_te_in_cluster"],
                      "is_representative": r["is_representative"], "eligible": r["eligible"], "reason": r["reason"],
-                     "nordnet_url": r.get("nordnet_url")})
+                     "nordnet_url": r.get("nordnet_url"),
+                     # Total-return series are scaled so the last value is the last close in NOK.
+                     "price_nok": float(last_px[i].iloc[-1]) if i in last_px and len(last_px[i]) else None,
+                     "price_date": str(last_px[i].index[-1].date()) if i in last_px and len(last_px[i]) else None})
     write_json(out / "universe.json", {"etfs": rows})
 
     # model.json: mu and covariance of all representatives (for "current portfolio" in the browser)

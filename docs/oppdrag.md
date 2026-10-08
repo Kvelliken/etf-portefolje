@@ -301,3 +301,25 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   årlig 14,1 % (0,19), avviksbasert ±5 pp 14,3 % (0,08 %/år, 2,5 handler/år).
 * Kostnader i config: kurtasje 0,15 % min 99 kr (sjekk Nordnets prisliste), valuta 0,25 %, halv spread
   fra Nordnet, porteføljeverdi 500 000 kr.
+
+## Status fase 5 (2026-10-08)
+
+* Statisk side i `site/` (index.html, style.css, app.js) som leser `site/data/*.json`. Lokal visning:
+  `python -m http.server -d site 8000` og åpne http://localhost:8000.
+* Biblioteker via jsDelivr med låste versjoner: plotly.js-dist-min@2.35.2, tabulator-tables@6.3.1
+  (cdnjs/jsDelivr er sperret fra containeren; versjonene er verifisert mot npm og testet lokalt).
+* Alle 10 seksjoner: nøkkeltall, frontier (bånd, representanter, markører, klikk for vekter), porteføljer
+  (velger, søyle + tabell med Nordnet-lenker, bootstrap-stabilitet), ombalansering (localStorage,
+  kr/andeler, nytt innskudd, «likeverdige» ETF-er i samme klynge, eksport/import JSON, ±5 pp-bånd,
+  nåværende portefølje som markør på frontieren via mu/kovarians fra model.json), risiko (korrelasjon,
+  risikobidrag mot vekt, under vann), backtest (log-akse, tabeller), utforsker (Tabulator, søk/filter,
+  klikk for alternativer i klyngen), endringslogg, datakvalitet, metode og forbehold.
+* Farger: faste kategoriske plasser per porteføljetype (validert med paletteskriptet, lys og mørk),
+  i tillegg unike markørsymboler og direkte etiketter (ikke farge alene). Lys/mørk modus følger OS
+  og kan overstyres (lagres i localStorage). Norsk tallformat (komma, mellomrom).
+* Testet med Playwright (Chromium) i lys/mørk og 1280/390 px: ingen konsollfeil, ingen horisontal
+  rulling av siden.
+* Rettet i eksporten underveis: NaN i JSON (nå `null`, `allow_nan=False`), Sharpe i backtesten trekker
+  nå fra risikofri rente, `price_nok` og `max_te_in_cluster` i universe.json.
+* Kjent: Yahoo lar ofte gårsdagens dagsbar stå tom tidlig om morgenen; flere kurser slutter derfor
+  06.10 selv om data går til 08.10. Neste inkrementelle henting (med overlapp) fyller hullet.

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ETF-portefølje</title>
+  <meta name="description" content="Automatisk utvalgt ETF-portefølje fra Nordnets ETF-liste: effisient frontier, anbefalte vekter, ombalansering, risiko og walk-forward backtest.">
+  <script>
+    // Theme before first paint: stored choice wins, otherwise the OS setting.
+    try { const t = localStorage.getItem("etfpf.theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/css/tabulator.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <h1>ETF-portefølje</h1>
+      <p class="muted" id="updated">Laster data …</p>
+    </div>
+    <nav class="nav" aria-label="Seksjoner">
+      <a href="#frontier">Frontier</a><a href="#portefolje">Portefølje</a><a href="#ombalansering">Ombalansering</a>
+      <a href="#risiko">Risiko</a><a href="#backtest">Backtest</a><a href="#utforsker">Utforsker</a>
+      <a href="#endringer">Endringer</a><a href="#kvalitet">Datakvalitet</a><a href="#metode">Metode</a>
+    </nav>
+    <button class="btn ghost" id="theme-toggle" type="button" aria-label="Bytt mellom lys og mørk modus">Mørk modus</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="load-error" class="notice critical" hidden></div>
+  <div id="tax-warning" class="notice warning" hidden></div>
+
+  <!-- 1. Nøkkeltall -->
+  <section id="nokkeltall" aria-labelledby="h-kpi">
+    <div class="section-head">
+      <h2 id="h-kpi">Anbefalt portefølje: <span id="kpi-label">–</span></h2>
+      <p class="muted">Modellens forventning (ikke en prognose) og historikk for dagens vekter.</p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <!-- 2. Frontier -->
+  <section id="frontier" aria-labelledby="h-frontier">
+    <div class="section-head">
+      <h2 id="h-frontier">Effisient frontier</h2>
+      <p class="muted">Hver grå prikk er en representant-ETF. Båndet viser 10.–90. persentil av frontieren over
+        <span id="boot-n">–</span> bootstrap-trekk. Klikk på frontierlinjen for å se vektene i et punkt.</p>
+    </div>
+    <div class="card"><div id="chart-frontier" class="chart chart-tall" role="img" aria-label="Effisient frontier"></div></div>
+    <div class="card" id="frontier-point" hidden>
+      <h3>Valgt punkt på frontieren</h3>
+      <p class="muted" id="frontier-point-stats"></p>
+      <div class="table-scroll"><table class="data" id="frontier-point-table"></table></div>
+    </div>
+  </section>
+
+  <!-- 3. Portefølje -->
+  <section id="portefolje" aria-labelledby="h-port">
+    <div class="section-head">
+      <h2 id="h-port">Porteføljer</h2>
+      <div class="segmented" id="port-select" role="tablist" aria-label="Porteføljetype"></div>
+    </div>
+    <div class="kpis small" id="port-kpis"></div>
+    <div class="grid-port">
+      <div class="card">
+        <h3>Vekter</h3>
+        <div id="chart-weights" class="chart" role="img" aria-label="Vekter i valgt portefølje"></div>
+      </div>
+      <div class="card">
+        <h3>Beholdning</h3>
+        <div class="table-scroll"><table class="data" id="port-table"></table></div>
+      </div>
+    </div>
+    <details class="card" id="stability-box">
+      <summary><h3>Hvor stabile er vektene? (bootstrap)</h3></summary>
+      <p class="muted" id="stability-note"></p>
+      <div class="table-scroll"><table class="data" id="stability-table"></table></div>
+    </details>
+  </section>
+
+  <!-- 4. Ombalansering -->
+  <section id="ombalansering" aria-labelledby="h-rebal">
+    <div class="section-head">
+      <h2 id="h-rebal">Ombalansering</h2>
+      <p class="muted">Beholdningene lagres bare i denne nettleseren (localStorage), aldri på serveren eller i repoet.</p>
+    </div>
+    <div class="card">
+      <div class="form-row">
+        <label>Målportefølje <select id="rebal-target"></select></label>
+        <label>Nytt innskudd (kr) <input id="rebal-cash" type="number" inputmode="decimal" min="0" step="100" value="0"></label>
+        <label class="check"><input id="rebal-equiv" type="checkbox" checked> Regn ETF-er i samme klynge som likeverdige</label>
+      </div>
+      <h3>Mine beholdninger</h3>
+      <datalist id="etf-options"></datalist>
+      <div id="holdings"></div>
+      <div class="form-row buttons">
+        <button class="btn" id="add-holding" type="button">Legg til ETF</button>
+        <button class="btn ghost" id="export-holdings" type="button">Eksporter (JSON)</button>
+        <label class="btn ghost file">Importer (JSON)<input id="import-holdings" type="file" accept="application/json,.json"></label>
+        <button class="btn ghost" id="clear-holdings" type="button">Tøm</button>
+      </div>
+    </div>
+    <div id="rebal-status" class="notice" hidden></div>
+    <div class="card">
+      <h3>Handler</h3>
+      <div class="table-scroll"><table class="data" id="rebal-table"></table></div>
+      <p class="muted small-text" id="rebal-note"></p>
+    </div>
+  </section>
+
+  <!-- 5. Risiko -->
+  <section id="risiko" aria-labelledby="h-risk">
+    <div class="section-head">
+      <h2 id="h-risk">Risiko i anbefalt portefølje</h2>
+      <p class="muted">Ukentlig avkastning i NOK siste 5 år. Risikobidrag summerer til 100 %.</p>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>Korrelasjon</h3><div id="chart-corr" class="chart" role="img" aria-label="Korrelasjonsmatrise"></div></div>
+      <div class="card"><h3>Risikobidrag mot vekt</h3><div id="chart-rc" class="chart" role="img" aria-label="Risikobidrag per ETF"></div></div>
+    </div>
+    <div class="card"><h3>Under vann (fall fra toppen)</h3><div id="chart-dd" class="chart" role="img" aria-label="Drawdown"></div></div>
+  </section>
+
+  <!-- 6. Backtest -->
+  <section id="backtest" aria-labelledby="h-bt">
+    <div class="section-head">
+      <h2 id="h-bt">Walk-forward backtest</h2>
+      <p class="muted" id="bt-note"></p>
+    </div>
+    <div class="card"><div id="chart-bt" class="chart chart-tall" role="img" aria-label="Kumulativ avkastning"></div></div>
+    <div class="grid-2">
+      <div class="card"><h3>Porteføljer etter kostnader</h3><div class="table-scroll"><table class="data" id="bt-table"></table></div></div>
+      <div class="card"><h3>Ombalanseringsfrekvens (anbefalt portefølje)</h3>
+        <div class="table-scroll"><table class="data" id="freq-table"></table></div>
+        <p class="muted small-text" id="cost-note"></p></div>
+    </div>
+  </section>
+
+  <!-- 7. Utforsker -->
+  <section id="utforsker" aria-labelledby="h-exp">
+    <div class="section-head">
+      <h2 id="h-exp">ETF-utforsker</h2>
+      <p class="muted">Alle aktive ETF-er hos Nordnet. Klikk på en rad for å se alternativer i samme klynge.</p>
+    </div>
+    <div class="form-row">
+      <label class="grow">Søk <input id="exp-search" type="search" placeholder="Navn, ticker eller ISIN"></label>
+      <label>Vis <select id="exp-filter">
+        <option value="all">Alle</option><option value="rep">Bare representanter</option>
+        <option value="eligible">Kvalifiserte</option><option value="multi">Klynger med flere</option></select></label>
+      <span class="muted" id="exp-count"></span>
+    </div>
+    <div id="explorer"></div>
+  </section>
+
+  <!-- 8. Endringer -->
+  <section id="endringer" aria-labelledby="h-chg">
+    <div class="section-head"><h2 id="h-chg">Endringslogg</h2></div>
+    <div class="grid-2">
+      <div class="card"><h3>Nordnet-listen per kjøring</h3><div id="changes-runs"></div></div>
+      <div class="card"><h3>Endrede vekter siden forrige kjøring</h3><div id="changes-weights"></div></div>
+    </div>
+  </section>
+
+  <!-- 9. Datakvalitet -->
+  <section id="kvalitet" aria-labelledby="h-q">
+    <div class="section-head"><h2 id="h-q">Datakvalitet</h2></div>
+    <div class="kpis small" id="quality"></div>
+  </section>
+
+  <!-- 10. Metode -->
+  <section id="metode" aria-labelledby="h-m">
+    <div class="section-head"><h2 id="h-m">Metode og forbehold</h2></div>
+    <div class="card prose" id="method"></div>
+  </section>
+</main>
+<footer class="wrap muted small-text">
+  Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.
+  Kilder: Nordnet (ETF-liste), Yahoo Finance (kurser), OpenFIGI (tickere), Norges Bank (valuta).
+</footer>
+</body>
+</html>

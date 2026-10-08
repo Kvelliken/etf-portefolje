@@ -164,7 +164,7 @@ def simulate(returns, targets, rule, cfg, spreads, start_value=None):
         values.append(holdings.sum() + cash)
     v = pd.Series(values, index=dates)
     years = max((dates[-1] - dates[0]).days / 365.25, 1e-9)
-    stats = summarize(v)
+    stats = summarize(v, cfg.get("risk_free_rate", 0.0))
     stats.update({"rule": rule, "costs_nok": round(costs), "costs_pct_per_year": cost_frac / years * 100,
                   "trades": n_trades, "trades_per_year": n_trades / years, "turnover_per_year": turnover / years})
     return v, stats

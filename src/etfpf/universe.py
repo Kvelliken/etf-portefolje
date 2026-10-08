@@ -236,7 +236,7 @@ def eligibility(u, cfg, account_type="ASK"):
         if not r.get("has_prices", True):
             why.append("mangler prisdata")
         elif (r["history_years"] or 0) < cfg["min_history_years"]:
-            why.append(f"historikk {r['history_years'] or 0:.1f} år < {cfg['min_history_years']}")
+            why.append(f"historikk {r['history_years'] or 0:.1f} år < {cfg['min_history_years']}".replace(".", ","))
         if not _truthy(r["is_tradable"]):
             why.append("ikke handlebar")
         if r["leveraged"]:
