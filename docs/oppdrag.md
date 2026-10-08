@@ -210,3 +210,15 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
 * Nordnet nås fra GitHubs servere (ingen blokkering). 2253 ETF-er, 2237 unike ISIN, alle i én runde.
 * Stabil sortering: `sortField=name&sortOrder=asc` (ikke `sort_attribute`).
 * Ekstra felt ligger under `fund_info.*` (avgift, kategori, utbytte, risiko, rating, fondsstørrelse, startdato). Det finnes ikke noe eget ASK-felt; ASK utledes fra ISIN-landkoden.
+
+## Notater for neste økt
+
+* Tester: `pip install -r requirements.txt && python -m pytest -q` (16 tester).
+* `.github/workflows/validate.yml` kjører tester + `scripts/probe_sources.py` + Nordnet-henting i GitHub Actions
+  ved push til `claude/**`-grener. Nyttig hvis containeren mangler nettilgang.
+* Kildene er bekreftet tilgjengelige fra GitHub Actions: Nordnet, Yahoo (query1/query2), OpenFIGI
+  (ISIN-oppslag for IE00B6R52259 ga bl.a. ISAC/LN), Norges Bank (SDMX-JSON). fc.yahoo.com gir 404 (normalt).
+* `data/etf.db` er ennå ikke committet (fase 1 er bare kjørt i Actions mot midlertidig db).
+* Nordnet-felt nyttige for fase 2/3: `market_info.identifier` (ticker), `nnx_info.display_slug`
+  (inneholder børs, f.eks. `...-flxk-xeta`), `exchange_info.exchange_country`, `fund_info.fund_start_date`.
+  Nesten alle noteringer er PERS_DE (Xetra/tysk, EUR); 26 er SEK på VPC, 1 DKK.
