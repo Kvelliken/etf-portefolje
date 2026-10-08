@@ -102,6 +102,17 @@ def build_model(conn, prices, cfg, account):
                                 cand_points=oc.get("candidate_frontier_points", 15),
                                 frontier_pts=oc.get("frontier_points", 50))
     weights = {k: pd.Series(w, index=invest) for k, w in res["portfolios"].items()}
+    # Target hysteresis against the previous build's weights (same rule as in the backtest).
+    prev_w, prev_at = previous_weights(conn)
+    kept = []
+    for k in weights:
+        if k in prev_w:
+            w = bt.keep_previous(k, prev_w[k], weights[k], mu, S, rf, oc)
+            if not np.allclose(w.reindex(invest).fillna(0).to_numpy(), weights[k].to_numpy()):
+                kept.append(k)
+            weights[k] = w.reindex(invest).fillna(0.0)
+    if kept:
+        log.info("Beholdt forrige målvekter (hysterese) for: %s", ", ".join(kept))
     cand = [invest[i] for i in res["candidates"]]
     log.info("Kandidatsett for risikoparitet/HRP/bootstrap: %d aktiva", len(cand))
 
@@ -122,9 +133,19 @@ def build_model(conn, prices, cfg, account):
                            "max_drawdown": float(op.drawdown(op.portfolio_series(prices, wref)).min()),
                            "fee": float(meta.at[ref, "fee"]) if ref in meta.index else None, "n": 1}
 
-    return {"meta": meta, "mu": mu, "S": S, "beta": beta_all[invest], "r": r, "weights": weights,
+    return {"kept_previous": kept, "previous_build": prev_at, "meta": meta, "mu": mu, "S": S, "beta": beta_all[invest], "r": r, "weights": weights,
             "stats": pstats, "frontier": res["frontier"], "candidates": cand, "boot": boot,
             "invest": invest, "con": con, "prices": prices, "R": R}
+
+
+def previous_weights(conn):
+    """{portfolio: weights Series} from the latest build in weights_history."""
+    conn.executescript(WEIGHTS_SCHEMA)
+    at = conn.execute("SELECT MAX(built_at) FROM weights_history").fetchone()[0]
+    if not at:
+        return {}, None
+    df = pd.read_sql_query("SELECT portfolio, isin, weight FROM weights_history WHERE built_at = ?", conn, params=(at,))
+    return {k: g.set_index("isin")["weight"] for k, g in df.groupby("portfolio")}, at
 
 
 def bootstrap_on(rb, ref, invest, oc, bcon, rf):
@@ -188,7 +209,7 @@ def run_backtest(model, cfg):
     spreads = meta["spread_pct"]
     series, table = {}, []
     for s, t in targets.items():
-        v, st = bt.simulate(ret_raw, t, "quarterly", cfg, spreads)
+        v, st = bt.simulate(ret_raw, t, cfg.get("backtest_rule", "band"), cfg, spreads)
         series[s] = v
         table.append({"strategy": s, **st})
     start = min(t.index[0] for t in targets.values())
@@ -263,7 +284,10 @@ def export_all(conn, model, bt_res, cfg, account, coverage, universe_report, out
                          "p90": float(np.percentile(col, 90)), "freq": float((col >= cfg.get("min_weight", 0.02)).mean()),
                          "model_weight": float(model["weights"][k].get(i, 0))})
         stab[k] = sorted(rows, key=lambda x: -x["mean"])
-    write_json(out / "stability.json", {"samples": len(model["boot"]["max_sharpe"]),
+    write_json(out / "stability.json", {
+        "note": "Bootstrap-vekter er uten minstevekt/maks antall og beregnet på kandidatsettet; "
+                "de viser hvor stabile vektene er, ikke en alternativ portefølje.",
+        "samples": len(model["boot"]["max_sharpe"]),
                                         "block_weeks": cfg.get("bootstrap_block_weeks"), "portfolios": stab})
 
     # risk.json (recommended portfolio)
@@ -287,7 +311,7 @@ def export_all(conn, model, bt_res, cfg, account, coverage, universe_report, out
     ser = bt_res["series"]
     idx = sorted(set().union(*[s.index for s in ser.values()]))
     write_json(out / "backtest.json", {
-        "rule_main": "quarterly", "recommended": bt_res["recommended"],
+        "rule_main": cfg.get("backtest_rule", "band"), "recommended": bt_res["recommended"],
         "dates": [str(d.date()) for d in idx],
         "series": {k: [float(x) if pd.notna(x) else None for x in (v / v.iloc[0]).reindex(idx)] for k, v in ser.items()},
         "labels": {k: LABELS.get(k, k) for k in ser},

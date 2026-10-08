@@ -268,3 +268,36 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   eiere → historikk. Hysterese 0,05 pp via forrige `universe`.
 * Observasjoner: STOXX 600 / MSCI Europe / FTSE Dev. Europe havner i samme klynge (TE < 0,9 %), og
   korte EUR-renter/pengemarked danner én kontantlignende klynge. `hedged` er bare informasjon.
+
+## Status fase 4 (2026-10-08)
+
+* `python scripts/build_site.py` (ca. 4,5 min: modell 2 min, walk-forward 2,5 min). Skriver
+  `site/data/`: summary, portfolios, frontier (50 punkter + bootstrap-bånd + alle representanter),
+  stability (bootstrap), risk (korrelasjon, risikobidrag, drawdown), backtest, universe (utforsker),
+  model (mu + kovarians for alle 722 representanter, 2,3 MB), changes, quality. Tester: 62.
+* Bibliotek: PyPortfolioOpt for Ledoit-Wolf; egen cvxpy-QP for alle porteføljer med begrensninger
+  (PyPortfolioOpts max_sharpe skalerer ikke egendefinerte begrensninger som avgiftstak); maks Sharpe
+  løses som én QP (y = k·w-transformasjon); egen ERC og egen HRP (PyPortfolioOpts HRPOpt virker ikke
+  med ny scipy).
+* Data: ukentlig avkastning i NOK (5-dagers snitt), siste 260 uker, Ledoit-Wolf.
+* Forventet avkastning: rf + beta·premie der beta kommer fra den krympede kovariansen mot ACWI
+  (likevektsprior; uten historikk er referansen selv tangentporteføljen). **history_weight = 0**:
+  walk-forward viste at 5 % historikk ga CAGR 11,0 % og 170 % omsetning/år (jakter forrige periodes
+  vinnere) mot 13,6–14,3 % med 0. Referansen brukes bare til prioren og er investerbar bare hvis den
+  er representant.
+* Begrensninger: maks 20 %/ETF, min 2 %, maks 10 ETF-er, maks 40 % per Nordnet-kategori, valgfritt
+  avgiftstak; min.vekt/maks antall løses iterativt. Risikoparitet/HRP/bootstrap kjøres på et
+  kandidatsett (aktiva med ≥ 1 % et sted langs frontieren, maks 40).
+* Hysterese for målvekter: behold forrige målvekter hvis Sharpe under nye estimater er høyst 0,05
+  lavere (andre: volatilitet høyst 5 % høyere). Brukes i walk-forward og mellom kjøringer
+  (tabell `weights_history`).
+* Resultat (anbefalt = maks Sharpe): 6 ETF-er (SPDR ACWI, Amundi World ex EMU, Xtrackers USA IT,
+  JPM US REI, Xtrackers MSCI USA, Fidelity US REI), forventet 8,9 %, vol 11,7 %, Sharpe 0,42,
+  avgift 0,17 %. Referanse: 8,5 %/10,1 %/0,45.
+* Walk-forward 2014-09 – 2026-10 (kvartalsvis nye målvekter, 3 års data, avviksbasert ombalansering,
+  etter kostnader): maks Sharpe 14,3 % CAGR / 13,4 % vol / −17,9 % maks fall; ACWI 14,3 / 13,6 / −19,1;
+  min. varians 5,5 / 6,7 / −7,9; risikoparitet 5,8 / 6,9; HRP 5,2 / 7,1.
+* Ombalanseringsfrekvens (anbefalt): månedlig 12,6 % (kostnad 1,42 %/år), kvartalsvis 13,6 % (0,53),
+  årlig 14,1 % (0,19), avviksbasert ±5 pp 14,3 % (0,08 %/år, 2,5 handler/år).
+* Kostnader i config: kurtasje 0,15 % min 99 kr (sjekk Nordnets prisliste), valuta 0,25 %, halv spread
+  fra Nordnet, porteføljeverdi 500 000 kr.

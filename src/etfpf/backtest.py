@@ -35,10 +35,34 @@ def target_weights(returns, meta, cfg, dates, strategies, ref_isin, investable=N
         res = compute_portfolios(m, Sv, con, rf, cfg, r, strategies,
                                  cand_points=max(4, cfg.get("candidate_frontier_points", 15) // 3))
         for s, w in res["portfolios"].items():
-            out[s][d] = pd.Series(w, index=assets)
+            new = pd.Series(w, index=assets)
+            prev = out[s][max(out[s])] if out[s] else None
+            out[s][d] = keep_previous(s, prev, new, mu[assets], S.loc[assets, assets], rf, cfg)
         if n % 8 == 0:
             log.info("Walk-forward: %d/%d datoer (%s, %d aktiva)", n, len(dates), d.date(), len(assets))
     return {s: pd.DataFrame(v).T.fillna(0.0).sort_index() for s, v in out.items() if v}
+
+
+def keep_previous(kind, prev, new, mu, S, rf, cfg):
+    """Target hysteresis: keep the previous target weights when they are still almost as good
+    under the new estimates (max Sharpe: Sharpe at most `target_hysteresis_sharpe` lower; other
+    portfolios: volatility at most `target_hysteresis_vol` higher, relative). Avoids paying
+    trading costs for changes that are within estimation noise. Returns the weights to use."""
+    if prev is None:
+        return new
+    p = prev.reindex(new.index).fillna(0.0)
+    if p.sum() < 0.98 or (prev[~prev.index.isin(new.index)] > 0).any():   # an asset disappeared
+        return new
+    p = p / p.sum()
+    pw, nw = p.to_numpy(), new.to_numpy()
+    m, Sv = mu.to_numpy(), S.to_numpy()
+    pr, pv, ps = op.perf(pw, m, Sv, rf)
+    nr, nv, ns = op.perf(nw, m, Sv, rf)
+    if kind == "max_sharpe":
+        tol = cfg.get("target_hysteresis_sharpe", 0.0)
+        return p if tol and ps >= ns - tol else new
+    tol = cfg.get("target_hysteresis_vol", 0.0)
+    return p if tol and pv <= nv * (1 + tol) else new
 
 
 def compute_portfolios(m, Sv, con, rf, cfg, r, strategies, cand_points=15, frontier_pts=None):
@@ -50,7 +74,8 @@ def compute_portfolios(m, Sv, con, rf, cfg, r, strategies, cand_points=15, front
         out["max_sharpe"] = op.sparse_weights("max_sharpe", m, Sv, con, rf, cfg)
     if "min_variance" in strategies:
         out["min_variance"] = op.sparse_weights("min_variance", m, Sv, con, rf, cfg)
-    fr = op.frontier(m, Sv, con, rf, frontier_pts or cand_points)
+    need_cand = any(s in strategies for s in ("risk_parity", "hrp")) or frontier_pts
+    fr = op.frontier(m, Sv, con, rf, frontier_pts or cand_points) if need_cand else []
     peak = np.max([p["w"] for p in fr], axis=0) if fr else np.zeros(len(m))
     for w in out.values():
         peak = np.maximum(peak, w)
@@ -96,7 +121,7 @@ def simulate(returns, targets, rule, cfg, spreads, start_value=None):
     tgt_dates = targets.index
     holdings = pd.Series(0.0, index=cols)        # NOK per asset
     cash = V0
-    values, costs, n_trades, turnover = [], 0.0, 0, 0.0
+    values, costs, cost_frac, n_trades, turnover = [], 0.0, 0.0, 0, 0.0
     band = cfg.get("rebalance_band_pp", 5) / 100
     last_target, last_trade_period = None, None
 
@@ -131,6 +156,7 @@ def simulate(returns, targets, rule, cfg, spreads, start_value=None):
             holdings = want_nok * (1 - c / total)
             cash = 0.0
             costs += c
+            cost_frac += c / total
             n_trades += nt
             last_target = tgt
             if rule != "band":
@@ -139,7 +165,7 @@ def simulate(returns, targets, rule, cfg, spreads, start_value=None):
     v = pd.Series(values, index=dates)
     years = max((dates[-1] - dates[0]).days / 365.25, 1e-9)
     stats = summarize(v)
-    stats.update({"rule": rule, "costs_nok": round(costs), "costs_pct_per_year": costs / V0 / years * 100,
+    stats.update({"rule": rule, "costs_nok": round(costs), "costs_pct_per_year": cost_frac / years * 100,
                   "trades": n_trades, "trades_per_year": n_trades / years, "turnover_per_year": turnover / years})
     return v, stats
 

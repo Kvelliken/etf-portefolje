@@ -100,7 +100,10 @@ optimize:
   reference_isin: IE00B6R52259   # iShares MSCI ACWI (referanse og «markedet» i avkastningsprioren)
   risk_free_rate: 0.040          # årlig risikofri rente i NOK (ca. 3 mnd NIBOR/statskasseveksler). Oppdater ved behov.
   market_risk_premium: 0.045     # forventet årlig meravkastning for referansen utover risikofri
-  history_weight: 0.05           # vekt på historisk snitt; resten er prioren rf + beta * premie (krymping)
+  # Vekt på historisk snitt; resten er prioren rf + beta * premie. Walk-forward 2014–2026 (fase 4):
+  # 0,05 ga CAGR 11,0 % og 170 % omsetning/år mot 13,6–15,8 % med 0 (historiske vinnere snur).
+  # 0 = ren likevektsprior (Black-Litterman uten synspunkter).
+  history_weight: 0.0
   lookback_weeks: 260            # 5 år ukentlige data til kovarians/beta
   smooth_days: 5                 # snitt av siste N dagskurser per uke (demper sluttkursstøy)
   # Begrensninger
@@ -124,6 +127,10 @@ optimize:
   backtest_reoptimize: QE        # beregn nye målvekter hvert kvartal
   backtest_strategies: [max_sharpe, min_variance, risk_parity, hrp]
   recommended: max_sharpe        # portefølje som vises som anbefalt
+  # Hysterese for målvekter (også mellom månedlige kjøringer): behold forrige målvekter hvis de under
+  # nye estimater har Sharpe høyst 0,05 lavere (andre porteføljer: volatilitet høyst 5 % høyere).
+  target_hysteresis_sharpe: 0.05
+  target_hysteresis_vol: 0.05
   # Kostnader (sjekk Nordnets prisliste for kurtasjeklasse «Normal»)
   portfolio_value_nok: 500000    # brukes for minstekurtasje i kostnadsberegningen
   courtage_pct: 0.0015           # 0,15 % per handel
@@ -132,3 +139,4 @@ optimize:
   default_spread_pct: 0.20       # brukes når Nordnet mangler spread (i %, hel spread; kostnad = halv)
   rebalance_band_pp: 5           # avviksbasert: handle når en vekt avviker mer enn ±5 pp
   rebalance_rules: [monthly, quarterly, annual, band]
+  backtest_rule: band            # regel for hovedgrafen i backtesten (band ga lavest kostnad 2014–2026)

@@ -84,7 +84,7 @@ def main():
     for i, x in w[w > 0].sort_values(ascending=False).items():
         print(f"  {x * 100:5.1f} %  {model['meta'].at[i, 'symbol']:8s} {model['meta'].at[i, 'name'][:60]}")
     if bt_res.get("table"):
-        print("\nWalk-forward (kvartalsvis ombalansering, etter kostnader):")
+        print(f"\nWalk-forward (ombalansering: {oc.get('backtest_rule', 'band')}, etter kostnader):")
         for t in bt_res["table"]:
             print(f"  {ex.LABELS.get(t['strategy'], t['strategy']):16s} CAGR {pct(t['cagr'])}  vol {pct(t['vol'])}  "
                   f"maks fall {pct(t['max_drawdown'])}  ({t['start']} – {t['end']})")
