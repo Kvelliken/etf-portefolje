@@ -243,3 +243,28 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   gikk fra 177 til 74 ETF-er (resten er hovedsakelig 2008, krypto, giret/invers, VIX). Fase 3 bør bruke
   robuste ukeavkastninger.
 * `prices.nok_prices(conn, store, fx)` gir bred DataFrame (dato x ISIN) med justerte kurser i NOK.
+
+## Status fase 3 (2026-10-08)
+
+* `python scripts/build_universe.py` (ca. 1,5 min). Tabeller `universe` og `universe_history` i etf.db,
+  rapport i `data/universe/clusters.csv` (alle klynger > 1 medlem) og `data/universe/report.json`
+  (oppsummering, tersklsensitivitet, navnekontroll, akseptansetester). Tester: 47.
+* Lag 1: én notering per ISIN (handlebar, valuta NOK > EUR > SEK ..., lavest spread). Eiere summeres
+  over noteringer.
+* Lag 2, avvik fra oppdraget (begrunnet i data): TE beregnes på **månedlig** avkastning i NOK der
+  månedsslutt-kursen er **snitt av siste 5 dagskurser**, over **siste 60 måneder**, og
+  **robust** (differansen vinsoriseres ved median ± 4·MAD-sigma). Ukentlige sluttkurser ga falsk TE på
+  2–10 % for samme indeks pga. støy: valuta fastsatt 14:15 mot sluttkurs 17:30 for noteringer i ulik
+  valuta, premie/rabatt mot NAV for asiatiske markeder og gamle feilkurser. Med metoden over:
+  samme indeks 0,1–0,85 %, ulike indekser fra 1,2 % (EM/EM IMI 1,2, World/ACWI 1,3,
+  FTSE/MSCI Korea 1,45, S&P 500/World 2,9). **Terskel 1,0 %** (0,75 % splitter MSCI Korea-ETF-ene,
+  par 0,72–0,86 %). Min. 12 felles måneder for å kunne slå sammen.
+* Resultat ved 1,0 %: 1450 klynger (313 med > 1 medlem). Sensitivitet: 0,5 % → 1700, 0,75 % → 1563,
+  1,25 % → 1366 klynger. Akseptansetester: alle OK (MSCI Korea, MSCI Taiwan samlet; S&P 500 og
+  MSCI World aldri sammen, Core S&P 500/Core World TE 2,9 %).
+* Lag 3: 1149 kvalifiserte (krav: handlebar, ≥ 5 års renset historikk, ikke giret/invers/«Trading Tools»,
+  ASK), 722 representanter (244 fra klynger med flere medlemmer). Ikke kvalifisert: 1050 for kort
+  historikk, 53 giret/invers. Rangering: effektiv avgift (utdelende +0,10 pp på ASK) → fondsstørrelse →
+  eiere → historikk. Hysterese 0,05 pp via forrige `universe`.
+* Observasjoner: STOXX 600 / MSCI Europe / FTSE Dev. Europe havner i samme klynge (TE < 0,9 %), og
+  korte EUR-renter/pengemarked danner én kontantlignende klynge. `hedged` er bare informasjon.
