@@ -1,12 +1,18 @@
 name: validate
+# Tester ved push til arbeidsgrener. Datakildene kan probes manuelt (workflow_dispatch).
 on:
   push:
     branches: ["claude/**"]
   workflow_dispatch:
+    inputs:
+      probe:
+        description: "Kjør også probe av datakildene og en Nordnet-side"
+        type: boolean
+        default: false
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -15,43 +21,8 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m pytest -q
-      - name: Probe data sources
-        run: python scripts/probe_sources.py
-      - name: Nordnet --max-pages 1 + field report
+      - name: Probe datakilder
+        if: inputs.probe == true
         run: |
-          python scripts/fetch_nordnet.py --max-pages 1 --db /tmp/probe.db
-          python scripts/fetch_nordnet.py --from-file "$(ls data/raw/*/page_001.html.gz | head -1)"
-      - name: Full Nordnet run + stats
-        run: |
-          python scripts/fetch_nordnet.py --db /tmp/full.db
-          python - <<'PY'
-          import sqlite3, collections
-          c = sqlite3.connect("/tmp/full.db")
-          q = lambda s: c.execute(s).fetchall()
-          print("runs:", q("SELECT run_id,total_hits,n_found,partial FROM runs"))
-          print("aktive:", q("SELECT COUNT(*), COUNT(DISTINCT isin), SUM(ask_eligible) FROM etf_master"))
-          print("ASK-unike ISIN:", q("SELECT COUNT(DISTINCT isin) FROM etf_master WHERE ask_eligible=1"))
-          print("domisil:", q("SELECT domicile, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
-          print("valuta:", q("SELECT currency, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
-          print("børs:", q("SELECT clearing_place, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
-          print("fund_type:", q("SELECT fund_type, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
-          print("utbytte:", q("SELECT dividend_policy, COUNT(*) FROM etf_master GROUP BY 1 ORDER BY 2 DESC"))
-          print("kategorier:", q("SELECT COUNT(DISTINCT category) FROM etf_master"))
-          print("startdato >5 år:", q("SELECT COUNT(*) FROM etf_master WHERE start_date <= date('now','-5 years')"))
-          cols = [r[1] for r in q("PRAGMA table_info(etf_master)")]
-          n = q("SELECT COUNT(*) FROM etf_master")[0][0]
-          for col in cols:
-              print(f"  {col:22s} {q(f'SELECT COUNT({col}) FROM etf_master')[0][0]}/{n}")
-          print("ACWI:", q("SELECT instrument_id,symbol,currency,clearing_place,fee,start_date FROM etf_master WHERE isin='IE00B6R52259'"))
-          print("dupl. ISIN eks:", q("SELECT isin, GROUP_CONCAT(symbol||'/'||currency||'/'||clearing_place) FROM etf_master GROUP BY isin HAVING COUNT(*)>1 LIMIT 8"))
-          PY
-      - name: Ticker-mapping + priser (liten test)
-        run: python scripts/build_prices.py --db /tmp/full.db --limit 25
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: probe
-          path: |
-            probe_page1.html
-            data/raw/
-          retention-days: 7
+          python scripts/probe_sources.py
+          python scripts/fetch_nordnet.py --max-pages 1 --db /tmp/probe.db --no-raw

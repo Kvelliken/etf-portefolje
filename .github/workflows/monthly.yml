@@ -1,0 +1,109 @@
+name: monthly
+# Månedlig oppdatering: Nordnet -> priser -> univers -> optimering/JSON -> commit -> GitHub Pages.
+# Kjører første virkedag i måneden ca. kl. 06 UTC, og manuelt (workflow_dispatch).
+# Feiler et steg (sikkerhetssjekken mot Nordnet, for mange Yahoo-feil osv.), blir ingenting
+# committet eller publisert, og GitHub sender e-post om feilet kjøring.
+on:
+  schedule:
+    - cron: "17 6 1-3 * *"     # 1.–3. i måneden; steget «Første virkedag?» hopper over resten
+  workflow_dispatch:
+    inputs:
+      skip_nordnet:
+        description: "Hopp over Nordnet-henting (bruk data/etf.db i repoet, f.eks. hentet lokalt)"
+        type: boolean
+        default: false
+      full_prices:
+        description: "Hent hele prishistorikken på nytt (tregt)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: monthly
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      run: ${{ steps.weekday.outputs.run }}
+    steps:
+      - name: Første virkedag?
+        id: weekday
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          d=$(date -u +%-d); w=$(date -u +%u)   # w: 1=man … 7=søn
+          # Første virkedag: den 1. hvis man–fre, ellers mandag den 2. eller 3.
+          if { [ "$d" = 1 ] && [ "$w" -le 5 ]; } || { [ "$w" = 1 ] && [ "$d" -le 3 ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"; echo "Ikke første virkedag – hopper over."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.weekday.outputs.run == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.weekday.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Installer avhengigheter
+        if: steps.weekday.outputs.run == 'true'
+        run: pip install -r requirements.txt
+      - name: Tester
+        if: steps.weekday.outputs.run == 'true'
+        run: python -m pytest -q
+      - name: Hent Nordnet
+        if: steps.weekday.outputs.run == 'true' && inputs.skip_nordnet != true && vars.SKIP_NORDNET != 'true'
+        run: python scripts/fetch_nordnet.py
+      - name: Ticker-mapping og priser
+        if: steps.weekday.outputs.run == 'true'
+        env:
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+        run: python scripts/build_prices.py ${{ inputs.full_prices == true && '--full' || '' }}
+      - name: Univers (klynger og representanter)
+        if: steps.weekday.outputs.run == 'true'
+        run: python scripts/build_universe.py
+      - name: Optimering, backtest og JSON
+        if: steps.weekday.outputs.run == 'true'
+        run: python scripts/build_site.py
+      - name: Commit data og side
+        id: commit
+        if: steps.weekday.outputs.run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ site/data/
+          if git diff --cached --quiet; then
+            echo "Ingen endringer å committe."
+          else
+            msg=$(python - <<'PY'
+          import json, os, datetime
+          p = "data/last_fetch.json"
+          d = json.load(open(p)) if os.path.exists(p) else {}
+          today = datetime.date.today().isoformat()
+          if os.environ.get("SKIPPED") == "true" or not d:
+              print(f"Månedlig oppdatering {today} (Nordnet hoppet over)")
+          else:
+              print(f"Månedlig oppdatering {today}: {d.get('n_found')} ETF-er, {d.get('new')} nye, "
+                    f"{d.get('gone')} utgått, {d.get('reappeared')} tilbake, {d.get('changed')} feltendringer")
+          PY
+            )
+            git commit -m "$msg"
+            git push
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          SKIPPED: ${{ inputs.skip_nordnet == true || vars.SKIP_NORDNET == 'true' }}
+
+  pages:
+    needs: update
+    if: needs.update.outputs.run == 'true'
+    uses: ./.github/workflows/pages.yml
+    with:
+      ref: ${{ needs.update.outputs.sha }}

@@ -1,0 +1,49 @@
+name: pages
+# Publiserer site/ til GitHub Pages. Kalles fra monthly.yml (pusher gjort med GITHUB_TOKEN
+# starter ikke andre workflows), og kjøres ved push til main som endrer site/.
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Commit som skal publiseres"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - name: Sjekk at sidedata finnes
+        run: |
+          for f in summary portfolios frontier universe model backtest; do
+            test -s "site/data/$f.json" || { echo "::error::site/data/$f.json mangler"; exit 1; }
+          done
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
