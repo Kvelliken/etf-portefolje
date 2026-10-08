@@ -323,3 +323,21 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   nå fra risikofri rente, `price_nok` og `max_te_in_cluster` i universe.json.
 * Kjent: Yahoo lar ofte gårsdagens dagsbar stå tom tidlig om morgenen; flere kurser slutter derfor
   06.10 selv om data går til 08.10. Neste inkrementelle henting (med overlapp) fyller hullet.
+
+## Status fase 6 (2026-10-08)
+
+* `.github/workflows/monthly.yml`: cron `17 6 1-3 * *` + steg som bare slipper gjennom første virkedag
+  (manuell kjøring går alltid). Tester → Nordnet (hoppes over med input `skip_nordnet` eller
+  repo-variabel `SKIP_NORDNET=true`) → priser → univers → site → commit av `data/` og `site/data/`
+  med melding om nye/utgåtte → kaller `pages.yml` med commit-SHA. `concurrency`, pip-cache,
+  priscachen ligger i repoet. Feiler et steg, committes/publiseres ingenting (GitHub sender e-post).
+* `.github/workflows/pages.yml`: publiserer `site/` (upload-pages-artifact + deploy-pages), ved push
+  til main som endrer `site/`, manuelt eller kalt fra monthly. Verifiserer etterpå at siden,
+  `data/summary.json` og CDN-bibliotekene svarer.
+* `.github/workflows/validate.yml`: tester ved push til `claude/**`; probe av kilder ved manuell kjøring.
+* Fallback: `make local-nordnet` (`scripts/local_nordnet.sh`) henter Nordnet lokalt, pusher bare
+  `data/etf.db`, rå-HTML og `data/last_fetch.json`, og starter monthly med `skip_nordnet=true` (via `gh`).
+* Første manuelle kjøring 2026-10-08 (run 37772752348): alt grønt på ca. 11 min (Nordnet 1 min,
+  priser 4 min, univers 0,5 min, site 4,5 min). Commit `afe9b1d`, Pages publisert til
+  https://kvelliken.github.io/etf-portefolje/ (Pages aktivert av eier med kilde «GitHub Actions»).
+* Valgfritt: repo-secret `OPENFIGI_API_KEY` gir raskere OpenFIGI-oppslag.

@@ -24,10 +24,10 @@ from etfpf.config import load_config, resolve  # noqa: E402
 
 # Acceptance tests (section 4). Names are used here only to pick test cases, never for clustering.
 SAME_CLUSTER = {"MSCI Korea": r"\bmsci korea\b", "MSCI Taiwan": r"\bmsci taiwan\b"}
-NOT_TOGETHER = [("S&P 500", r"\bs&p 500\b(?!.*(equal|esg|screened|scored|paris|climate|swap|value|growth|"
+NOT_TOGETHER = [("S&P 500", r"\bs&p 500\b(?!.*(?:equal|esg|screened|scored|paris|climate|swap|value|growth|"
                  r"dividend|momentum|quality|sector|ex\b|top|covered|buffer|information|financial|"
                  r"health|energy|industrial|consumer|utilit|material|communication|real estate))"),
-                ("MSCI World", r"\bmsci world\b(?!.*(esg|sri|screened|paris|climate|ex\b|small|value|"
+                ("MSCI World", r"\bmsci world\b(?!.*(?:esg|sri|screened|paris|climate|ex\b|small|value|"
                  r"growth|momentum|quality|min|dividend|sector|equal|islamic|information|financial|"
                  r"health|energy|industrial|consumer|utilit|material|communication|real estate|"
                  r"select|enhanced|universal|socially))")]
