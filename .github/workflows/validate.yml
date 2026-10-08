@@ -45,6 +45,8 @@ jobs:
           print("ACWI:", q("SELECT instrument_id,symbol,currency,clearing_place,fee,start_date FROM etf_master WHERE isin='IE00B6R52259'"))
           print("dupl. ISIN eks:", q("SELECT isin, GROUP_CONCAT(symbol||'/'||currency||'/'||clearing_place) FROM etf_master GROUP BY isin HAVING COUNT(*)>1 LIMIT 8"))
           PY
+      - name: Ticker-mapping + priser (liten test)
+        run: python scripts/build_prices.py --db /tmp/full.db --limit 25
       - uses: actions/upload-artifact@v4
         if: always()
         with:
