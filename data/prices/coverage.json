@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-08T07:22:02+00:00",
+ "generated": "2026-10-08T11:55:53+00:00",
  "active_isins": 2237,
  "ask_eligible_isins": 2237,
  "mapped_isins": 2237,
@@ -35,7 +35,7 @@
  "last_price_date": "2026-10-08",
  "cleaning": {
   "isins_with_removed_points": 132,
-  "removed_points": 968,
+  "removed_points": 969,
   "isins_trimmed": 125,
   "trimmed_points": 90065
  }
