@@ -83,8 +83,10 @@ def main():
     fx = pr.update_fx(root, currencies, pcfg, yahoo=yahoo)
     print(f"Valuta ({pcfg.get('fx_source')}): {sorted(set(fx['currency']))}, siste {fx['date'].max()}")
 
-    nok = pr.nok_prices(conn, store, fx, pcfg.get("spike_ratio", 3.0))
-    cov = pr.coverage(conn, nok, pcfg.get("min_years_report", [1, 3, 5, 10]))
+    quality = {}
+    nok = pr.nok_prices(conn, store, fx, pcfg.get("spike_ratio", 1.3), pcfg.get("jump_ratio", 1.3),
+                        quality=quality)
+    cov = pr.coverage(conn, nok, pcfg.get("min_years_report", [1, 3, 5, 10]), quality=quality)
     (root / "coverage.json").write_text(json.dumps(cov, indent=1, ensure_ascii=False), encoding="utf-8")
     print("\nDekning:")
     print(json.dumps(cov, indent=1, ensure_ascii=False))

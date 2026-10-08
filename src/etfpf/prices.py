@@ -254,14 +254,51 @@ def update_fx(root, currencies, cfg, yahoo=None, get=requests.get):
 
 # ---------------------------------------------------------------- series
 
-def clean_closes(s, spike_ratio=3.0):
-    """Drop isolated bad ticks: points deviating more than spike_ratio from a centred median."""
-    s = s[s > 0].dropna()
+def clean_closes(s, spike_ratio=1.3, window=21, unit_fix=True, passes=2):
+    """Remove bad ticks from a Yahoo close series.
+
+    1. 100x unit flips (GBp/GBP on London listings): a point near 100x or 1/100x the local
+       median is rescaled rather than dropped.
+    2. Bad prints / short false regimes: a point is dropped when it deviates by more than
+       `spike_ratio` from BOTH the median of the previous `window` and of the next `window`
+       observations. A genuine crash stays at its new level, so it is close to the forward
+       median and is kept; a print that jumps away and comes back is removed.
+    """
+    s = s[s > 0].dropna().astype(float)
     if len(s) < 5 or not spike_ratio:
         return s
-    med = s.rolling(7, center=True, min_periods=1).median()
-    ratio = s / med
-    return s[(ratio < spike_ratio) & (ratio > 1 / spike_ratio)]
+    if unit_fix:
+        med = s.rolling(2 * window + 1, center=True, min_periods=1).median()
+        r = s / med
+        s = s.where(~r.between(80, 125), s / 100).where(~r.between(0.008, 0.0125), s * 100)
+    for _ in range(passes):
+        if len(s) < 5:
+            break
+        back = s.shift(1).rolling(window, min_periods=1).median()
+        fwd = s[::-1].shift(1).rolling(window, min_periods=1).median()[::-1]
+        out = lambda m: ((s / m) > spike_ratio) | ((s / m) < 1 / spike_ratio)
+        bad = out(back).fillna(False) & out(fwd).fillna(False)
+        # First/last points have only one side: judge them by that side alone.
+        bad.iloc[0] = bool(out(fwd).iloc[0])
+        bad.iloc[-1] = bool(out(back).iloc[-1])
+        if not bad.any():
+            break
+        s = s[~bad]
+    return s
+
+
+def trim_after_jumps(s, jump_ratio=1.3):
+    """Cut the history before the last daily jump larger than `jump_ratio` (either way) that
+    survived cleaning. Such jumps in an ETF are almost always data errors (currency/unit
+    mix-ups, false price levels); a shorter clean history is better than a longer dirty one.
+    Returns (series, number of jumps found)."""
+    if not jump_ratio or len(s) < 3:
+        return s, 0
+    g = s / s.shift(1)
+    jumps = g[(g > jump_ratio) | (g < 1 / jump_ratio)]
+    if jumps.empty:
+        return s, 0
+    return s[s.index >= jumps.index[-1]], len(jumps)
 
 
 def total_return_index(close, divs=None):
@@ -281,11 +318,16 @@ def total_return_index(close, divs=None):
     return idx * close.iloc[-1] / idx.iloc[-1]
 
 
-def nok_series(close, divs, fx, currency, spike_ratio=3.0):
-    """Adjusted (total return) price series in NOK for one ticker. None if FX is missing."""
+def nok_series(close, divs, fx, currency, spike_ratio=1.3, jump_ratio=1.3, stats=None):
+    """Adjusted (total return) price series in NOK for one ticker. None if FX is missing.
+    `stats` (dict) receives cleaning counts: removed points and jumps that caused trimming."""
     if close is None or close.empty:
         return None
     c = clean_closes(close, spike_ratio)
+    c2, n_jumps = trim_after_jumps(c, jump_ratio)
+    if stats is not None:
+        stats.update(removed=len(close) - len(c), jumps=n_jumps, trimmed=len(c) - len(c2))
+    c = c2
     tr = total_return_index(c, divs) * currency_unit(currency)[1]
     cur = currency_unit(currency)[0]
     if cur == "NOK":
@@ -298,14 +340,18 @@ def nok_series(close, divs, fx, currency, spike_ratio=3.0):
     return out if len(out) else None
 
 
-def nok_prices(conn, store, fx, spike_ratio=3.0, isins=None):
-    """Wide DataFrame (date x ISIN) of adjusted prices in NOK for all mapped ISINs."""
+def nok_prices(conn, store, fx, spike_ratio=1.3, jump_ratio=1.3, isins=None, quality=None):
+    """Wide DataFrame (date x ISIN) of adjusted prices in NOK for all mapped ISINs.
+    `quality` (dict) receives {isin: cleaning stats}."""
     series = store.series()
     cols = {}
     for isin, (ticker, cur) in tk.chosen_tickers(conn).items():
         if (isins is not None and isin not in isins) or ticker not in series:
             continue
-        s = nok_series(*series[ticker], fx, cur, spike_ratio)
+        st = {}
+        s = nok_series(*series[ticker], fx, cur, spike_ratio, jump_ratio, stats=st)
+        if quality is not None:
+            quality[isin] = st
         if s is not None:
             cols[isin] = s
     df = pd.DataFrame(cols)
@@ -315,14 +361,14 @@ def nok_prices(conn, store, fx, spike_ratio=3.0, isins=None):
 
 # ---------------------------------------------------------------- coverage
 
-def coverage(conn, prices, years=(1, 3, 5, 10), today=None):
+def coverage(conn, prices, years=(1, 3, 5, 10), today=None, quality=None):
     """Coverage report as a dict."""
     tk.ensure_schema(conn)
     today = pd.Timestamp(today or date.today())
     q = lambda s: conn.execute(s).fetchone()[0]
     n_isin = q("SELECT COUNT(DISTINCT isin) FROM etf_master WHERE active=1")
     n_mapped = q("SELECT COUNT(DISTINCT isin) FROM ticker_map WHERE chosen=1 AND ok=1")
-    first = prices.apply(lambda s: s.first_valid_index())
+    first = prices.apply(lambda s: s.first_valid_index()) if prices.shape[1] else pd.Series(dtype=object)
     hist = {f"min_{y}y": int((first <= today - pd.DateOffset(years=y)).sum()) for y in years}
     by_source = dict(conn.execute(
         "SELECT source, COUNT(*) FROM ticker_map WHERE chosen=1 AND ok=1 GROUP BY 1 ORDER BY 2 DESC").fetchall())
@@ -336,4 +382,8 @@ def coverage(conn, prices, years=(1, 3, 5, 10), today=None):
             "with_prices": int(prices.shape[1]), "coverage_pct": round(100 * prices.shape[1] / max(n_isin, 1), 1),
             "history": hist, "by_source": by_source,
             "by_suffix": dict(sorted(by_suffix.items(), key=lambda kv: -kv[1])),
-            "last_price_date": str(prices.index.max().date()) if len(prices) else None}
+            "last_price_date": str(prices.index.max().date()) if len(prices) else None,
+            "cleaning": {"isins_with_removed_points": sum(1 for q in (quality or {}).values() if q.get("removed")),
+                         "removed_points": sum(q.get("removed", 0) for q in (quality or {}).values()),
+                         "isins_trimmed": sum(1 for q in (quality or {}).values() if q.get("jumps")),
+                         "trimmed_points": sum(q.get("trimmed", 0) for q in (quality or {}).values())}}

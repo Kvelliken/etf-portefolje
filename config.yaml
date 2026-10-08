@@ -58,5 +58,10 @@ prices:
   overlap_days: 14             # hent litt bakover ved inkrementell oppdatering
   fx_source: norges_bank       # norges_bank eller yahoo (EURNOK=X osv.)
   fx_start: "1999-01-01"
-  spike_ratio: 3.0             # fjern enkeltpunkter som avviker mer enn faktor 3 fra lokal median
+  # Fjern kurser som avviker mer enn faktor spike_ratio fra BÅDE medianen av de 10 foregående og
+  # de 10 neste kursene (feilkurser og korte falske nivåer). 100x-hopp (GBp/GBP) rettes.
+  spike_ratio: 1.3
+  # Gjenstående døgnhopp større enn faktor jump_ratio regnes som datafeil: historikken før siste
+  # slike hopp kuttes (kortere, ren historikk er bedre enn lengre, skitten). 0 = av.
+  jump_ratio: 1.3
   min_years_report: [1, 3, 5, 10]   # historikklengder i dekningsrapporten

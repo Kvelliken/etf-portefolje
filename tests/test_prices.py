@@ -52,9 +52,9 @@ def test_total_return_index():
 
 def test_clean_closes_removes_spike():
     idx = pd.date_range("2026-01-01", periods=10).date
-    s = pd.Series([10, 10.1, 10.2, 1000, 10.1, 10.0, 0, 10.2, 10.3, 10.1], index=idx, dtype=float)
-    out = pr.clean_closes(s, 3.0)
-    assert 1000 not in out.values and 0 not in out.values and len(out) == 8
+    s = pd.Series([10, 10.1, 10.2, 500, 10.1, 10.0, 0, 10.2, 10.3, 10.1], index=idx, dtype=float)
+    out = pr.clean_closes(s, 1.3)
+    assert 500 not in out.values and 0 not in out.values and len(out) == 8
 
 
 def test_norges_bank_csv_unit_mult():
@@ -160,3 +160,24 @@ def test_nok_prices_and_coverage(tmp_path):
     cov = pr.coverage(conn, nok)
     assert cov["active_isins"] == 2 and cov["with_prices"] == 1 and cov["coverage_pct"] == 50.0
     assert cov["history"]["min_5y"] == 1 and cov["history"]["min_10y"] == 0
+
+
+def test_clean_closes_keeps_crash_removes_false_regime_and_fixes_units():
+    idx = pd.bdate_range("2026-01-01", periods=80).date
+    base = np.full(80, 100.0)
+    base[40:] = 60.0                       # genuine crash that stays: kept
+    s = pd.Series(base, index=idx)
+    s.iloc[10:14] = 150.0                  # 4-day false level: removed
+    s.iloc[60] = 6000.0                    # 100x unit flip: rescaled
+    out = pr.clean_closes(s, 1.3)
+    assert 150.0 not in out.values
+    assert out.loc[idx[60]] == pytest.approx(60.0)
+    assert (out.loc[idx[40]:] == 60.0).all() and len(out) == 76
+
+
+def test_trim_after_jumps():
+    idx = pd.bdate_range("2026-01-01", periods=6).date
+    s = pd.Series([10, 10.1, 20, 20.2, 20.1, 20.3], index=idx)
+    out, n = pr.trim_after_jumps(s, 1.3)
+    assert n == 1 and out.index[0] == idx[2] and len(out) == 4
+    assert pr.trim_after_jumps(s, 0)[0] is s

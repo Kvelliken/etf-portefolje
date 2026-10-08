@@ -218,7 +218,28 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   ved push til `claude/**`-grener. Nyttig hvis containeren mangler nettilgang.
 * Kildene er bekreftet tilgjengelige fra GitHub Actions: Nordnet, Yahoo (query1/query2), OpenFIGI
   (ISIN-oppslag for IE00B6R52259 ga bl.a. ISAC/LN), Norges Bank (SDMX-JSON). fc.yahoo.com gir 404 (normalt).
-* `data/etf.db` er ennå ikke committet (fase 1 er bare kjørt i Actions mot midlertidig db).
+* `data/etf.db` er committet (første fulle kjøring 2026-10-08, lokalt i container).
 * Nordnet-felt nyttige for fase 2/3: `market_info.identifier` (ticker), `nnx_info.display_slug`
   (inneholder børs, f.eks. `...-flxk-xeta`), `exchange_info.exchange_country`, `fund_info.fund_start_date`.
   Nesten alle noteringer er PERS_DE (Xetra/tysk, EUR); 26 er SEK på VPC, 1 DKK.
+
+## Status fase 2 (2026-10-08)
+
+* `python scripts/build_prices.py` (ca. 25 min første gang, ~7600 Yahoo-kall; senere bare manglende/gamle
+  mappinger + inkrementelle priser). Tester: 36.
+* Ticker-mapping (`ticker_map`): kandidater fra Nordnet-symbol + børs fra `display_slug` (xeta -> .DE),
+  Yahoo-søk på ISIN og OpenFIGI (bare for ISIN-er der ingen kandidat dekker fondets startdato; 70 stk.).
+  Hver kandidat sjekkes med månedskurser; flest måneder med kurs og fersk siste kurs vinner.
+* Dekning: 2237/2237 ISIN-er har ticker og priser (100 %). Historikk etter rensing: ≥1 år 1921,
+  ≥3 år 1514, ≥5 år 1187, ≥10 år 642. Valgt kilde: nordnet 969, nordnet+yahoo_search 804,
+  yahoo_search 419, openfigi 45. Børs: .DE 1767, .L 194, .PA 106, .AS 71, .MI 45, øvrige 54.
+  Yahoo har lite Xetra-dagsdata før 2008. Navnekontroll: 6 av 2237 avviker mye, alle ser ut som omdøpte fond.
+* Priser: Parquet i `data/prices/` (close_<år>, dividends, fx; ca. 14 MB). Lagrer splittjustert sluttkurs
+  + utbytte og beregner totalavkastning selv (stemmer med Yahoos adjclose), så månedlig oppdatering
+  bare skriver om inneværende års fil. Valuta fra Norges Bank (NOK per enhet, UNIT_MULT håndtert; GBp/100).
+* Datakvalitet: Yahoo har feilkurser (valuta-/enhetsforveksling, falske nivåer i gammel Xetra-data).
+  Rensing: punkt som avviker > 30 % fra både foregående og neste 21-dagersmedian fjernes, 100x-hopp
+  rettes, og historikken før siste gjenværende døgnhopp > 30 % kuttes (125 ISIN-er). Ukeavkastning > 25 %
+  gikk fra 177 til 74 ETF-er (resten er hovedsakelig 2008, krypto, giret/invers, VIX). Fase 3 bør bruke
+  robuste ukeavkastninger.
+* `prices.nok_prices(conn, store, fx)` gir bred DataFrame (dato x ISIN) med justerte kurser i NOK.
