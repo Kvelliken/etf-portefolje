@@ -39,6 +39,8 @@ jobs:
           for f in summary etfs returns changes quality; do
             test -s "site/data/$f.json" || { echo "::error::site/data/$f.json mangler"; exit 1; }
           done
+      - name: Versjoner CSS/JS (nettleseren henter nye filer etter hver publisering)
+        run: sed -i "s/__V__/$(git rev-parse --short HEAD)/g" site/index.html
       - uses: actions/configure-pages@v5
         with:
           enablement: true
