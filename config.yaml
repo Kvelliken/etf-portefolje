@@ -140,3 +140,14 @@ optimize:
   rebalance_band_pp: 5           # avviksbasert: handle når en vekt avviker mer enn ±5 pp
   rebalance_rules: [monthly, quarterly, annual, band]
   backtest_rule: band            # regel for hovedgrafen i backtesten (band ga lavest kostnad 2014–2026)
+
+site:
+  # Standardverdier på nettsiden (kan endres der). Nøkkeltall, optimering og backtest regnes i nettleseren
+  # fra månedlig totalavkastning i NOK (site/data/returns.json).
+  benchmark_isin: IE00B6R52259   # verdens-ETF som referanse (iShares MSCI ACWI); velg en annen på siden
+  market_risk_premium: 0.045     # forventet årlig meravkastning for referansen utover risikofri (likevektsprior)
+  history_weight: 0.25           # andel historisk snitt i forventet avkastning (0 = ren likevekt, 1 = ren historikk)
+  estimation_years: 5            # år med månedsdata til kovarians/forventning i optimeringen
+  default_min_weight: 0.0        # standard minstevekt per ETF i utvalget
+  default_max_weight: 0.40       # standard maksvekt per ETF i utvalget
+  trading_cost_pct: 0.25         # kostnad per handel i backtesten, % av handlet beløp (kurtasje + halv spread + valuta)

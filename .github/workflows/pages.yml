@@ -36,7 +36,7 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
       - name: Sjekk at sidedata finnes
         run: |
-          for f in summary portfolios frontier universe model backtest; do
+          for f in summary etfs returns changes quality; do
             test -s "site/data/$f.json" || { echo "::error::site/data/$f.json mangler"; exit 1; }
           done
       - uses: actions/configure-pages@v5
@@ -59,7 +59,8 @@ jobs:
             echo "::error::$1 mangler eller inneholder ikke «$2»"; return 1
           }
           check "${URL}" "ETF-portefølje"
-          check "${URL}data/summary.json" '"recommended"'
+          check "${URL}data/summary.json" '"returns_until"'
+          check "${URL}engine.js" "ledoitWolfCC"
           check "https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" "plotly"
           check "https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js" "Tabulator"
           echo "Publisert: ${URL}"

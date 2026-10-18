@@ -341,3 +341,16 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   priser 4 min, univers 0,5 min, site 4,5 min). Commit `afe9b1d`, Pages publisert til
   https://kvelliken.github.io/etf-portefolje/ (Pages aktivert av eier med kilde «GitHub Actions»).
 * Valgfritt: repo-secret `OPENFIGI_API_KEY` gir raskere OpenFIGI-oppslag.
+
+## Fase 8: ny logikk – sektorvalg, eget utvalg og backtest mot verden (2026-10-18)
+
+* Ønske: den automatiske modellen bygget på historikk endte nesten bare i teknologi. Ny flyt: finn de beste
+  ETF-ene per sektor → sett sammen eget utvalg med min./maks.-andeler → backtest mot en verdens-ETF.
+* `src/etfpf/classify.py`: aktivaklasse, region, sektor, tema, stil og ESG fra Morningstar-kategori og navn.
+* `src/etfpf/sitedata.py` + `scripts/build_site.py`: `etfs.json` og `returns.json` (månedlig totalavkastning i NOK
+  til siste hele måned, heltall i basispunkter). `src/etfpf/rates.py`: Norges Banks styringsrente
+  (hentes i `build_prices.py`, ikke-kritisk; innebygd tabell som reserve) som historisk risikofri rente.
+* `site/engine.js`: nøkkeltall (verifisert mot numpy), Ledoit-Wolf mot konstant korrelasjon (identisk med
+  PyPortfolioOpt), maks Sharpe/min. varians med boksgrenser (FISTA + projeksjon, verifisert mot cvxpy),
+  risikoparitet, månedlig backtest med ombalanseringsregler og kostnad.
+* Gammel modell flyttet til `scripts/build_model_legacy.py` (skriver til `data/legacy_model/`).
