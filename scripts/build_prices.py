@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from etfpf import prices as pr  # noqa: E402
+from etfpf import rates  # noqa: E402
 from etfpf import tickers as tk  # noqa: E402
 from etfpf.config import load_config, resolve  # noqa: E402
 from etfpf.yahoo import Yahoo  # noqa: E402
@@ -82,6 +83,8 @@ def main():
     currencies = {pr.currency_unit(c)[0] for _, c in chosen.values() if c}
     fx = pr.update_fx(root, currencies, pcfg, yahoo=yahoo)
     print(f"Valuta ({pcfg.get('fx_source')}): {sorted(set(fx['currency']))}, siste {fx['date'].max()}")
+    ok, msg = rates.update_rates(root)          # valgfritt: siden faller tilbake til innebygd tabell
+    print(f"Styringsrente (Norges Bank): {'OK, ' if ok else 'FEILET, '}{msg}")
 
     quality = {}
     nok = pr.nok_prices(conn, store, fx, pcfg.get("spike_ratio", 1.3), pcfg.get("jump_ratio", 1.3),

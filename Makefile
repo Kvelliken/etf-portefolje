@@ -21,7 +21,7 @@ prices:             ## ticker-mapping og priser i NOK
 universe:           ## dedup, TE-klynging og representantvalg
 	$(PY) scripts/build_universe.py
 
-site:               ## optimering, bootstrap, backtest og site/data/*.json
+site:               ## sidedata: ETF-liste med sektor/tema, månedsavkastning og risikofri rente
 	$(PY) scripts/build_site.py
 
 all: nordnet prices universe site
