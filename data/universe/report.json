@@ -1,33 +1,33 @@
 {
- "built_at": "2026-10-08T11:56:18+00:00",
- "n_isins": 2237,
- "n_with_prices": 2237,
+ "built_at": "2026-11-02T16:15:18+00:00",
+ "n_isins": 2282,
+ "n_with_prices": 2282,
  "n_periods": 60,
  "te_frequency": "ME",
  "te_threshold": 0.01,
- "n_clusters": 1450,
+ "n_clusters": 1496,
  "n_multi_member_clusters": 313,
- "n_eligible": 1149,
- "n_representatives": 722,
+ "n_eligible": 1157,
+ "n_representatives": 728,
  "threshold_sensitivity": {
   "0.0050": {
-   "clusters": 1700,
-   "clusters_with_eligible": 881,
-   "multi_member_clusters": 271
+   "clusters": 1741,
+   "clusters_with_eligible": 882,
+   "multi_member_clusters": 270
   },
   "0.0075": {
-   "clusters": 1563,
-   "clusters_with_eligible": 797,
-   "multi_member_clusters": 301
+   "clusters": 1603,
+   "clusters_with_eligible": 802,
+   "multi_member_clusters": 303
   },
   "0.0100": {
-   "clusters": 1450,
-   "clusters_with_eligible": 722,
+   "clusters": 1496,
+   "clusters_with_eligible": 728,
    "multi_member_clusters": 313
   },
   "0.0125": {
-   "clusters": 1366,
-   "clusters_with_eligible": 671,
+   "clusters": 1410,
+   "clusters_with_eligible": 677,
    "multi_member_clusters": 305
   }
  },
@@ -36,9 +36,9 @@
    "test": "Alle MSCI Korea-ETF-er i samme klynge",
    "ok": true,
    "members": [
-    "IE00B0M63391 iShares MSCI Korea UCITS ETF USD (Dist) (klynge 105)",
-    "LU0292100046 Xtrackers MSCI Korea UCITS ETF 1C (klynge 105)",
-    "LU1900066975 Amundi MSCI Korea UCITS ETF Acc (klynge 105)"
+    "IE00B0M63391 iShares MSCI Korea UCITS ETF USD (Dist) (klynge 102)",
+    "LU0292100046 Xtrackers MSCI Korea UCITS ETF 1C (klynge 102)",
+    "LU1900066975 Amundi MSCI Korea UCITS ETF Acc (klynge 102)"
    ],
    "pairwise_te_pct": [
     "IE00B0M63391/LU0292100046: 0.80 % (60 mnd)",
@@ -50,14 +50,14 @@
    "test": "Alle MSCI Taiwan-ETF-er i samme klynge",
    "ok": true,
    "members": [
-    "IE00B0M63623 iShares MSCI Taiwan UCITS ETF USD (Dist) (klynge 106)",
-    "LU0292109187 Xtrackers MSCI Taiwan UCITS ETF 1C (klynge 106)",
-    "LU2928641757 Xtrackers MSCI Taiwan UCITS ETF (klynge 106)"
+    "IE00B0M63623 iShares MSCI Taiwan UCITS ETF USD (Dist) (klynge 103)",
+    "LU0292109187 Xtrackers MSCI Taiwan UCITS ETF 1C (klynge 103)",
+    "LU2928641757 Xtrackers MSCI Taiwan UCITS ETF (klynge 103)"
    ],
    "pairwise_te_pct": [
-    "IE00B0M63623/LU0292109187: 0.52 % (60 mnd)",
-    "IE00B0M63623/LU2928641757: 0.57 % (21 mnd)",
-    "LU0292109187/LU2928641757: 0.41 % (21 mnd)"
+    "IE00B0M63623/LU0292109187: 0.53 % (60 mnd)",
+    "IE00B0M63623/LU2928641757: 0.58 % (22 mnd)",
+    "LU0292109187/LU2928641757: 0.40 % (22 mnd)"
    ]
   },
   {
@@ -68,7 +68,7 @@
   {
    "test": "iShares Core S&P 500 vs Core MSCI World i ulike klynger",
    "ok": true,
-   "te_pct": 2.87,
+   "te_pct": 2.86,
    "weeks": 60
   }
  ],
@@ -86,13 +86,14 @@
      "iShares € Govt Bond 0-3 month UCITS ETF EUR (Dist)",
      "iShares € UltraShort Bond ESG SRI UCITS ETF EUR (Acc)",
      "iShares € Floating Rate Bond Advanced UCITS ETF EUR (Acc)",
+     "iShares € AAA CLO Active UCITS ETF EUR (Acc)",
      "iShares € Ultrashort Bond UCITS ETF EUR (Acc)",
      "Franklin Euro Short Maturity UCITS ETF (Acc)",
      "Invesco EUR AAA CLO UCITS ETF Dist",
      "State Street Blackstone Euro AAA CLO UCITS ETF (Acc)",
      "iShares € Govt Bond 0-1yr UCITS ETF EUR (Acc)",
      "Invesco EUR AAA CLO UCITS ETF Acc",
-     "L&G Corporate Bond ex-Banks Higher Ratings 0-2Y UCITS ETF - EUR Acc Hedged",
+     "L&G Corporate Bond ex-Banks Higher Ratings 0-2Y UCITS ETF - EUR Hedged Acc",
      "Invesco Euro Cash 3 Months UCITS ETF Acc",
      "iShares € Govt Bond 0-1yr UCITS ETF EUR (Dist)",
      "iShares € Ultrashort Bond UCITS ETF EUR (Dist)",
@@ -105,7 +106,6 @@
      "Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C",
      "Xtrackers II EUR Overnight Rate Swap UCITS ETF 1D",
      "Xtrackers II Italy Government Bond 0-1 Swap UCITS ETF 1C",
-     "Amundi Smart Overnight Return UCITS ETF Acc",
      "Amundi USD Floating Rate Corporate Bond ESG UCITS ETF EUR Hedged Acc",
      "Amundi EUR Floating Rate Corporate Bond ESG UCITS ETF Acc",
      "Amundi Smart Overnight Return UCITS ETF Dist",
@@ -157,6 +157,33 @@
    },
    {
     "cluster_id": 3,
+    "min_name_similarity": 0.0,
+    "names": [
+     "iShares eb.rexx Government Germany 1.5-2.5yr UCITS ETF (DE) EUR (Dist)",
+     "Vanguard EUR Eurozone Government 1-3 Year Bond UCITS ETF - EUR Accumulating",
+     "iShares € Corp Bond 0-3Yr ESG SRI UCITS ETF EUR (Acc)",
+     "Vanguard EUR Eurozone Government 1-3 Year Bond UCITS ETF - EUR Distributing",
+     "SPDR Bloomberg 0-3 Year Euro Corporate Bond UCITS ETF (Acc)",
+     "iShares € Govt Bond 1-3yr UCITS ETF EUR (Dist)",
+     "SPDR Bloomberg 1-3 Year Euro Government Bond UCITS ETF (Dist)",
+     "SPDR Bloomberg SASB 0-3 Year Euro Corporate ESG UCITS ETF (Acc)",
+     "SPDR Bloomberg 0-3 Year Euro Corporate Bond UCITS ETF (Dist)",
+     "Invesco Euro Government Bond 1-3 Year UCITS ETF Dist",
+     "JPM BetaBuilders EUR Govt Bond 1-3 yr UCITS ETF - EUR (acc)",
+     "iShares € Corp Bond 0-3Yr ESG SRI UCITS ETF EUR (Dist)",
+     "Xtrackers II Eurozone Government Bond 1-3 UCITS ETF 1C",
+     "Xtrackers II Germany Government Bond 1-3 UCITS ETF 1D",
+     "Xtrackers II Eurozone Government Bond 1-3 UCITS ETF 1D",
+     "Xtrackers II iBoxx Eurozone Government Bond Yield Plus 1-3 UCITS ETF 1C",
+     "Amundi Euro Government Bond 1-3Y UCITS ETF Acc",
+     "Amundi Euro Government Bond 1-3Y UCITS ETF Dist",
+     "Amundi Euro Highest Rated Macro-Weighted Government Bond 1-3Y UCITS ETF Acc",
+     "Amundi EUR Corporate Bond 0-3Y ESG UCITS ETF DR (C)",
+     "Xtrackers II iBoxx Eurozone Government Bond Yield Plus 1-3 UCITS ETF"
+    ]
+   },
+   {
+    "cluster_id": 4,
     "min_name_similarity": 0.14,
     "names": [
      "iShares STOXX Europe 600 UCITS ETF (DE) EUR (Dist)",
@@ -182,7 +209,7 @@
     ]
    },
    {
-    "cluster_id": 4,
+    "cluster_id": 5,
     "min_name_similarity": 0.0,
     "names": [
      "Invesco EUR Government and Related Green Transition UCITS ETF Acc",
@@ -199,7 +226,6 @@
      "Xtrackers II Eurozone Government Bond UCITS ETF 1D",
      "Amundi Euro Government Bond UCITS ETF Acc",
      "Amundi Euro Government Tilted Green Bond UCITS ETF Acc",
-     "Amundi Govt Bond Lowest Rated Euro Investment Grade UCITS ETF DR - EUR (C)",
      "Amundi Euro Government Bond UCITS ETF Dist",
      "Amundi Prime Euro Govies UCITS ETF DR (D)",
      "Amundi Prime Euro Govies UCITS ETF DR (C)",
@@ -207,7 +233,7 @@
     ]
    },
    {
-    "cluster_id": 5,
+    "cluster_id": 6,
     "min_name_similarity": 0.0,
     "names": [
      "Amundi MSCI World II UCITS ETF Dist",
@@ -229,43 +255,24 @@
     ]
    },
    {
-    "cluster_id": 6,
-    "min_name_similarity": 0.07,
+    "cluster_id": 7,
+    "min_name_similarity": 0.11,
     "names": [
-     "iShares eb.rexx Government Germany 1.5-2.5yr UCITS ETF (DE) EUR (Dist)",
-     "Vanguard EUR Eurozone Government 1-3 Year Bond UCITS ETF - EUR Accumulating",
-     "Vanguard EUR Eurozone Government 1-3 Year Bond UCITS ETF - EUR Distributing",
-     "iShares € Govt Bond 1-3yr UCITS ETF EUR (Dist)",
-     "SPDR Bloomberg 1-3 Year Euro Government Bond UCITS ETF (Dist)",
-     "Invesco Euro Government Bond 1-3 Year UCITS ETF Dist",
-     "JPM BetaBuilders EUR Govt Bond 1-3 yr UCITS ETF - EUR (acc)",
-     "Xtrackers II Eurozone Government Bond 1-3 UCITS ETF 1C",
-     "Xtrackers II Germany Government Bond 1-3 UCITS ETF 1D",
-     "Xtrackers II Eurozone Government Bond 1-3 UCITS ETF 1D",
-     "Xtrackers II iBoxx Eurozone Government Bond Yield Plus 1-3 UCITS ETF 1C",
-     "Amundi Euro Government Bond 1-3Y UCITS ETF Acc",
-     "Amundi Euro Government Bond 1-3Y UCITS ETF Dist",
-     "Amundi Euro Highest Rated Macro-Weighted Government Bond 1-3Y UCITS ETF Acc",
-     "Xtrackers II iBoxx Eurozone Government Bond Yield Plus 1-3 UCITS ETF"
-    ]
-   },
-   {
-    "cluster_id": 8,
-    "min_name_similarity": 0.0,
-    "names": [
-     "Invesco BulletShares 2026 EUR Corporate Bond UCITS ETF Acc",
-     "Invesco BulletShares 2026 EUR Corporate Bond UCITS ETF Dist",
-     "iShares iBonds Dec 2027 Term € Corp UCITS ETF EUR (Dist)",
-     "Invesco BulletShares 2027 EUR Corporate Bond UCITS ETF Acc",
-     "iShares iBonds Dec 2026 Term € Italy Govt Bond UCITS ETF EUR (Dist)",
-     "iShares € AAA CLO Active UCITS ETF EUR (Acc)",
-     "iShares iBonds Dec 2026 Term € Corp UCITS ETF EUR (Dist)",
-     "iShares iBonds Dec 2026 Term € Corp UCITS ETF EUR (Acc)",
-     "Invesco BulletShares 2027 EUR Corporate Bond UCITS ETF Dist",
-     "iShares iBonds Dec 2027 Term € Corp UCITS ETF EUR (Acc)",
-     "Xtrackers II Target Maturity Sept 2027 EUR Corporate Bond UCITS ETF",
-     "Xtrackers II Target Maturity Sept 2027 EUR Corporate Bond UCITS ETF",
-     "Amundi Fixed Maturity 2027 German Bund Government Bond UCITS ETF Dist"
+     "Vanguard Global Government Bond UCITS ETF - EUR Hedged Distributing",
+     "JPM Global Government Bond Active UCITS ETF - EUR Hedged (acc)",
+     "iShares Global Aggregate Bond ESG SRI UCITS ETF EUR Hedged (Acc)",
+     "SPDR Bloomberg Global Aggregate Bond EUR Hdg UCITS ETF (Acc)",
+     "Vanguard Global Government Bond UCITS ETF - EUR Hedged Accumulating",
+     "iShares Broad Global Govt Bond UCITS ETF EUR Hedged (Acc)",
+     "iShares Core Global Aggregate Bond UCITS ETF EUR Hedged (Acc)",
+     "SPDR Bloomberg Global Aggregate Bond EUR Hdg UCITS ETF (Dist)",
+     "Vanguard Global Aggregate Bond UCITS ETF - EUR Hedged Dist",
+     "Vanguard Global Aggregate Bond UCITS ETF - EUR Hedged Acc",
+     "Xtrackers II Global Government Bond UCITS ETF 1C EUR Hedged",
+     "Xtrackers II Global Government Bond UCITS ETF 1D EUR Hedged",
+     "Xtrackers II ESG Global Aggregate Bond UCITS ETF 5C EUR Hedged",
+     "Amundi Index J.P. Morgan GBI Global Govies UCITS ETF DR - EUR HEDGED (C)",
+     "Amundi Global Aggregate Bond ESG - UCITS ETF DR Hedged EUR (C)"
     ]
    },
    {
@@ -289,6 +296,24 @@
    },
    {
     "cluster_id": 10,
+    "min_name_similarity": 0.0,
+    "names": [
+     "Invesco BulletShares 2026 EUR Corporate Bond UCITS ETF Acc",
+     "Invesco BulletShares 2026 EUR Corporate Bond UCITS ETF Dist",
+     "iShares iBonds Dec 2027 Term € Corp UCITS ETF EUR (Dist)",
+     "Invesco BulletShares 2027 EUR Corporate Bond UCITS ETF Acc",
+     "iShares iBonds Dec 2026 Term € Italy Govt Bond UCITS ETF EUR (Dist)",
+     "iShares iBonds Dec 2026 Term € Corp UCITS ETF EUR (Dist)",
+     "iShares iBonds Dec 2026 Term € Corp UCITS ETF EUR (Acc)",
+     "Invesco BulletShares 2027 EUR Corporate Bond UCITS ETF Dist",
+     "iShares iBonds Dec 2027 Term € Corp UCITS ETF EUR (Acc)",
+     "Xtrackers II Target Maturity Sept 2027 EUR Corporate Bond UCITS ETF",
+     "Xtrackers II Target Maturity Sept 2027 EUR Corporate Bond UCITS ETF",
+     "Amundi Fixed Maturity 2027 German Bund Government Bond UCITS ETF Dist"
+    ]
+   },
+   {
+    "cluster_id": 11,
     "min_name_similarity": 0.17,
     "names": [
      "Amundi MSCI Emerging Markets III UCITS ETF EUR Acc",
@@ -305,7 +330,7 @@
     ]
    },
    {
-    "cluster_id": 11,
+    "cluster_id": 12,
     "min_name_similarity": 0.0,
     "names": [
      "iShares $ Ultrashort Bond UCITS ETF USD (Dist)",
@@ -322,7 +347,7 @@
     ]
    },
    {
-    "cluster_id": 13,
+    "cluster_id": 14,
     "min_name_similarity": 0.0,
     "names": [
      "iShares eb.rexx Government Germany 2.5-5.5yr UCITS ETF (DE)",
@@ -338,7 +363,23 @@
     ]
    },
    {
-    "cluster_id": 14,
+    "cluster_id": 15,
+    "min_name_similarity": 0.0,
+    "names": [
+     "iShares iBonds Dec 2028 Term € Corp UCITS ETF EUR (Dist)",
+     "Invesco BulletShares 2028 EUR Corporate Bond UCITS ETF Acc",
+     "iShares iBonds Dec 2028 Term € Corp UCITS ETF EUR (Acc)",
+     "Invesco BulletShares 2028 EUR Corporate Bond UCITS ETF Dist",
+     "iShares iBonds Dec 2028 Term € Italy Govt Bond UCITS ETF EUR (Dist)",
+     "Vanguard EUR Corporate 1-3 Year Bond UCITS ETF - EUR Distributing",
+     "Vanguard EUR Corporate 1-3 Year Bond UCITS ETF - EUR Accumulating",
+     "Amundi Fixed Maturity 2028 Euro Government Bond Broad UCITS ETF Dist",
+     "Amundi Fixed Maturity 2028 Euro Government Bond Yield + UCITS ETF Dist",
+     "Xtrackers II Target Maturity Sept 2028 EUR Corporate Bond UCITS ETF"
+    ]
+   },
+   {
+    "cluster_id": 16,
     "min_name_similarity": 0.0,
     "names": [
      "SPDR S&P 500 UCITS ETF (Acc)",
@@ -354,22 +395,22 @@
     ]
    },
    {
-    "cluster_id": 16,
+    "cluster_id": 18,
     "min_name_similarity": 0.0,
     "names": [
-     "iShares US Equity Enhanced Active UCITS ETF USD (Acc)",
-     "Amundi MSCI USA UCITS ETF Acc",
-     "Amundi MSCI USA UCITS ETF Dist",
-     "iShares MSCI North America UCITS ETF USD (Dist)",
-     "Invesco MSCI USA UCITS ETF Acc",
-     "Xtrackers MSCI USA UCITS ETF 1C",
-     "Xtrackers MSCI USA UCITS ETF 1D",
-     "Xtrackers MSCI USA Swap UCITS ETF 1C",
-     "Xtrackers MSCI USA Swap UCITS ETF 1D"
+     "Franklin Sustainable Euro Green Corp 1-5 Year UCITS ETF (Acc)",
+     "iShares € Corp Bond 1-5yr UCITS ETF EUR (Acc)",
+     "Invesco EUR Corporate Bond ESG Short Duration Multi-Factor UCITS ETF Dist",
+     "Invesco EUR Corporate Bond ESG Short Duration Multi-Factor UCITS ETF Acc",
+     "iShares € Corp Bond ex-Financials 1-5Yr ESG SRI UCITS ETF EUR (Dist)",
+     "iShares € Corp Bond 1-5yr UCITS ETF EUR (Dist)",
+     "JPM EUR Corporate Bond 1-5 yr Research Enhanced Index (ESG) UCITS ETF - EUR (acc)",
+     "Amundi EUR Corporate Bond 1-5Y ESG UCITS ETF Acc",
+     "Xtrackers II EUR Corporate Bond Short Duration SRI PAB UCITS ETF 1C"
     ]
    },
    {
-    "cluster_id": 17,
+    "cluster_id": 20,
     "min_name_similarity": 0.0,
     "names": [
      "SPDR Bloomberg U.S. Treasury Bond UCITS ETF (Dist)",
@@ -384,7 +425,21 @@
     ]
    },
    {
-    "cluster_id": 18,
+    "cluster_id": 21,
+    "min_name_similarity": 0.0,
+    "names": [
+     "iShares EURO STOXX UCITS ETF (DE)",
+     "iShares Core MSCI EMU UCITS ETF EUR (Acc)",
+     "SPDR MSCI EMU UCITS ETF",
+     "Xtrackers MSCI EMU UCITS ETF 1D",
+     "Amundi MSCI EMU UCITS ETF Dist",
+     "Xtrackers MSCI EMU UCITS ETF 4C",
+     "Amundi Prime Eurozone UCITS ETF DR (D)",
+     "Amundi Prime Eurozone UCITS ETF DR (C)"
+    ]
+   },
+   {
+    "cluster_id": 23,
     "min_name_similarity": 0.0,
     "names": [
      "Invesco FTSE All-World UCITS ETF Dist",
@@ -395,48 +450,6 @@
      "iShares MSCI ACWI UCITS ETF USD (Acc)",
      "Vanguard FTSE All-World UCITS ETF - (USD) Acc",
      "Amundi MSCI All Country World UCITS ETF EUR Acc"
-    ]
-   },
-   {
-    "cluster_id": 19,
-    "min_name_similarity": 0.09,
-    "names": [
-     "iShares iBonds Dec 2028 Term € Corp UCITS ETF EUR (Dist)",
-     "Invesco BulletShares 2028 EUR Corporate Bond UCITS ETF Acc",
-     "iShares iBonds Dec 2028 Term € Corp UCITS ETF EUR (Acc)",
-     "Invesco BulletShares 2028 EUR Corporate Bond UCITS ETF Dist",
-     "iShares iBonds Dec 2028 Term € Italy Govt Bond UCITS ETF EUR (Dist)",
-     "Amundi Fixed Maturity 2028 Euro Government Bond Broad UCITS ETF Dist",
-     "Amundi Fixed Maturity 2028 Euro Government Bond Yield + UCITS ETF Dist",
-     "Xtrackers II Target Maturity Sept 2028 EUR Corporate Bond UCITS ETF"
-    ]
-   },
-   {
-    "cluster_id": 21,
-    "min_name_similarity": 0.0,
-    "names": [
-     "Franklin Sustainable Euro Green Corp 1-5 Year UCITS ETF (Acc)",
-     "iShares € Corp Bond 1-5yr UCITS ETF EUR (Acc)",
-     "Invesco EUR Corporate Bond ESG Short Duration Multi-Factor UCITS ETF Dist",
-     "Invesco EUR Corporate Bond ESG Short Duration Multi-Factor UCITS ETF Acc",
-     "iShares € Corp Bond ex-Financials 1-5Yr ESG SRI UCITS ETF EUR (Dist)",
-     "iShares € Corp Bond 1-5yr UCITS ETF EUR (Dist)",
-     "JPM EUR Corporate Bond 1-5 yr Research Enhanced Index (ESG) UCITS ETF - EUR (acc)",
-     "Amundi EUR Corporate Bond 1-5Y ESG UCITS ETF Acc"
-    ]
-   },
-   {
-    "cluster_id": 24,
-    "min_name_similarity": 0.09,
-    "names": [
-     "iShares $ Treasury Bond 1-3yr UCITS ETF USD (Dist)",
-     "SPDR Bloomberg 1-3 Year U.S. Treasury Bond UCITS ETF (Dist)",
-     "SPDR Bloomberg 0-3 Year U.S. Corporate Bond UCITS ETF (Dist)",
-     "JPM BetaBuilders US Treasury Bond 1-3 yr UCITS ETF - USD (acc)",
-     "Invesco US Treasury Bond 1-3 Year UCITS ETF Dist",
-     "Invesco US Treasury Bond 1-3 Year UCITS ETF Acc",
-     "Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Acc",
-     "Xtrackers II US Treasuries 1-3 UCITS ETF 1D"
     ]
    },
    {
@@ -454,7 +467,7 @@
     ]
    },
    {
-    "cluster_id": 30,
+    "cluster_id": 28,
     "min_name_similarity": 0.0,
     "names": [
      "iShares iBonds Dec 2032 Term € Corp UCITS ETF EUR (Dist)",
@@ -467,31 +480,31 @@
     ]
    },
    {
-    "cluster_id": 33,
-    "min_name_similarity": 0.0,
+    "cluster_id": 32,
+    "min_name_similarity": 0.14,
     "names": [
-     "iShares EURO STOXX UCITS ETF (DE)",
-     "iShares Core MSCI EMU UCITS ETF EUR (Acc)",
-     "SPDR MSCI EMU UCITS ETF",
-     "Xtrackers MSCI EMU UCITS ETF 1D",
-     "Amundi MSCI EMU UCITS ETF Dist",
-     "Xtrackers MSCI EMU UCITS ETF 4C"
+     "iShares € Aggregate Bond ESG SRI UCITS ETF EUR (Acc)",
+     "iShares € Aggregate Bond ESG SRI UCITS ETF EUR (Dist)",
+     "SPDR Bloomberg Euro Aggregate Bond UCITS ETF (Dist)",
+     "Amundi Euro Aggregate Bond ESG UCITS ETF DR (C)",
+     "Amundi Euro Aggregate Bond ESG UCITS ETF DR - EUR (D)",
+     "YIS EMU Government Bond UCITS ETF EUR"
     ]
    },
    {
-    "cluster_id": 34,
-    "min_name_similarity": 0.17,
+    "cluster_id": 35,
+    "min_name_similarity": 0.14,
     "names": [
-     "iShares € Corp Bond 0-3Yr ESG SRI UCITS ETF EUR (Acc)",
-     "SPDR Bloomberg 0-3 Year Euro Corporate Bond UCITS ETF (Acc)",
-     "SPDR Bloomberg SASB 0-3 Year Euro Corporate ESG UCITS ETF (Acc)",
-     "SPDR Bloomberg 0-3 Year Euro Corporate Bond UCITS ETF (Dist)",
-     "iShares € Corp Bond 0-3Yr ESG SRI UCITS ETF EUR (Dist)",
-     "Amundi EUR Corporate Bond 0-3Y ESG UCITS ETF DR (C)"
+     "iShares $ Treasury Bond 1-3yr UCITS ETF USD (Dist)",
+     "SPDR Bloomberg 1-3 Year U.S. Treasury Bond UCITS ETF (Dist)",
+     "JPM BetaBuilders US Treasury Bond 1-3 yr UCITS ETF - USD (acc)",
+     "Invesco US Treasury Bond 1-3 Year UCITS ETF Dist",
+     "Invesco US Treasury Bond 1-3 Year UCITS ETF Acc",
+     "Xtrackers II US Treasuries 1-3 UCITS ETF 1D"
     ]
    },
    {
-    "cluster_id": 37,
+    "cluster_id": 36,
     "min_name_similarity": 0.14,
     "names": [
      "iShares $ Treasury Bond 7-10yr UCITS ETF USD (Dist)",
@@ -503,7 +516,7 @@
     ]
    },
    {
-    "cluster_id": 38,
+    "cluster_id": 37,
     "min_name_similarity": 0.1,
     "names": [
      "iShares Germany Govt Bond UCITS ETF EUR (Dist)",
@@ -515,29 +528,18 @@
     ]
    },
    {
-    "cluster_id": 45,
-    "min_name_similarity": 0.0,
-    "names": [
-     "iShares iBonds Dec 2026 Term $ Corp UCITS ETF USD (Dist)",
-     "iShares iBonds Dec 2026 Term $ Corp UCITS ETF USD (Acc)",
-     "Invesco BulletShares 2026 USD Corporate Bond UCITS ETF Dist",
-     "Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Dist",
-     "iShares $ Corp Bond 0-3Yr ESG SRI UCITS ETF USD (Dist)"
-    ]
-   },
-   {
-    "cluster_id": 46,
-    "min_name_similarity": 0.12,
+    "cluster_id": 41,
+    "min_name_similarity": 0.08,
     "names": [
      "JPM EUR Government Bond Active UCITS ETF - EUR (dist)",
      "JPM EUR Government Bond Active UCITS ETF - EUR (acc)",
-     "iShares Italy Govt Bond UCITS ETF EUR (Dist)",
      "Xtrackers II iBoxx Eurozone Government Bond Yield Plus UCITS ETF 1C",
-     "Xtrackers II iBoxx Eurozone Government Bond Yield Plus UCITS ETF 1D"
+     "Xtrackers II iBoxx Eurozone Government Bond Yield Plus UCITS ETF 1D",
+     "Amundi Govt Bond Lowest Rated Euro Investment Grade UCITS ETF DR - EUR (C)"
     ]
    },
    {
-    "cluster_id": 47,
+    "cluster_id": 42,
     "min_name_similarity": 0.0,
     "names": [
      "Invesco USD AAA CLO UCITS ETF Acc",
@@ -548,7 +550,7 @@
     ]
    },
    {
-    "cluster_id": 49,
+    "cluster_id": 44,
     "min_name_similarity": 0.0,
     "names": [
      "iShares iBonds Dec 2031 Term € Corp UCITS ETF EUR (Acc)",
@@ -559,7 +561,7 @@
     ]
    },
    {
-    "cluster_id": 50,
+    "cluster_id": 45,
     "min_name_similarity": 0.11,
     "names": [
      "Invesco US Treasury Bond 10+ Year UCITS ETF Acc",
@@ -570,7 +572,7 @@
     ]
    },
    {
-    "cluster_id": 51,
+    "cluster_id": 46,
     "min_name_similarity": 0.1,
     "names": [
      "iShares iBonds Dec 2029 Term € Corp UCITS ETF EUR (Dist)",
@@ -581,7 +583,7 @@
     ]
    },
    {
-    "cluster_id": 52,
+    "cluster_id": 47,
     "min_name_similarity": 0.14,
     "names": [
      "iShares Global Govt Bond UCITS ETF USD (Dist)",
@@ -592,18 +594,7 @@
     ]
    },
    {
-    "cluster_id": 53,
-    "min_name_similarity": 0.0,
-    "names": [
-     "Xtrackers MSCI EMU Screened UCITS ETF 1D",
-     "iShares MSCI EMU Screened UCITS ETF EUR (Acc)",
-     "iShares MSCI EMU Screened UCITS ETF EUR (Dist)",
-     "Amundi Prime Eurozone UCITS ETF DR (D)",
-     "Amundi Prime Eurozone UCITS ETF DR (C)"
-    ]
-   },
-   {
-    "cluster_id": 54,
+    "cluster_id": 48,
     "min_name_similarity": 0.14,
     "names": [
      "Invesco US Treasury Bond 3-7 Year UCITS ETF Dist",
@@ -614,17 +605,7 @@
     ]
    },
    {
-    "cluster_id": 59,
-    "min_name_similarity": 0.0,
-    "names": [
-     "iShares iBonds Dec 2028 Term $ Corp UCITS ETF USD (Acc)",
-     "iShares iBonds Dec 2028 Term $ Corp UCITS ETF USD (Dist)",
-     "Invesco BulletShares 2028 USD Corporate Bond UCITS ETF Dist",
-     "iShares iBonds Dec 2027 Term $ Corp UCITS ETF USD (Acc)"
-    ]
-   },
-   {
-    "cluster_id": 60,
+    "cluster_id": 53,
     "min_name_similarity": 0.08,
     "names": [
      "SPDR Bloomberg 1-5 Year U.S. Corporate Bond UCITS ETF (Acc)",
@@ -634,17 +615,17 @@
     ]
    },
    {
-    "cluster_id": 65,
-    "min_name_similarity": 0.1,
+    "cluster_id": 57,
+    "min_name_similarity": 0.0,
     "names": [
-     "iShares GBP Corp Bond 0-5yr UCITS ETF EUR Hedged (Acc)",
-     "Vanguard EUR Corporate 1-3 Year Bond UCITS ETF - EUR Distributing",
-     "Vanguard EUR Corporate 1-3 Year Bond UCITS ETF - EUR Accumulating",
-     "Xtrackers II EUR Corporate Bond Short Duration SRI PAB UCITS ETF 1C"
+     "iShares iBonds Dec 2026 Term $ Corp UCITS ETF USD (Dist)",
+     "iShares iBonds Dec 2026 Term $ Corp UCITS ETF USD (Acc)",
+     "iShares iBonds Dec 2027 Term $ Corp UCITS ETF USD (Acc)",
+     "Invesco BulletShares 2026 USD Corporate Bond UCITS ETF Dist"
     ]
    },
    {
-    "cluster_id": 68,
+    "cluster_id": 63,
     "min_name_similarity": 0.12,
     "names": [
      "iShares $ TIPS UCITS ETF USD (Acc)",
@@ -654,7 +635,17 @@
     ]
    },
    {
-    "cluster_id": 73,
+    "cluster_id": 68,
+    "min_name_similarity": 0.1,
+    "names": [
+     "SPDR Bloomberg 0-3 Year U.S. Corporate Bond UCITS ETF (Dist)",
+     "Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Dist",
+     "Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Acc",
+     "iShares $ Corp Bond 0-3Yr ESG SRI UCITS ETF USD (Dist)"
+    ]
+   },
+   {
+    "cluster_id": 69,
     "min_name_similarity": 0.08,
     "names": [
      "iShares $ Treasury Bond 1-3yr UCITS ETF EUR Hedged (Acc)",
@@ -664,7 +655,7 @@
     ]
    },
    {
-    "cluster_id": 87,
+    "cluster_id": 83,
     "min_name_similarity": 0.17,
     "names": [
      "Amundi ShortDAX Daily (-2x) Inverse UCITS ETF Acc",
@@ -673,7 +664,16 @@
     ]
    },
    {
-    "cluster_id": 101,
+    "cluster_id": 84,
+    "min_name_similarity": 0.12,
+    "names": [
+     "iShares iBonds Dec 2028 Term $ Corp UCITS ETF USD (Acc)",
+     "iShares iBonds Dec 2028 Term $ Corp UCITS ETF USD (Dist)",
+     "Invesco BulletShares 2028 USD Corporate Bond UCITS ETF Dist"
+    ]
+   },
+   {
+    "cluster_id": 98,
     "min_name_similarity": 0.1,
     "names": [
      "iShares iBonds Dec 2034 Term € Corp UCITS ETF EUR (Dist)",
@@ -682,7 +682,7 @@
     ]
    },
    {
-    "cluster_id": 108,
+    "cluster_id": 105,
     "min_name_similarity": 0.18,
     "names": [
      "iShares S&P 500 Consumer Staples Sector UCITS ETF USD (Acc)",
@@ -691,7 +691,7 @@
     ]
    },
    {
-    "cluster_id": 109,
+    "cluster_id": 106,
     "min_name_similarity": 0.1,
     "names": [
      "iShares S&P 500 Energy Sector UCITS ETF USD (Acc)",
@@ -700,7 +700,7 @@
     ]
    },
    {
-    "cluster_id": 110,
+    "cluster_id": 107,
     "min_name_similarity": 0.18,
     "names": [
      "iShares S&P 500 Health Care Sector UCITS ETF USD (Acc)",
@@ -709,7 +709,7 @@
     ]
    },
    {
-    "cluster_id": 114,
+    "cluster_id": 111,
     "min_name_similarity": 0.11,
     "names": [
      "iShares € Corp Bond Financials UCITS ETF EUR (Dist)",
@@ -718,7 +718,7 @@
     ]
    },
    {
-    "cluster_id": 118,
+    "cluster_id": 116,
     "min_name_similarity": 0.17,
     "names": [
      "Invesco US Treasury Bond UCITS ETF EUR Hdg Dist",
@@ -727,7 +727,7 @@
     ]
    },
    {
-    "cluster_id": 126,
+    "cluster_id": 124,
     "min_name_similarity": 0.0,
     "names": [
      "Vanguard LifeStrategy 60% Equity UCITS ETF - (EUR) Acc",
@@ -736,7 +736,7 @@
     ]
    },
    {
-    "cluster_id": 129,
+    "cluster_id": 127,
     "min_name_similarity": 0.0,
     "names": [
      "iShares Pfandbriefe UCITS ETF (DE)",
@@ -747,20 +747,12 @@
     "cluster_id": 132,
     "min_name_similarity": 0.0,
     "names": [
-     "iShares eb.rexx Government Germany UCITS ETF (DE)",
-     "iShares € Govt Bond 3-7yr UCITS ETF EUR (Acc)"
-    ]
-   },
-   {
-    "cluster_id": 135,
-    "min_name_similarity": 0.0,
-    "names": [
      "iShares Diversified Commodity Swap UCITS ETF (DE)",
      "WisdomTree Broad Commodities UCITS ETF – USD Acc"
     ]
    },
    {
-    "cluster_id": 137,
+    "cluster_id": 134,
     "min_name_similarity": 0.17,
     "names": [
      "iShares Euro Government Bond Capped 1.5-10.5yr UCITS ETF (DE)",
@@ -768,7 +760,7 @@
     ]
    },
    {
-    "cluster_id": 167,
+    "cluster_id": 166,
     "min_name_similarity": 0.14,
     "names": [
      "Fidelity Global HY Corp Bond Research Enhanced PAB UCITS ETF - EUR Hedged Inc",
@@ -812,11 +804,11 @@
     "min_name_similarity": 0.12,
     "names": [
      "iShares J.P. Morgan $ EM Corp Bond UCITS ETF USD (Dist)",
-     "L&G ESG Emerging Markets Corporate Bond (USD) UCITS ETF - USD Dist"
+     "L&G Emerging Markets Corporate Bond (USD) Screened UCITS ETF - USD Dist"
     ]
    },
    {
-    "cluster_id": 251,
+    "cluster_id": 252,
     "min_name_similarity": 0.1,
     "names": [
      "iShares $ Intermediate Credit Bond UCITS ETF USD (Dist)",
@@ -824,7 +816,7 @@
     ]
    },
    {
-    "cluster_id": 282,
+    "cluster_id": 283,
     "min_name_similarity": 0.0,
     "names": [
      "iShares MSCI France UCITS ETF EUR (Acc)",
@@ -840,12 +832,12 @@
      {
       "isin": "IE0008GO35B5",
       "name": "Invesco USD AAA CLO UCITS ETF Acc",
-      "cluster_id": 47
+      "cluster_id": 42
      },
      {
       "isin": "IE000PKN5N58",
       "name": "Invesco USD AAA CLO UCITS ETF Dist",
-      "cluster_id": 47
+      "cluster_id": 42
      },
      {
       "isin": "IE000U7LIXH5",
@@ -866,12 +858,12 @@
      {
       "isin": "IE000X59ZHE2",
       "name": "iShares AI Infrastructure UCITS ETF USD (Acc)",
-      "cluster_id": 856
+      "cluster_id": 883
      },
      {
       "isin": "IE000XHZP7D3",
       "name": "WisdomTree AI Infrastructure UCITS ETF - USD Acc",
-      "cluster_id": 865
+      "cluster_id": 894
      }
     ]
    },
@@ -882,17 +874,17 @@
      {
       "isin": "IE0000XTDDA8",
       "name": "Global X Artificial Intelligence UCITS ETF USD Accumulating",
-      "cluster_id": 368
+      "cluster_id": 370
      },
      {
       "isin": "IE00BDVPNG13",
       "name": "WisdomTree Artificial Intelligence UCITS ETF – USD Acc",
-      "cluster_id": 1012
+      "cluster_id": 1046
      },
      {
       "isin": "IE00BK5BCD43",
       "name": "L&G Artificial Intelligence UCITS ETF - USD Acc",
-      "cluster_id": 1084
+      "cluster_id": 1118
      }
     ]
    },
@@ -903,12 +895,12 @@
      {
       "isin": "IE00BGV5VN51",
       "name": "Xtrackers Artificial Intelligence & Big Data UCITS ETF 1C",
-      "cluster_id": 1058
+      "cluster_id": 1092
      },
      {
       "isin": "IE00BGV5VP75",
       "name": "Xtrackers Artificial Intelligence and Big Data UCITS ETF 1D",
-      "cluster_id": 1059
+      "cluster_id": 1093
      }
     ]
    },
@@ -919,22 +911,22 @@
      {
       "isin": "IE000FG3UNB8",
       "name": "Invesco EUR AT1 CoCo Bond UCITS ETF Acc",
-      "cluster_id": 592
+      "cluster_id": 604
      },
      {
       "isin": "IE000VVC8KW9",
       "name": "Invesco EUR AT1 CoCo Bond UCITS ETF Dist",
-      "cluster_id": 833
+      "cluster_id": 857
      },
      {
       "isin": "IE00BZ0XVF52",
       "name": "WisdomTree AT1 CoCo Bond UCITS ETF – USD",
-      "cluster_id": 291
+      "cluster_id": 292
      },
      {
       "isin": "IE00BZ0XVG69",
       "name": "WisdomTree AT1 CoCo Bond UCITS ETF - USD Acc",
-      "cluster_id": 291
+      "cluster_id": 292
      }
     ]
    },
@@ -945,12 +937,12 @@
      {
       "isin": "IE000940RNE6",
       "name": "WisdomTree Blockchain UCITS ETF - USD Acc",
-      "cluster_id": 503
+      "cluster_id": 512
      },
      {
       "isin": "IE000XAGSCY5",
       "name": "Global X Blockchain UCITS ETF USD Accumulating",
-      "cluster_id": 860
+      "cluster_id": 887
      }
     ]
    },
@@ -961,12 +953,12 @@
      {
       "isin": "IE00BG0J4957",
       "name": "iShares Broad $ High Yield Corp Bond UCITS ETF USD (Dist)",
-      "cluster_id": 1042
+      "cluster_id": 1076
      },
      {
       "isin": "IE00BG0J4B71",
       "name": "iShares Broad € High Yield Corp Bond UCITS ETF EUR (Dist)",
-      "cluster_id": 23
+      "cluster_id": 19
      }
     ]
    },
@@ -977,12 +969,12 @@
      {
       "isin": "IE000EVUY6K9",
       "name": "iShares Broad $ High Yield Corp Bond UCITS ETF EUR Hedged (Dist)",
-      "cluster_id": 585
+      "cluster_id": 596
      },
      {
       "isin": "IE000VSFIC94",
       "name": "iShares Broad $ High Yield Corp Bond UCITS ETF EUR Hedged (Acc)",
-      "cluster_id": 102
+      "cluster_id": 99
      }
     ]
    },
@@ -993,17 +985,17 @@
      {
       "isin": "IE0004QWOTD5",
       "name": "Invesco BulletShares 2026 EUR Corporate Bond UCITS ETF Acc",
-      "cluster_id": 8
+      "cluster_id": 10
      },
      {
       "isin": "IE000AYJ75E5",
       "name": "Invesco BulletShares 2026 EUR Corporate Bond UCITS ETF Dist",
-      "cluster_id": 8
+      "cluster_id": 10
      },
      {
       "isin": "IE000O36LOH8",
       "name": "Invesco BulletShares 2026 USD Corporate Bond UCITS ETF Dist",
-      "cluster_id": 45
+      "cluster_id": 57
      }
     ]
    },
@@ -1014,17 +1006,17 @@
      {
       "isin": "IE000BMDG046",
       "name": "Invesco BulletShares 2027 USD Corporate Bond UCITS ETF Dist",
-      "cluster_id": 532
+      "cluster_id": 541
      },
      {
       "isin": "IE000LGHLQ71",
       "name": "Invesco BulletShares 2027 EUR Corporate Bond UCITS ETF Acc",
-      "cluster_id": 8
+      "cluster_id": 10
      },
      {
       "isin": "IE000XOS4OJ6",
       "name": "Invesco BulletShares 2027 EUR Corporate Bond UCITS ETF Dist",
-      "cluster_id": 8
+      "cluster_id": 10
      }
     ]
    },
@@ -1035,17 +1027,17 @@
      {
       "isin": "IE00079EUF59",
       "name": "Invesco BulletShares 2028 EUR Corporate Bond UCITS ETF Acc",
-      "cluster_id": 19
+      "cluster_id": 15
      },
      {
       "isin": "IE000A0RC215",
       "name": "Invesco BulletShares 2028 USD Corporate Bond UCITS ETF Dist",
-      "cluster_id": 59
+      "cluster_id": 84
      },
      {
       "isin": "IE000LKGEZQ6",
       "name": "Invesco BulletShares 2028 EUR Corporate Bond UCITS ETF Dist",
-      "cluster_id": 19
+      "cluster_id": 15
      }
     ]
    },
@@ -1061,12 +1053,12 @@
      {
       "isin": "IE000P5IB8I8",
       "name": "Invesco BulletShares 2029 EUR Corporate Bond UCITS ETF Acc",
-      "cluster_id": 51
+      "cluster_id": 46
      },
      {
       "isin": "IE000ZC4C5Q1",
       "name": "Invesco BulletShares 2029 EUR Corporate Bond UCITS ETF Dist",
-      "cluster_id": 51
+      "cluster_id": 46
      }
     ]
    },
@@ -1098,7 +1090,7 @@
      {
       "isin": "IE000AFVKJZ0",
       "name": "Vanguard EUR Cash UCITS ETF - (EUR) Distributing",
-      "cluster_id": 517
+      "cluster_id": 527
      },
      {
       "isin": "IE000JJPY166",
@@ -1108,7 +1100,7 @@
      {
       "isin": "IE000SOORXS0",
       "name": "Vanguard EUR Cash UCITS ETF - (EUR) Accumulating",
-      "cluster_id": 785
+      "cluster_id": 805
      }
     ]
    },
@@ -1119,12 +1111,12 @@
      {
       "isin": "IE000BWKUES1",
       "name": "Global X Clean Water UCITS ETF USD Accumulating",
-      "cluster_id": 537
+      "cluster_id": 546
      },
      {
       "isin": "IE00BK5BC891",
       "name": "L&G Clean Water UCITS ETF - USD Acc",
-      "cluster_id": 1083
+      "cluster_id": 1117
      }
     ]
    },
@@ -1135,12 +1127,12 @@
      {
       "isin": "IE00BJGWQN72",
       "name": "WisdomTree Cloud Computing UCITS ETF - USD Acc",
-      "cluster_id": 1074
+      "cluster_id": 1108
      },
      {
       "isin": "IE00BMH5YF48",
       "name": "Global X Cloud Computing UCITS ETF USD Accumulating",
-      "cluster_id": 1164
+      "cluster_id": 1199
      }
     ]
    },
@@ -1151,12 +1143,12 @@
      {
       "isin": "IE0003Z9E2Y3",
       "name": "Global X Copper Miners UCITS ETF USD Accumulating",
-      "cluster_id": 417
+      "cluster_id": 420
      },
      {
       "isin": "IE00063FT9K6",
       "name": "iShares Copper Miners UCITS ETF USD (Acc)",
-      "cluster_id": 444
+      "cluster_id": 451
      }
     ]
    },
@@ -1167,12 +1159,12 @@
      {
       "isin": "IE000N85G7P8",
       "name": "Amundi Core MSCI USA UCITS ETF EUR Hedged Acc",
-      "cluster_id": 707
+      "cluster_id": 724
      },
      {
       "isin": "LU3332966160",
       "name": "Amundi Core MSCI USA Swap UCITS ETF EUR Hedged Acc",
-      "cluster_id": 1429
+      "cluster_id": 1472
      }
     ]
    },
@@ -1188,12 +1180,12 @@
      {
       "isin": "IE00B4L5Y983",
       "name": "iShares Core MSCI World UCITS ETF USD (Acc)",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "LU3206582846",
       "name": "Amundi Core MSCI World Swap UCITS ETF Acc",
-      "cluster_id": 1416
+      "cluster_id": 1458
      }
     ]
    },
@@ -1204,17 +1196,33 @@
      {
       "isin": "IE000H7PE775",
       "name": "Amundi Core MSCI World UCITS ETF EUR Hedged Acc",
-      "cluster_id": 617
+      "cluster_id": 22
      },
      {
       "isin": "IE00BKBF6H24",
       "name": "iShares Core MSCI World UCITS ETF EUR Hedged (Dist)",
-      "cluster_id": 28
+      "cluster_id": 22
      },
      {
       "isin": "LU3206582929",
       "name": "Amundi Core MSCI World Swap UCITS ETF EUR Hedged Acc",
-      "cluster_id": 1417
+      "cluster_id": 1459
+     }
+    ]
+   },
+   {
+    "normalized_name": "core nasdaq 100",
+    "hedged": 0,
+    "members": [
+     {
+      "isin": "IE00052PGR93",
+      "name": "Amundi Core Nasdaq-100 UCITS ETF Dist",
+      "cluster_id": 434
+     },
+     {
+      "isin": "IE000A2YGZU5",
+      "name": "Amundi Core Nasdaq-100 UCITS ETF Acc",
+      "cluster_id": 523
      }
     ]
    },
@@ -1223,24 +1231,29 @@
     "hedged": 0,
     "members": [
      {
+      "isin": "IE0005OFGEA6",
+      "name": "Amundi Core S&P 500 UCITS ETF Dist",
+      "cluster_id": 445
+     },
+     {
       "isin": "IE000UBAW7M3",
       "name": "Amundi Core S&P 500 UCITS ETF Acc",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE0031442068",
       "name": "iShares Core S&P 500 UCITS ETF USD (Dist)",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE00B5BMR087",
       "name": "iShares Core S&P 500 UCITS ETF USD (Acc)",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "LU1135865084",
       "name": "Amundi Core S&P 500 Swap UCITS ETF Acc",
-      "cluster_id": 1304
+      "cluster_id": 1339
      }
     ]
    },
@@ -1251,12 +1264,12 @@
      {
       "isin": "LU0908500753",
       "name": "Amundi Core STOXX Europe 600 UCITS ETF Acc",
-      "cluster_id": 3
+      "cluster_id": 4
      },
      {
       "isin": "LU0908500837",
       "name": "Amundi Core STOXX Europe 600 UCITS ETF Dist",
-      "cluster_id": 1302
+      "cluster_id": 1337
      }
     ]
    },
@@ -1267,17 +1280,17 @@
      {
       "isin": "IE000AK4O3W6",
       "name": "iShares € Corp Bond 0-3Yr ESG SRI UCITS ETF EUR (Acc)",
-      "cluster_id": 34
+      "cluster_id": 3
      },
      {
       "isin": "IE00BYZTVV78",
       "name": "iShares € Corp Bond 0-3Yr ESG SRI UCITS ETF EUR (Dist)",
-      "cluster_id": 34
+      "cluster_id": 3
      },
      {
       "isin": "IE00BZ048579",
       "name": "iShares $ Corp Bond 0-3Yr ESG SRI UCITS ETF USD (Dist)",
-      "cluster_id": 45
+      "cluster_id": 68
      }
     ]
    },
@@ -1314,12 +1327,12 @@
      {
       "isin": "IE000JEXZJT1",
       "name": "Fidelity EUR Corp Bond Research Enhanced UCITS ETF Acc",
-      "cluster_id": 645
+      "cluster_id": 658
      },
      {
       "isin": "IE000W24OG76",
       "name": "Fidelity USD Corp Bond Research Enhanced UCITS ETF Acc",
-      "cluster_id": 837
+      "cluster_id": 862
      }
     ]
    },
@@ -1330,22 +1343,22 @@
      {
       "isin": "IE00BDD48R20",
       "name": "Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Dist",
-      "cluster_id": 45
+      "cluster_id": 68
      },
      {
       "isin": "IE00BDD48S37",
       "name": "Vanguard EUR Corporate 1-3 Year Bond UCITS ETF - EUR Distributing",
-      "cluster_id": 65
+      "cluster_id": 15
      },
      {
       "isin": "IE00BGYWSV06",
       "name": "Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Acc",
-      "cluster_id": 24
+      "cluster_id": 68
      },
      {
       "isin": "IE00BH04FZ00",
       "name": "Vanguard EUR Corporate 1-3 Year Bond UCITS ETF - EUR Accumulating",
-      "cluster_id": 65
+      "cluster_id": 15
      }
     ]
    },
@@ -1366,7 +1379,7 @@
      {
       "isin": "IE00BZ036H21",
       "name": "Xtrackers USD Corporate Bond UCITS ETF 1D",
-      "cluster_id": 104
+      "cluster_id": 101
      },
      {
       "isin": "IE00BZ163G84",
@@ -1417,7 +1430,7 @@
      {
       "isin": "LU1686830065",
       "name": "Amundi EUR Corporate Bond 0-1Y ESG UCITS ETF DR (D)",
-      "cluster_id": 1328
+      "cluster_id": 1363
      },
      {
       "isin": "LU2300294316",
@@ -1454,17 +1467,17 @@
      {
       "isin": "IE00BGYWFL94",
       "name": "Vanguard USD Corporate Bond UCITS ETF - EUR Hedged Acc",
-      "cluster_id": 29
+      "cluster_id": 27
      },
      {
       "isin": "IE00BZ036J45",
       "name": "Xtrackers USD Corporate Bond UCITS ETF 2D EUR Hedged",
-      "cluster_id": 123
+      "cluster_id": 121
      },
      {
       "isin": "LU2977997381",
       "name": "Amundi USD Corporate Bond UCITS ETF EUR Hedged Acc",
-      "cluster_id": 123
+      "cluster_id": 121
      }
     ]
    },
@@ -1475,12 +1488,12 @@
      {
       "isin": "IE00BF8J5974",
       "name": "Xtrackers USD Corporate Bond Short Duration SRI PAB UCITS ETF 1D",
-      "cluster_id": 60
+      "cluster_id": 53
      },
      {
       "isin": "LU2178481649",
       "name": "Xtrackers II EUR Corporate Bond Short Duration SRI PAB UCITS ETF 1C",
-      "cluster_id": 65
+      "cluster_id": 18
      }
     ]
    },
@@ -1491,7 +1504,7 @@
      {
       "isin": "IE00BL58LJ19",
       "name": "Xtrackers USD Corporate Bond SRI PAB UCITS ETF 1C",
-      "cluster_id": 104
+      "cluster_id": 101
      },
      {
       "isin": "LU0484968812",
@@ -1512,17 +1525,17 @@
      {
       "isin": "IE0003W9O921",
       "name": "Xtrackers USD Corporate Green Bond UCITS ETF 2C",
-      "cluster_id": 414
+      "cluster_id": 417
      },
      {
       "isin": "IE000MCVFK47",
       "name": "Xtrackers EUR Corporate Green Bond UCITS ETF 1C",
-      "cluster_id": 39
+      "cluster_id": 38
      },
      {
       "isin": "LU2370241684",
       "name": "Amundi Corporate Green Bond UCITS ETF Acc",
-      "cluster_id": 1371
+      "cluster_id": 1406
      }
     ]
    },
@@ -1533,17 +1546,17 @@
      {
       "isin": "IE00072RHT03",
       "name": "Invesco Cybersecurity UCITS ETF Acc",
-      "cluster_id": 467
+      "cluster_id": 475
      },
      {
       "isin": "IE00BLPK3577",
       "name": "WisdomTree Cybersecurity UCITS ETF - USD Acc",
-      "cluster_id": 1123
+      "cluster_id": 1158
      },
      {
       "isin": "IE00BMH5Y871",
       "name": "Global X Cybersecurity UCITS ETF USD Accumulating",
-      "cluster_id": 1163
+      "cluster_id": 1198
      }
     ]
    },
@@ -1574,7 +1587,7 @@
      {
       "isin": "LU2090062436",
       "name": "Amundi DAX III UCITS ETF Dist",
-      "cluster_id": 1357
+      "cluster_id": 1392
      },
      {
       "isin": "LU2611732046",
@@ -1590,12 +1603,12 @@
      {
       "isin": "IE000C9LBYZ8",
       "name": "WisdomTree Defensive Defined Return Autocallable EUR Active UCITS ETF - EUR Acc",
-      "cluster_id": 543
+      "cluster_id": 552
      },
      {
       "isin": "IE000F4W1QI5",
       "name": "WisdomTree Defensive Defined Return Autocallable EUR Active UCITS ETF - EUR",
-      "cluster_id": 588
+      "cluster_id": 600
      }
     ]
    },
@@ -1606,12 +1619,12 @@
      {
       "isin": "IE0005VCFMG0",
       "name": "WisdomTree Defined Return Autocallable EUR Active UCITS ETF - EUR",
-      "cluster_id": 441
+      "cluster_id": 448
      },
      {
       "isin": "IE000RAY1B92",
       "name": "WisdomTree Defined Return Autocallable EUR Active UCITS ETF - EUR Acc",
-      "cluster_id": 767
+      "cluster_id": 786
      }
     ]
    },
@@ -1622,12 +1635,12 @@
      {
       "isin": "FR0007056841",
       "name": "Amundi Dow Jones Industrial Average UCITS ETF Dist",
-      "cluster_id": 80
+      "cluster_id": 76
      },
      {
       "isin": "IE00B53L4350",
       "name": "iShares Dow Jones Industrial Average UCITS ETF USD (Acc)",
-      "cluster_id": 948
+      "cluster_id": 981
      }
     ]
    },
@@ -1638,17 +1651,17 @@
      {
       "isin": "IE000XGYMCA8",
       "name": "iShares $ EM Bond UCITS ETF EUR Hedged (Acc)",
-      "cluster_id": 864
+      "cluster_id": 893
      },
      {
       "isin": "IE00B9M6RS56",
       "name": "iShares J.P. Morgan $ EM Bond EUR Hedged UCITS ETF (Dist)",
-      "cluster_id": 116
+      "cluster_id": 113
      },
      {
       "isin": "IE00BJ5JPH63",
       "name": "iShares J.P. Morgan $ EM Bond UCITS ETF EUR Hedged (Acc)",
-      "cluster_id": 116
+      "cluster_id": 113
      }
     ]
    },
@@ -1659,17 +1672,17 @@
      {
       "isin": "IE00BF51K132",
       "name": "Invesco Emerging Markets USD Bond UCITS ETF Dist",
-      "cluster_id": 1027
+      "cluster_id": 1060
      },
      {
       "isin": "LU0677077884",
       "name": "Xtrackers II J.P. Morgan USD Emerging Markets Bond UCITS ETF 2D",
-      "cluster_id": 298
+      "cluster_id": 299
      },
      {
       "isin": "LU1920015440",
       "name": "Xtrackers II J.P. Morgan USD Emerging Markets Bond UCITS ETF 2C",
-      "cluster_id": 298
+      "cluster_id": 299
      }
     ]
    },
@@ -1680,12 +1693,12 @@
      {
       "isin": "IE00BYSX4739",
       "name": "Fidelity Emerging Markets Quality Income UCITS ETF INC-USD",
-      "cluster_id": 1221
+      "cluster_id": 1256
      },
      {
       "isin": "IE00BYSX4846",
       "name": "Fidelity Emerging Markets Quality Income UCITS ETF ACC-USD",
-      "cluster_id": 1222
+      "cluster_id": 1257
      }
     ]
    },
@@ -1696,12 +1709,12 @@
      {
       "isin": "IE0032077012",
       "name": "Invesco EQQQ Nasdaq-100 UCITS ETF Dist",
-      "cluster_id": 27
+      "cluster_id": 31
      },
      {
       "isin": "IE00BFZXGZ54",
       "name": "Invesco EQQQ Nasdaq-100 UCITS ETF Acc",
-      "cluster_id": 113
+      "cluster_id": 110
      }
     ]
    },
@@ -1712,33 +1725,12 @@
      {
       "isin": "IE000GVBJMO6",
       "name": "Erste ETF Global Equities UCITS ETF Class Acc EUR",
-      "cluster_id": 612
+      "cluster_id": 625
      },
      {
       "isin": "IE000UKN7GP4",
       "name": "Erste ETF Global Equities UCITS ETF Class Acc USD",
-      "cluster_id": 809
-     }
-    ]
-   },
-   {
-    "normalized_name": "esg corporate bond",
-    "hedged": 0,
-    "members": [
-     {
-      "isin": "IE000F37PGZ3",
-      "name": "Vanguard ESG EUR Corporate Bond UCITS ETF - (EUR) Dist",
-      "cluster_id": 2
-     },
-     {
-      "isin": "IE000QADMYA3",
-      "name": "Vanguard ESG EUR Corporate Bond UCITS ETF - (EUR) Acc",
-      "cluster_id": 2
-     },
-     {
-      "isin": "IE00BLRPRD67",
-      "name": "L&G ESG USD Corporate Bond UCITS ETF - USD Dist",
-      "cluster_id": 1129
+      "cluster_id": 832
      }
     ]
    },
@@ -1749,17 +1741,17 @@
      {
       "isin": "IE00BGJWWX56",
       "name": "Invesco Euro Government Bond UCITS ETF Dist",
-      "cluster_id": 1054
+      "cluster_id": 1088
      },
      {
       "isin": "LU1437018598",
       "name": "Amundi Euro Government Bond UCITS ETF Acc",
-      "cluster_id": 4
+      "cluster_id": 5
      },
      {
       "isin": "LU1737653714",
       "name": "Amundi Euro Government Bond UCITS ETF Dist",
-      "cluster_id": 4
+      "cluster_id": 5
      }
     ]
    },
@@ -1770,12 +1762,12 @@
      {
       "isin": "IE000ESLTCW9",
       "name": "Invesco Euro Government Bond 7-10 Year UCITS ETF Acc",
-      "cluster_id": 35
+      "cluster_id": 33
      },
      {
       "isin": "IE00BGJWWW40",
       "name": "Invesco Euro Government Bond 7-10 Year UCITS ETF Dist",
-      "cluster_id": 1053
+      "cluster_id": 1087
      }
     ]
    },
@@ -1786,7 +1778,7 @@
      {
       "isin": "IE0001PY6688",
       "name": "Franklin Euro IG Corporate UCITS ETF (Acc)",
-      "cluster_id": 383
+      "cluster_id": 385
      },
      {
       "isin": "IE000H0TSO96",
@@ -1802,12 +1794,12 @@
      {
       "isin": "IE000G5ERG83",
       "name": "Xtrackers Euro Stoxx UCITS ETF 1C",
-      "cluster_id": 602
+      "cluster_id": 614
      },
      {
       "isin": "IE000I687JU4",
       "name": "Xtrackers Euro STOXX UCITS ETF 1D",
-      "cluster_id": 626
+      "cluster_id": 639
      }
     ]
    },
@@ -1818,12 +1810,12 @@
      {
       "isin": "IE00067X7JX0",
       "name": "Invesco EURO STOXX 50 Equal Weight UCITS ETF Acc",
-      "cluster_id": 449
+      "cluster_id": 456
      },
      {
       "isin": "IE000DB78H45",
       "name": "Invesco EURO STOXX 50 Equal Weight UCITS ETF Dist",
-      "cluster_id": 563
+      "cluster_id": 572
      }
     ]
    },
@@ -1834,12 +1826,12 @@
      {
       "isin": "IE0002Y8CX98",
       "name": "WisdomTree Europe Defence UCITS ETF - EUR Acc",
-      "cluster_id": 404
+      "cluster_id": 407
      },
      {
       "isin": "IE000IAXNM41",
       "name": "iShares Europe Defence UCITS ETF EUR (Acc)",
-      "cluster_id": 631
+      "cluster_id": 644
      }
     ]
    },
@@ -1850,12 +1842,17 @@
      {
       "isin": "IE00000EF730",
       "name": "iShares Europe Equity Enhanced Active UCITS ETF EUR (Acc)",
-      "cluster_id": 356
+      "cluster_id": 358
      },
      {
       "isin": "IE00002ZKAP0",
       "name": "Xtrackers Europe Equity Enhanced Active UCITS ETF 1C",
-      "cluster_id": 358
+      "cluster_id": 360
+     },
+     {
+      "isin": "IE000L1NIQD8",
+      "name": "Amundi Europe Equity Enhanced Active UCITS ETF Acc",
+      "cluster_id": 683
      }
     ]
    },
@@ -1866,12 +1863,12 @@
      {
       "isin": "IE000NHAIBN0",
       "name": "iShares € Flexible Income Bond Active UCITS ETF EUR (Dist)",
-      "cluster_id": 711
+      "cluster_id": 728
      },
      {
       "isin": "IE000R7KKFN3",
       "name": "iShares € Flexible Income Bond Active UCITS ETF EUR (Acc)",
-      "cluster_id": 764
+      "cluster_id": 783
      }
     ]
    },
@@ -1882,7 +1879,7 @@
      {
       "isin": "LU1681040900",
       "name": "Amundi USD Floating Rate Corporate Bond ESG UCITS ETF Acc",
-      "cluster_id": 47
+      "cluster_id": 42
      },
      {
       "isin": "LU1681041114",
@@ -1898,22 +1895,22 @@
      {
       "isin": "IE00B810Q511",
       "name": "Vanguard FTSE 100 UCITS ETF - (GBP) Dist",
-      "cluster_id": 40
+      "cluster_id": 240
      },
      {
       "isin": "IE00BFMXYP42",
       "name": "Vanguard FTSE 100 UCITS ETF - (GBP) Acc",
-      "cluster_id": 1031
+      "cluster_id": 1064
      },
      {
       "isin": "LU0838780707",
       "name": "Xtrackers FTSE 100 UCITS ETF 1C",
-      "cluster_id": 40
+      "cluster_id": 55
      },
      {
       "isin": "LU1650492256",
       "name": "Amundi FTSE 100 UCITS ETF Dist",
-      "cluster_id": 1317
+      "cluster_id": 240
      }
     ]
    },
@@ -1924,27 +1921,27 @@
      {
       "isin": "IE0000QLH0G6",
       "name": "Invesco FTSE All-World UCITS ETF Dist",
-      "cluster_id": 18
+      "cluster_id": 23
      },
      {
       "isin": "IE000716YHJ7",
       "name": "Invesco FTSE All-World UCITS ETF Acc",
-      "cluster_id": 18
+      "cluster_id": 23
      },
      {
       "isin": "IE00097WZHZ9",
       "name": "iShares FTSE All World UCITS ETF USD (Acc)",
-      "cluster_id": 506
+      "cluster_id": 515
      },
      {
       "isin": "IE000L6ZMMC4",
       "name": "Xtrackers FTSE All-World UCITS ETF 1C",
-      "cluster_id": 672
+      "cluster_id": 688
      },
      {
       "isin": "IE000OL3XN92",
       "name": "iShares FTSE All World UCITS ETF USD (Dist)",
-      "cluster_id": 727
+      "cluster_id": 745
      },
      {
       "isin": "IE00B3RBWM25",
@@ -1954,7 +1951,7 @@
      {
       "isin": "IE00BK5BQT80",
       "name": "Vanguard FTSE All-World UCITS ETF - (USD) Acc",
-      "cluster_id": 18
+      "cluster_id": 23
      }
     ]
    },
@@ -1965,12 +1962,12 @@
      {
       "isin": "IE0009A5ADV9",
       "name": "Vanguard FTSE All-World ex-U.S. UCITS ETF - (USD) Accumulating",
-      "cluster_id": 508
+      "cluster_id": 517
      },
      {
       "isin": "IE000G1H7OC0",
       "name": "Vanguard FTSE All-World ex-U.S. UCITS ETF - (USD) Distributing",
-      "cluster_id": 600
+      "cluster_id": 612
      }
     ]
    },
@@ -1981,12 +1978,12 @@
      {
       "isin": "IE00069H3LK0",
       "name": "Vanguard FTSE Developed Europe Small-Cap UCITS ETF - (EUR) Accumulating",
-      "cluster_id": 451
+      "cluster_id": 458
      },
      {
       "isin": "IE000K7PC2G4",
       "name": "Vanguard FTSE Developed Europe Small-Cap UCITS ETF - (EUR) Distributing",
-      "cluster_id": 655
+      "cluster_id": 670
      }
     ]
    },
@@ -1997,17 +1994,17 @@
      {
       "isin": "IE0004I037N4",
       "name": "Franklin FTSE Emerging Markets UCITS ETF",
-      "cluster_id": 158
+      "cluster_id": 157
      },
      {
       "isin": "IE00B3VVMM84",
       "name": "Vanguard FTSE Emerging Markets UCITS ETF - (USD) Dist",
-      "cluster_id": 930
+      "cluster_id": 964
      },
      {
       "isin": "IE00BK5BR733",
       "name": "Vanguard FTSE Emerging Markets UCITS ETF - (USD) Acc",
-      "cluster_id": 158
+      "cluster_id": 157
      }
     ]
    },
@@ -2018,12 +2015,12 @@
      {
       "isin": "IE000Q4J3CW6",
       "name": "Vanguard FTSE Eurozone UCITS ETF (EUR) - Accumulating",
-      "cluster_id": 750
+      "cluster_id": 768
      },
      {
       "isin": "IE000VH3JSL8",
       "name": "Vanguard FTSE Eurozone UCITS ETF (EUR) - Distributing",
-      "cluster_id": 829
+      "cluster_id": 853
      }
     ]
    },
@@ -2034,12 +2031,12 @@
      {
       "isin": "IE000CVUM3N6",
       "name": "Vanguard FTSE Global All-Cap UCITS ETF - (USD) Distributing",
-      "cluster_id": 555
+      "cluster_id": 564
      },
      {
       "isin": "IE000VAHT5T0",
       "name": "Vanguard FTSE Global All-Cap UCITS ETF - (USD) Accumulating",
-      "cluster_id": 823
+      "cluster_id": 847
      }
     ]
    },
@@ -2050,12 +2047,12 @@
      {
       "isin": "IE0007TPRF31",
       "name": "Vanguard FTSE Global Small-Cap UCITS ETF - (USD) Accumulating",
-      "cluster_id": 478
+      "cluster_id": 486
      },
      {
       "isin": "IE000F8RXD33",
       "name": "Vanguard FTSE Global Small-Cap UCITS ETF - (USD) Distributing",
-      "cluster_id": 589
+      "cluster_id": 601
      }
     ]
    },
@@ -2066,17 +2063,17 @@
      {
       "isin": "IE000D0T0BO1",
       "name": "Franklin FTSE Japan UCITS ETF",
-      "cluster_id": 99
+      "cluster_id": 43
      },
      {
       "isin": "IE00B95PGT31",
       "name": "Vanguard FTSE Japan UCITS ETF - (USD) Dist",
-      "cluster_id": 244
+      "cluster_id": 245
      },
      {
       "isin": "IE00BFMXYX26",
       "name": "Vanguard FTSE Japan UCITS ETF - (USD) Acc",
-      "cluster_id": 99
+      "cluster_id": 43
      }
     ]
    },
@@ -2087,12 +2084,12 @@
      {
       "isin": "IE000CO65C82",
       "name": "WisdomTree Global High Dividend UCITS ETF - USD Acc",
-      "cluster_id": 550
+      "cluster_id": 559
      },
      {
       "isin": "IE000Q0CAPZ0",
       "name": "WisdomTree Global High Dividend UCITS ETF - USD",
-      "cluster_id": 745
+      "cluster_id": 763
      }
     ]
    },
@@ -2103,28 +2100,12 @@
      {
       "isin": "IE000CK5G8J7",
       "name": "iShares Global Infrastructure UCITS ETF USD (Acc)",
-      "cluster_id": 546
+      "cluster_id": 555
      },
      {
       "isin": "IE00B1FZS467",
       "name": "iShares Global Infrastructure UCITS ETF USD (Dist)",
-      "cluster_id": 912
-     }
-    ]
-   },
-   {
-    "normalized_name": "global quality dividend",
-    "hedged": 0,
-    "members": [
-     {
-      "isin": "IE000ZZJ48Q0",
-      "name": "Franklin Global Quality Dividend UCITS ETF - (Acc)",
-      "cluster_id": 903
-     },
-     {
-      "isin": "IE00BF2B0M76",
-      "name": "Franklin Global Quality Dividend UCITS ETF",
-      "cluster_id": 1022
+      "cluster_id": 945
      }
     ]
    },
@@ -2135,12 +2116,12 @@
      {
       "isin": "IE00BZ56RN96",
       "name": "WisdomTree Global Quality Dividend Growth UCITS ETF - USD",
-      "cluster_id": 1247
+      "cluster_id": 1282
      },
      {
       "isin": "IE00BZ56SW52",
       "name": "WisdomTree Global Quality Dividend Growth UCITS ETF - USD Acc",
-      "cluster_id": 1248
+      "cluster_id": 1283
      }
     ]
    },
@@ -2151,12 +2132,12 @@
      {
       "isin": "IE0005AJA0P1",
       "name": "L&G Global Quality Dividends UCITS ETF - USD Dist",
-      "cluster_id": 432
+      "cluster_id": 437
      },
      {
       "isin": "IE000MRIQ479",
       "name": "L&G Global Quality Dividends UCITS ETF - USD Acc",
-      "cluster_id": 699
+      "cluster_id": 716
      }
     ]
    },
@@ -2167,12 +2148,12 @@
      {
       "isin": "IE0003ZXNJY5",
       "name": "iShares Global Timber & Forestry UCITS ETF USD (Acc)",
-      "cluster_id": 418
+      "cluster_id": 421
      },
      {
       "isin": "IE00B27YCF74",
       "name": "iShares Global Timber & Forestry UCITS ETF USD (Dist)",
-      "cluster_id": 921
+      "cluster_id": 954
      }
     ]
    },
@@ -2183,12 +2164,12 @@
      {
       "isin": "LU1681046774",
       "name": "Amundi Govt Bond Lowest Rated Euro Investment Grade UCITS ETF DR - EUR (C)",
-      "cluster_id": 4
+      "cluster_id": 41
      },
      {
       "isin": "LU1681046857",
       "name": "Amundi Govt Bond Lowest Rated Euro Investment Grade UCITS ETF DR - EUR (D)",
-      "cluster_id": 1324
+      "cluster_id": 1359
      }
     ]
    },
@@ -2199,12 +2180,12 @@
      {
       "isin": "IE00B4PY7Y77",
       "name": "iShares $ High Yield Corp Bond UCITS ETF USD (Dist)",
-      "cluster_id": 941
+      "cluster_id": 97
      },
      {
       "isin": "IE00B66F4759",
       "name": "iShares € High Yield Corp Bond UCITS ETF EUR (Dist)",
-      "cluster_id": 23
+      "cluster_id": 19
      }
     ]
    },
@@ -2213,24 +2194,34 @@
     "hedged": 0,
     "members": [
      {
+      "isin": "IE0007XDORZ1",
+      "name": "Vanguard USD High Yield Corporate Bond UCITS ETF - (USD) Distributing",
+      "cluster_id": 490
+     },
+     {
+      "isin": "IE000TF6B304",
+      "name": "Vanguard USD High Yield Corporate Bond UCITS ETF - (USD) Accumulating",
+      "cluster_id": 815
+     },
+     {
       "isin": "IE00BDR5HM97",
       "name": "Xtrackers USD High Yield Corporate Bond UCITS ETF 1D",
-      "cluster_id": 44
+      "cluster_id": 90
      },
      {
       "isin": "LU1109942653",
       "name": "Xtrackers II EUR High Yield Corporate Bond UCITS ETF 1D",
-      "cluster_id": 23
+      "cluster_id": 19
      },
      {
       "isin": "LU1109943388",
       "name": "Xtrackers II EUR High Yield Corporate Bond UCITS ETF 1C",
-      "cluster_id": 23
+      "cluster_id": 19
      },
      {
       "isin": "LU2970735911",
       "name": "Amundi EUR High Yield Corporate Bond UCITS ETF Acc",
-      "cluster_id": 23
+      "cluster_id": 19
      }
     ]
    },
@@ -2241,17 +2232,17 @@
      {
       "isin": "IE00053WDH64",
       "name": "Invesco Hydrogen Economy UCITS ETF Acc",
-      "cluster_id": 430
+      "cluster_id": 435
      },
      {
       "isin": "IE00BMDH1538",
       "name": "VanEck Hydrogen Economy UCITS ETF",
-      "cluster_id": 1154
+      "cluster_id": 1189
      },
      {
       "isin": "IE00BMYDM794",
       "name": "L&G Hydrogen Economy UCITS ETF - USD Acc",
-      "cluster_id": 1174
+      "cluster_id": 1209
      }
     ]
    },
@@ -2262,22 +2253,22 @@
      {
       "isin": "IE0007UPSEA3",
       "name": "iShares iBonds Dec 2026 Term $ Corp UCITS ETF USD (Dist)",
-      "cluster_id": 45
+      "cluster_id": 57
      },
      {
       "isin": "IE000BWITBP9",
       "name": "iShares iBonds Dec 2026 Term $ Corp UCITS ETF USD (Acc)",
-      "cluster_id": 45
+      "cluster_id": 57
      },
      {
       "isin": "IE000SIZJ2B2",
       "name": "iShares iBonds Dec 2026 Term € Corp UCITS ETF EUR (Dist)",
-      "cluster_id": 8
+      "cluster_id": 10
      },
      {
       "isin": "IE000WA6L436",
       "name": "iShares iBonds Dec 2026 Term € Corp UCITS ETF EUR (Acc)",
-      "cluster_id": 8
+      "cluster_id": 10
      }
     ]
    },
@@ -2288,22 +2279,22 @@
      {
       "isin": "IE000H5X52W8",
       "name": "iShares iBonds Dec 2027 Term € Corp UCITS ETF EUR (Dist)",
-      "cluster_id": 8
+      "cluster_id": 10
      },
      {
       "isin": "IE000I1D7D10",
       "name": "iShares iBonds Dec 2027 Term $ Corp UCITS ETF USD (Acc)",
-      "cluster_id": 59
+      "cluster_id": 57
      },
      {
       "isin": "IE000I1Q42S9",
       "name": "iShares iBonds Dec 2027 Term $ Corp UCITS ETF USD (Dist)",
-      "cluster_id": 624
+      "cluster_id": 637
      },
      {
       "isin": "IE000ZOI8OK5",
       "name": "iShares iBonds Dec 2027 Term € Corp UCITS ETF EUR (Acc)",
-      "cluster_id": 8
+      "cluster_id": 10
      }
     ]
    },
@@ -2314,22 +2305,22 @@
      {
       "isin": "IE0000UJ3480",
       "name": "iShares iBonds Dec 2028 Term $ Corp UCITS ETF USD (Acc)",
-      "cluster_id": 59
+      "cluster_id": 84
      },
      {
       "isin": "IE0000VITHT2",
       "name": "iShares iBonds Dec 2028 Term $ Corp UCITS ETF USD (Dist)",
-      "cluster_id": 59
+      "cluster_id": 84
      },
      {
       "isin": "IE000264WWY0",
       "name": "iShares iBonds Dec 2028 Term € Corp UCITS ETF EUR (Dist)",
-      "cluster_id": 19
+      "cluster_id": 15
      },
      {
       "isin": "IE0008UEVOE0",
       "name": "iShares iBonds Dec 2028 Term € Corp UCITS ETF EUR (Acc)",
-      "cluster_id": 19
+      "cluster_id": 15
      }
     ]
    },
@@ -2340,12 +2331,12 @@
      {
       "isin": "IE0003HV7CS6",
       "name": "iShares iBonds Dec 2028 Term € Corp Crossover UCITS ETF EUR (Acc)",
-      "cluster_id": 411
+      "cluster_id": 414
      },
      {
       "isin": "IE000Q0UH3Y7",
       "name": "iShares iBonds Dec 2028 Term € Corp Crossover UCITS ETF EUR (Dist)",
-      "cluster_id": 747
+      "cluster_id": 765
      }
     ]
    },
@@ -2356,12 +2347,12 @@
      {
       "isin": "IE000BUSGFL9",
       "name": "iShares iBonds Dec 2029 Term € Corp Crossover UCITS ETF EUR (Dist)",
-      "cluster_id": 535
+      "cluster_id": 544
      },
      {
       "isin": "IE000UJSC3C9",
       "name": "iShares iBonds Dec 2029 Term € Corp Crossover UCITS ETF EUR (Acc)",
-      "cluster_id": 808
+      "cluster_id": 831
      }
     ]
    },
@@ -2372,12 +2363,12 @@
      {
       "isin": "IE000O1FWAW6",
       "name": "iShares iBonds Dec 2035 Term € Corp UCITS ETF EUR (Acc)",
-      "cluster_id": 718
+      "cluster_id": 735
      },
      {
       "isin": "IE000WLR06P0",
       "name": "iShares iBonds Dec 2035 Term € Corp UCITS ETF EUR (Dist)",
-      "cluster_id": 846
+      "cluster_id": 873
      }
     ]
    },
@@ -2388,12 +2379,12 @@
      {
       "isin": "IE000AD2AYN2",
       "name": "iShares iBonds Dec 2036 Term € Corp UCITS ETF EUR (Acc)",
-      "cluster_id": 516
+      "cluster_id": 526
      },
      {
       "isin": "IE000RQJBQI6",
       "name": "iShares iBonds Dec 2036 Term € Corp UCITS ETF EUR (Dist)",
-      "cluster_id": 775
+      "cluster_id": 794
      }
     ]
    },
@@ -2404,12 +2395,12 @@
      {
       "isin": "IE0007SRI1C7",
       "name": "iShares iBonds Dec 2037 Term € Corp UCITS ETF EUR (Acc)",
-      "cluster_id": 477
+      "cluster_id": 485
      },
      {
       "isin": "IE000PWSK6H1",
       "name": "iShares iBonds Dec 2037 Term € Corp UCITS ETF EUR (Dist)",
-      "cluster_id": 743
+      "cluster_id": 761
      }
     ]
    },
@@ -2420,12 +2411,12 @@
      {
       "isin": "IE000M284BG0",
       "name": "Invesco EUR IG Corporate Bond Active UCITS ETF Acc",
-      "cluster_id": 686
+      "cluster_id": 702
      },
      {
       "isin": "IE000Z6C4D62",
       "name": "Invesco EUR IG Corporate Bond Active UCITS ETF Dist",
-      "cluster_id": 896
+      "cluster_id": 928
      }
     ]
    },
@@ -2452,12 +2443,12 @@
      {
       "isin": "IE0003B9KF87",
       "name": "Invesco EUR IG Corporate Bond Short Duration Active UCITS ETF Acc",
-      "cluster_id": 408
+      "cluster_id": 411
      },
      {
       "isin": "IE000XE5BZ07",
       "name": "Invesco EUR IG Corporate Bond Short Duration Active UCITS ETF Dist",
-      "cluster_id": 862
+      "cluster_id": 891
      }
     ]
    },
@@ -2468,12 +2459,12 @@
      {
       "isin": "IE0001KPAXU3",
       "name": "Invesco EUR IG Corporate Bond Yield Plus UCITS ETF Dist",
-      "cluster_id": 381
+      "cluster_id": 383
      },
      {
       "isin": "IE0005F2R613",
       "name": "Invesco EUR IG Corporate Bond Yield Plus UCITS ETF Acc",
-      "cluster_id": 436
+      "cluster_id": 442
      }
     ]
    },
@@ -2484,12 +2475,12 @@
      {
       "isin": "IE000YSUEJ32",
       "name": "L&G India INR Government Bond UCITS ETF - USD Acc",
-      "cluster_id": 161
+      "cluster_id": 160
      },
      {
       "isin": "IE00BL6K6H97",
       "name": "L&G India INR Government Bond UCITS ETF - USD Dist",
-      "cluster_id": 1112
+      "cluster_id": 1147
      }
     ]
    },
@@ -2500,12 +2491,12 @@
      {
       "isin": "IE00BFXR5T61",
       "name": "L&G Japan Equity UCITS ETF - USD Acc",
-      "cluster_id": 244
+      "cluster_id": 245
      },
      {
       "isin": "IE00BYQCZN58",
       "name": "WisdomTree Japan Equity UCITS ETF - USD Acc",
-      "cluster_id": 1219
+      "cluster_id": 1254
      }
     ]
    },
@@ -2516,12 +2507,12 @@
      {
       "isin": "IE00BVXC4854",
       "name": "WisdomTree Japan Equity UCITS ETF - USD Hedged",
-      "cluster_id": 1209
+      "cluster_id": 1244
      },
      {
       "isin": "IE00BYQCZJ13",
       "name": "WisdomTree Japan Equity UCITS ETF - EUR Hedged Acc",
-      "cluster_id": 1218
+      "cluster_id": 1253
      }
     ]
    },
@@ -2532,12 +2523,12 @@
      {
       "isin": "IE0002VU15G5",
       "name": "JPM All Country Research Enhanced Index Equity Paris Aligned Active UCITS ETF - USD (acc)",
-      "cluster_id": 402
+      "cluster_id": 405
      },
      {
       "isin": "IE00063SATO1",
       "name": "JPM All Country Research Enhanced Index Equity Paris Aligned Active UCITS ETF - EUR (acc)",
-      "cluster_id": 445
+      "cluster_id": 452
      }
     ]
    },
@@ -2564,12 +2555,12 @@
      {
       "isin": "IE0000BNORX6",
       "name": "JPM Europe Equity Premium Income Active UCITS ETF - EUR (acc)",
-      "cluster_id": 361
+      "cluster_id": 363
      },
      {
       "isin": "IE00064TWYK9",
       "name": "JPM Europe Equity Premium Income Active UCITS ETF - EUR (dist)",
-      "cluster_id": 447
+      "cluster_id": 454
      }
     ]
    },
@@ -2580,17 +2571,17 @@
      {
       "isin": "IE000245C884",
       "name": "JPM Global Equity Active UCITS ETF - USD (dist)",
-      "cluster_id": 391
+      "cluster_id": 394
      },
      {
       "isin": "IE0009OCO2W4",
       "name": "JPM Global Equity Active UCITS ETF - USD (acc)",
-      "cluster_id": 511
+      "cluster_id": 520
      },
      {
       "isin": "IE000MTYM4K8",
       "name": "JPM Global Equity Active UCITS ETF - EUR (acc)",
-      "cluster_id": 701
+      "cluster_id": 718
      }
     ]
    },
@@ -2601,12 +2592,12 @@
      {
       "isin": "IE0006FBEDB6",
       "name": "JPM Global ex US Research Enhanced Index Equity Active UCITS ETF - USD (acc)",
-      "cluster_id": 455
+      "cluster_id": 462
      },
      {
       "isin": "IE000QC2YB58",
       "name": "JPM Global ex US Research Enhanced Index Equity Active UCITS ETF - USD (dist)",
-      "cluster_id": 753
+      "cluster_id": 771
      }
     ]
    },
@@ -2617,22 +2608,22 @@
      {
       "isin": "IE000IEOQSJ3",
       "name": "JPM EUR High Yield Bond Active UCITS ETF - EUR (acc)",
-      "cluster_id": 23
+      "cluster_id": 19
      },
      {
       "isin": "IE000LZI2UH4",
       "name": "JPM USD High Yield Bond Active UCITS ETF - USD (acc)",
-      "cluster_id": 44
+      "cluster_id": 97
      },
      {
       "isin": "IE000R88UVN6",
       "name": "JPM USD High Yield Bond Active UCITS ETF - USD (dist)",
-      "cluster_id": 44
+      "cluster_id": 97
      },
      {
       "isin": "IE000YSJPNV8",
       "name": "JPM EUR High Yield Bond Active UCITS ETF - EUR (dist)",
-      "cluster_id": 23
+      "cluster_id": 19
      }
     ]
    },
@@ -2643,12 +2634,12 @@
      {
       "isin": "IE000CQMYME2",
       "name": "JPM USD High Yield Bond Active UCITS ETF - EUR Hedged (acc)",
-      "cluster_id": 552
+      "cluster_id": 561
      },
      {
       "isin": "IE000R7DCW45",
       "name": "JPM USD High Yield Bond Active UCITS ETF - EUR Hedged (dist)",
-      "cluster_id": 763
+      "cluster_id": 782
      }
     ]
    },
@@ -2659,7 +2650,7 @@
      {
       "isin": "IE0006CJGQR9",
       "name": "JPM Nasdaq Equity Premium Income Active UCITS ETF - EUR (dist)",
-      "cluster_id": 452
+      "cluster_id": 459
      },
      {
       "isin": "IE000N6I8IU2",
@@ -2680,12 +2671,12 @@
      {
       "isin": "IE0006UQKVQ0",
       "name": "JPM Nasdaq Hedged Equity Laddered Overlay Active UCITS ETF - USD (dist)",
-      "cluster_id": 462
+      "cluster_id": 470
      },
      {
       "isin": "IE000JIPY1U8",
       "name": "JPM Nasdaq Hedged Equity Laddered Overlay Active UCITS ETF - USD (acc)",
-      "cluster_id": 646
+      "cluster_id": 659
      }
     ]
    },
@@ -2701,12 +2692,12 @@
      {
       "isin": "IE00BDFC6Q91",
       "name": "JPM USD Ultra-Short Income UCITS ETF - USD (dist)",
-      "cluster_id": 11
+      "cluster_id": 12
      },
      {
       "isin": "IE00BG8BCY43",
       "name": "JPM USD Ultra-Short Income UCITS ETF - USD (acc)",
-      "cluster_id": 11
+      "cluster_id": 12
      }
     ]
    },
@@ -2717,17 +2708,17 @@
      {
       "isin": "IE0000EAPBT6",
       "name": "JPM US Equity Premium Income Active UCITS ETF - USD (acc)",
-      "cluster_id": 149
+      "cluster_id": 147
      },
      {
       "isin": "IE000RE0SQM6",
       "name": "JPM US Equity Premium Income Active UCITS ETF - EUR (dist)",
-      "cluster_id": 770
+      "cluster_id": 789
      },
      {
       "isin": "IE000U5MJOZ6",
       "name": "JPM US Equity Premium Income Active UCITS ETF - USD (dist)",
-      "cluster_id": 149
+      "cluster_id": 147
      }
     ]
    },
@@ -2738,12 +2729,12 @@
      {
       "isin": "IE000K4JG8P9",
       "name": "JPM US Hedged Equity Laddered Overlay Active UCITS ETF - USD (dist)",
-      "cluster_id": 654
+      "cluster_id": 669
      },
      {
       "isin": "IE000VAZZYM3",
       "name": "JPM US Hedged Equity Laddered Overlay Active UCITS ETF - USD (acc)",
-      "cluster_id": 824
+      "cluster_id": 848
      }
     ]
    },
@@ -2754,17 +2745,33 @@
      {
       "isin": "FR0011857234",
       "name": "Amundi MDAX UCITS ETF Dist",
-      "cluster_id": 55
+      "cluster_id": 49
      },
      {
       "isin": "FR0014015ZN2",
       "name": "Amundi MDAX UCITS ETF Acc",
-      "cluster_id": 354
+      "cluster_id": 356
      },
      {
       "isin": "IE00BHJYDV33",
       "name": "Invesco MDAX UCITS ETF Acc",
-      "cluster_id": 55
+      "cluster_id": 49
+     }
+    ]
+   },
+   {
+    "normalized_name": "metaverse",
+    "hedged": 0,
+    "members": [
+     {
+      "isin": "IE0004U3TX15",
+      "name": "L&G Metaverse UCITS ETF - USD Acc",
+      "cluster_id": 430
+     },
+     {
+      "isin": "IE000RN58M26",
+      "name": "iShares Metaverse UCITS ETF USD (Acc)",
+      "cluster_id": 792
      }
     ]
    },
@@ -2775,12 +2782,12 @@
      {
       "isin": "IE00B0M63730",
       "name": "iShares MSCI AC Far East ex-Japan UCITS ETF USD (Dist)",
-      "cluster_id": 910
+      "cluster_id": 943
      },
      {
       "isin": "IE00BKPX3K41",
       "name": "iShares MSCI AC Far East ex-Japan UCITS ETF USD (Acc)",
-      "cluster_id": 1095
+      "cluster_id": 1130
      }
     ]
    },
@@ -2791,17 +2798,17 @@
      {
       "isin": "IE00B0M63516",
       "name": "iShares MSCI Brazil UCITS ETF USD (Dist)",
-      "cluster_id": 909
+      "cluster_id": 942
      },
      {
       "isin": "LU0292109344",
       "name": "Xtrackers MSCI Brazil UCITS ETF 1C",
-      "cluster_id": 293
+      "cluster_id": 294
      },
      {
       "isin": "LU1900066207",
       "name": "Amundi MSCI Brazil UCITS ETF Acc",
-      "cluster_id": 293
+      "cluster_id": 294
      }
     ]
    },
@@ -2812,42 +2819,42 @@
      {
       "isin": "FR0011720911",
       "name": "Amundi MSCI China A UCITS ETF Acc",
-      "cluster_id": 351
+      "cluster_id": 353
      },
      {
       "isin": "IE00BJ5JPG56",
       "name": "iShares MSCI China UCITS ETF USD (Acc)",
-      "cluster_id": 265
+      "cluster_id": 266
      },
      {
       "isin": "IE00BQT3WG13",
       "name": "iShares MSCI China A UCITS ETF USD (Acc)",
-      "cluster_id": 1196
+      "cluster_id": 1231
      },
      {
       "isin": "LU0292109856",
       "name": "Xtrackers MSCI China A UCITS ETF 1C",
-      "cluster_id": 1268
+      "cluster_id": 1303
      },
      {
       "isin": "LU0514695690",
       "name": "Xtrackers MSCI China UCITS ETF 1C",
-      "cluster_id": 1292
+      "cluster_id": 1327
      },
      {
       "isin": "LU1841731745",
       "name": "Amundi MSCI China UCITS ETF Acc",
-      "cluster_id": 1333
+      "cluster_id": 1368
      },
      {
       "isin": "LU2456436083",
       "name": "Xtrackers MSCI China UCITS ETF 1D",
-      "cluster_id": 265
+      "cluster_id": 266
      },
      {
       "isin": "LU2572256746",
       "name": "Amundi MSCI China A II UCITS ETF Dist",
-      "cluster_id": 1378
+      "cluster_id": 1413
      }
     ]
    },
@@ -2858,17 +2865,17 @@
      {
       "isin": "IE000S3N6R34",
       "name": "iShares MSCI EM Swap UCITS ETF USD (Acc)",
-      "cluster_id": 778
+      "cluster_id": 798
      },
      {
       "isin": "IE00B0M63177",
       "name": "iShares MSCI EM UCITS ETF USD (Dist)",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "IE00B4L5YC18",
       "name": "iShares MSCI EM UCITS ETF USD (Acc)",
-      "cluster_id": 10
+      "cluster_id": 11
      }
     ]
    },
@@ -2879,17 +2886,17 @@
      {
       "isin": "IE00B466KX20",
       "name": "SPDR MSCI EM Asia UCITS ETF",
-      "cluster_id": 936
+      "cluster_id": 970
      },
      {
       "isin": "IE00B5L8K969",
       "name": "iShares MSCI EM Asia UCITS ETF USD (Acc)",
-      "cluster_id": 950
+      "cluster_id": 983
      },
      {
       "isin": "LU1681044480",
       "name": "Amundi MSCI Em Asia UCITS ETF - EUR (C)",
-      "cluster_id": 1320
+      "cluster_id": 1355
      }
     ]
    },
@@ -2900,12 +2907,12 @@
      {
       "isin": "IE00B27YCK28",
       "name": "iShares MSCI EM Latin America UCITS ETF USD (Dist)",
-      "cluster_id": 922
+      "cluster_id": 955
      },
      {
       "isin": "LU1681045024",
       "name": "Amundi MSCI EM Latin America UCITS ETF - EUR (C)",
-      "cluster_id": 1321
+      "cluster_id": 1356
      }
     ]
    },
@@ -2916,47 +2923,47 @@
      {
       "isin": "FR0010429068",
       "name": "Amundi MSCI Emerging Markets III UCITS ETF EUR Acc",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "IE000GWA2J58",
       "name": "Xtrackers MSCI Emerging Markets UCITS ETF 1D",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "IE00B3DWVS88",
       "name": "Invesco MSCI Emerging Markets UCITS ETF Acc",
-      "cluster_id": 927
+      "cluster_id": 960
      },
      {
       "isin": "IE00B469F816",
       "name": "SPDR MSCI Emerging Markets UCITS ETF",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "IE00BTJRMP35",
       "name": "Xtrackers MSCI Emerging Markets UCITS ETF 1C",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "LU0292107645",
       "name": "Xtrackers MSCI Emerging Markets Swap UCITS ETF 1C",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "LU1681045370",
       "name": "Amundi MSCI Emerging Markets UCITS ETF - EUR (C)",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "LU2573966905",
       "name": "Amundi MSCI Emerging Markets II UCITS ETF Dist",
-      "cluster_id": 10
+      "cluster_id": 11
      },
      {
       "isin": "LU2675291913",
       "name": "Xtrackers MSCI Emerging Markets Swap UCITS ETF 1D",
-      "cluster_id": 10
+      "cluster_id": 11
      }
     ]
    },
@@ -2967,12 +2974,12 @@
      {
       "isin": "LU1861138961",
       "name": "Amundi MSCI Emerging Markets SRI Climate Paris Aligned UCITS ETF DR (C)",
-      "cluster_id": 1336
+      "cluster_id": 1371
      },
      {
       "isin": "LU2059756754",
       "name": "Amundi MSCI Emerging Markets SRI Climate Paris Aligned UCITS ETF DR (D)",
-      "cluster_id": 1356
+      "cluster_id": 1391
      }
     ]
    },
@@ -2983,12 +2990,12 @@
      {
       "isin": "IE00BHZPHZ28",
       "name": "iShares MSCI EMU ESG Enhanced CTB UCITS ETF EUR (Dist)",
-      "cluster_id": 1064
+      "cluster_id": 1098
      },
      {
       "isin": "IE00BHZPJ015",
       "name": "iShares MSCI EMU ESG Enhanced CTB UCITS ETF EUR (Acc)",
-      "cluster_id": 260
+      "cluster_id": 261
      }
     ]
    },
@@ -2999,12 +3006,12 @@
      {
       "isin": "FR0010717090",
       "name": "Amundi ETF MSCI EMU High Dividend UCITS ETF - EUR",
-      "cluster_id": 345
+      "cluster_id": 347
      },
      {
       "isin": "FR0014018VJ3",
       "name": "Amundi MSCI EMU High Dividend UCITS ETF Dist",
-      "cluster_id": 355
+      "cluster_id": 357
      }
     ]
    },
@@ -3015,12 +3022,12 @@
      {
       "isin": "LU1681041973",
       "name": "Amundi MSCI Europe High Dividend Factor UCITS ETF - EUR (C)",
-      "cluster_id": 1319
+      "cluster_id": 1354
      },
      {
       "isin": "LU3402750635",
       "name": "Amundi MSCI Europe High Dividend Factor UCITS ETF Dist",
-      "cluster_id": 1433
+      "cluster_id": 1476
      }
     ]
    },
@@ -3031,12 +3038,12 @@
      {
       "isin": "LU0322253906",
       "name": "Xtrackers MSCI Europe Small Cap UCITS ETF 1C",
-      "cluster_id": 1278
+      "cluster_id": 1313
      },
      {
       "isin": "LU3456232308",
       "name": "Xtrackers MSCI Europe Small Cap UCITS ETF 1D",
-      "cluster_id": 1435
+      "cluster_id": 1481
      }
     ]
    },
@@ -3047,22 +3054,22 @@
      {
       "isin": "FR0010361683",
       "name": "Amundi MSCI India II UCITS ETF EUR Acc",
-      "cluster_id": 86
+      "cluster_id": 82
      },
      {
       "isin": "IE00BZCQB185",
       "name": "iShares MSCI India UCITS ETF USD (Acc)",
-      "cluster_id": 1251
+      "cluster_id": 1286
      },
      {
       "isin": "LU0514695187",
       "name": "Xtrackers MSCI India Swap UCITS ETF 1C",
-      "cluster_id": 86
+      "cluster_id": 82
      },
      {
       "isin": "LU1681043086",
       "name": "Amundi MSCI India UCITS ETF - EUR (C)",
-      "cluster_id": 86
+      "cluster_id": 82
      }
     ]
    },
@@ -3073,12 +3080,12 @@
      {
       "isin": "LU0476289623",
       "name": "Xtrackers MSCI Indonesia Swap UCITS ETF 1C",
-      "cluster_id": 1287
+      "cluster_id": 1322
      },
      {
       "isin": "LU1900065811",
       "name": "Amundi MSCI Indonesia UCITS ETF Acc",
-      "cluster_id": 1338
+      "cluster_id": 1373
      }
     ]
    },
@@ -3089,42 +3096,42 @@
      {
       "isin": "IE00B02KXH56",
       "name": "iShares MSCI Japan UCITS ETF USD (Dist)",
-      "cluster_id": 15
+      "cluster_id": 17
      },
      {
       "isin": "IE00B53QDK08",
       "name": "iShares MSCI Japan UCITS ETF USD (Acc)",
-      "cluster_id": 15
+      "cluster_id": 17
      },
      {
       "isin": "IE00B60SX287",
       "name": "Invesco MSCI Japan UCITS ETF Acc",
-      "cluster_id": 15
+      "cluster_id": 17
      },
      {
       "isin": "IE00BZ0G8B96",
       "name": "SPDR MSCI Japan UCITS ETF",
-      "cluster_id": 15
+      "cluster_id": 17
      },
      {
       "isin": "LU0274209740",
       "name": "Xtrackers MSCI Japan UCITS ETF 1C",
-      "cluster_id": 15
+      "cluster_id": 17
      },
      {
       "isin": "LU1781541252",
       "name": "Amundi MSCI Japan UCITS ETF Acc",
-      "cluster_id": 15
+      "cluster_id": 17
      },
      {
       "isin": "LU2090063673",
       "name": "Amundi MSCI Japan UCITS ETF Dist",
-      "cluster_id": 1358
+      "cluster_id": 1393
      },
      {
       "isin": "LU2581375230",
       "name": "Xtrackers MSCI Japan UCITS ETF 1D",
-      "cluster_id": 15
+      "cluster_id": 17
      }
     ]
    },
@@ -3135,17 +3142,17 @@
      {
       "isin": "IE00B42Z5J44",
       "name": "iShares MSCI Japan EUR Hedged UCITS ETF (Acc)",
-      "cluster_id": 69
+      "cluster_id": 64
      },
      {
       "isin": "LU0659580079",
       "name": "Xtrackers MSCI Japan UCITS ETF 4C EUR Hedged",
-      "cluster_id": 1297
+      "cluster_id": 1332
      },
      {
       "isin": "LU2133056387",
       "name": "Amundi MSCI Japan UCITS ETF EUR Hedged Dist",
-      "cluster_id": 69
+      "cluster_id": 64
      }
     ]
    },
@@ -3156,12 +3163,12 @@
      {
       "isin": "IE00089CF4V3",
       "name": "Xtrackers MSCI Next Generation Internet Innovation UCITS ETF 1D",
-      "cluster_id": 488
+      "cluster_id": 497
      },
      {
       "isin": "IE000XOQ9TK4",
       "name": "Xtrackers MSCI Next Generation Internet Innovation UCITS ETF 1C",
-      "cluster_id": 872
+      "cluster_id": 902
      }
     ]
    },
@@ -3172,12 +3179,12 @@
      {
       "isin": "IE0002LUYGW0",
       "name": "Invesco MSCI North America Swap UCITS ETF Acc",
-      "cluster_id": 396
+      "cluster_id": 399
      },
      {
       "isin": "IE00B14X4M10",
       "name": "iShares MSCI North America UCITS ETF USD (Dist)",
-      "cluster_id": 16
+      "cluster_id": 24
      }
     ]
    },
@@ -3188,12 +3195,12 @@
      {
       "isin": "LU0322252338",
       "name": "Xtrackers MSCI Pacific ex Japan Screened UCITS ETF 1C",
-      "cluster_id": 1275
+      "cluster_id": 1310
      },
      {
       "isin": "LU2755521270",
       "name": "Xtrackers MSCI Pacific ex Japan Screened UCITS ETF",
-      "cluster_id": 1388
+      "cluster_id": 1423
      }
     ]
    },
@@ -3204,12 +3211,12 @@
      {
       "isin": "IE00B1FZS574",
       "name": "iShares MSCI Turkey UCITS ETF USD (Dist)",
-      "cluster_id": 913
+      "cluster_id": 946
      },
      {
       "isin": "LU1900067601",
       "name": "Amundi MSCI Turkey UCITS ETF Acc",
-      "cluster_id": 1341
+      "cluster_id": 1376
      }
     ]
    },
@@ -3220,57 +3227,57 @@
      {
       "isin": "IE000FSN19U2",
       "name": "Amundi MSCI USA UCITS ETF Acc",
-      "cluster_id": 16
+      "cluster_id": 24
      },
      {
       "isin": "IE000FW16TX1",
       "name": "Xtrackers MSCI USA Swap II UCITS ETF 1D",
-      "cluster_id": 597
+      "cluster_id": 609
      },
      {
       "isin": "IE000IEGVMH6",
       "name": "Amundi MSCI USA UCITS ETF Dist",
-      "cluster_id": 16
+      "cluster_id": 24
      },
      {
       "isin": "IE000PDUVTF3",
       "name": "Xtrackers MSCI USA Swap II UCITS ETF 1C",
-      "cluster_id": 736
+      "cluster_id": 754
      },
      {
       "isin": "IE00B52SFT06",
       "name": "iShares MSCI USA UCITS ETF USD (Acc)",
-      "cluster_id": 945
+      "cluster_id": 978
      },
      {
       "isin": "IE00B60SX170",
       "name": "Invesco MSCI USA UCITS ETF Acc",
-      "cluster_id": 16
+      "cluster_id": 24
      },
      {
       "isin": "IE00BJ0KDR00",
       "name": "Xtrackers MSCI USA UCITS ETF 1C",
-      "cluster_id": 16
+      "cluster_id": 24
      },
      {
       "isin": "IE00BK1PV445",
       "name": "Xtrackers MSCI USA UCITS ETF 1D",
-      "cluster_id": 16
+      "cluster_id": 24
      },
      {
       "isin": "IE00BK5LYT47",
       "name": "Invesco MSCI USA UCITS ETF Dist",
-      "cluster_id": 14
+      "cluster_id": 16
      },
      {
       "isin": "LU0274210672",
       "name": "Xtrackers MSCI USA Swap UCITS ETF 1C",
-      "cluster_id": 16
+      "cluster_id": 24
      },
      {
       "isin": "LU2581375073",
       "name": "Xtrackers MSCI USA Swap UCITS ETF 1D",
-      "cluster_id": 16
+      "cluster_id": 24
      }
     ]
    },
@@ -3281,12 +3288,12 @@
      {
       "isin": "IE00098YDEH5",
       "name": "Amundi MSCI USA ESG Broad Transition UCITS ETF EUR Hedged Acc",
-      "cluster_id": 507
+      "cluster_id": 516
      },
      {
       "isin": "IE000MC1J5C5",
       "name": "Amundi MSCI USA ESG Broad Transition UCITS ETF EUR Hedged Dist",
-      "cluster_id": 691
+      "cluster_id": 708
      }
     ]
    },
@@ -3297,12 +3304,12 @@
      {
       "isin": "IE0008TKP6O7",
       "name": "Amundi MSCI USA ESG Leaders Extra UCITS ETF DR – USD (D)",
-      "cluster_id": 499
+      "cluster_id": 508
      },
      {
       "isin": "IE000VML2GZ3",
       "name": "Amundi MSCI USA ESG Leaders Extra UCITS ETF DR - USD",
-      "cluster_id": 832
+      "cluster_id": 856
      }
     ]
    },
@@ -3313,57 +3320,57 @@
      {
       "isin": "FR0010315770",
       "name": "Amundi MSCI World II UCITS ETF Dist",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "IE000CNSFAR2",
       "name": "Amundi MSCI World UCITS ETF DR - USD (D)",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "IE000K8VMPE9",
       "name": "Invesco MSCI World UCITS ETF Dist",
-      "cluster_id": 656
+      "cluster_id": 671
      },
      {
       "isin": "IE00B0M62Q58",
       "name": "iShares MSCI World UCITS ETF USD (Dist)",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "IE00B60SX394",
       "name": "Invesco MSCI World UCITS ETF Acc",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "IE00BJ0KDQ92",
       "name": "Xtrackers MSCI World UCITS ETF 1C",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "IE00BK1PV551",
       "name": "Xtrackers MSCI World UCITS ETF 1D",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "LU0274208692",
       "name": "Xtrackers MSCI World Swap UCITS ETF 1C",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "LU1681043599",
       "name": "Amundi MSCI World UCITS ETF - EUR (C)",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "LU2263803533",
       "name": "Xtrackers MSCI World Swap UCITS ETF 1D",
-      "cluster_id": 5
+      "cluster_id": 6
      },
      {
       "isin": "LU2572257124",
       "name": "Amundi MSCI World III UCITS ETF Dist",
-      "cluster_id": 5
+      "cluster_id": 6
      }
     ]
    },
@@ -3374,12 +3381,12 @@
      {
       "isin": "IE000VCTBRW6",
       "name": "Xtrackers MSCI World Industrials UCITS ETF 1D",
-      "cluster_id": 826
+      "cluster_id": 850
      },
      {
       "isin": "IE00BM67HV82",
       "name": "Xtrackers MSCI World Industrials UCITS ETF 1C",
-      "cluster_id": 1138
+      "cluster_id": 1173
      }
     ]
    },
@@ -3390,17 +3397,17 @@
      {
       "isin": "IE000T849B39",
       "name": "Xtrackers MSCI World Information Technology UCITS ETF 1D",
-      "cluster_id": 789
+      "cluster_id": 810
      },
      {
       "isin": "IE00BM67HT60",
       "name": "Xtrackers MSCI World Information Technology UCITS ETF 1C",
-      "cluster_id": 125
+      "cluster_id": 123
      },
      {
       "isin": "LU0533033667",
       "name": "Amundi MSCI World Information Technology UCITS ETF EUR Acc",
-      "cluster_id": 125
+      "cluster_id": 123
      }
     ]
    },
@@ -3411,22 +3418,22 @@
      {
       "isin": "IE000I9HGDZ3",
       "name": "Xtrackers MSCI World Screened UCITS ETF 1C",
-      "cluster_id": 630
+      "cluster_id": 643
      },
      {
       "isin": "IE00BCHWNQ94",
       "name": "Xtrackers MSCI World Screened UCITS ETF 1D",
-      "cluster_id": 117
+      "cluster_id": 114
      },
      {
       "isin": "IE00BFNM3J75",
       "name": "iShares MSCI World Screened UCITS ETF USD (Acc)",
-      "cluster_id": 117
+      "cluster_id": 114
      },
      {
       "isin": "IE00BFNM3K80",
       "name": "iShares MSCI World Screened UCITS ETF USD (Dist)",
-      "cluster_id": 117
+      "cluster_id": 114
      }
     ]
    },
@@ -3437,7 +3444,7 @@
      {
       "isin": "IE000F354Q61",
       "name": "Xtrackers MSCI World Small Cap UCITS ETF 1C",
-      "cluster_id": 587
+      "cluster_id": 599
      },
      {
       "isin": "IE000ISS8DB2",
@@ -3447,12 +3454,12 @@
      {
       "isin": "IE000SU1VJ03",
       "name": "SPDR MSCI World Small Cap UCITS ETF (Dist)",
-      "cluster_id": 215
+      "cluster_id": 214
      },
      {
       "isin": "IE00BCBJG560",
       "name": "SPDR MSCI World Small Cap UCITS ETF",
-      "cluster_id": 215
+      "cluster_id": 214
      },
      {
       "isin": "IE00BF4RFH31",
@@ -3468,12 +3475,12 @@
      {
       "isin": "IE000ME8PWJ4",
       "name": "Xtrackers MSCI World Utilities UCITS ETF 1D",
-      "cluster_id": 692
+      "cluster_id": 709
      },
      {
       "isin": "IE00BM67HQ30",
       "name": "Xtrackers MSCI World Utilities UCITS ETF 1C",
-      "cluster_id": 1135
+      "cluster_id": 1170
      }
     ]
    },
@@ -3484,47 +3491,52 @@
      {
       "isin": "IE000472H9T4",
       "name": "Xtrackers Nasdaq 100 Swap UCITS ETF 1C",
-      "cluster_id": 27
+      "cluster_id": 88
      },
      {
       "isin": "IE000EXUE0G2",
       "name": "Xtrackers Nasdaq 100 Swap UCITS ETF 1D",
-      "cluster_id": 27
+      "cluster_id": 88
      },
      {
       "isin": "IE000RUF4QN8",
       "name": "Invesco NASDAQ-100 Swap UCITS ETF Dist",
-      "cluster_id": 214
+      "cluster_id": 88
+     },
+     {
+      "isin": "IE000XC52910",
+      "name": "Xtrackers NASDAQ 100 UCITS ETF 1D",
+      "cluster_id": 889
      },
      {
       "isin": "IE00B53SZB19",
       "name": "iShares NASDAQ 100 UCITS ETF USD (Acc)",
-      "cluster_id": 113
+      "cluster_id": 110
      },
      {
       "isin": "IE00BMFKG444",
       "name": "Xtrackers NASDAQ 100 UCITS ETF 1C",
-      "cluster_id": 27
+      "cluster_id": 31
      },
      {
       "isin": "IE00BNRQM384",
       "name": "Invesco NASDAQ-100 Swap UCITS ETF Acc",
-      "cluster_id": 113
+      "cluster_id": 110
      },
      {
       "isin": "LU1681038243",
       "name": "Amundi NASDAQ-100 UCITS ETF - EUR (C)",
-      "cluster_id": 27
+      "cluster_id": 31
      },
      {
       "isin": "LU1829221024",
       "name": "Amundi Nasdaq-100 II UCITS ETF Acc",
-      "cluster_id": 27
+      "cluster_id": 31
      },
      {
       "isin": "LU2197908721",
       "name": "Amundi Nasdaq-100 II UCITS ETF Dist",
-      "cluster_id": 214
+      "cluster_id": 31
      }
     ]
    },
@@ -3535,7 +3547,7 @@
      {
       "isin": "IE0005RKXDO7",
       "name": "iShares € Overnight Rate Swap UCITS ETF",
-      "cluster_id": 439
+      "cluster_id": 446
      },
      {
       "isin": "LU0290358497",
@@ -3545,12 +3557,12 @@
      {
       "isin": "LU0321464652",
       "name": "Xtrackers II GBP Overnight Rate Swap UCITS ETF 1D",
-      "cluster_id": 1270
+      "cluster_id": 1305
      },
      {
       "isin": "LU0321465469",
       "name": "Xtrackers II USD Overnight Rate Swap UCITS ETF 1C",
-      "cluster_id": 11
+      "cluster_id": 12
      },
      {
       "isin": "LU0335044896",
@@ -3571,7 +3583,7 @@
      {
       "isin": "IE000YPOHA39",
       "name": "Invesco EUR Overnight Return Swap UCITS ETF Acc",
-      "cluster_id": 887
+      "cluster_id": 919
      }
     ]
    },
@@ -3582,12 +3594,12 @@
      {
       "isin": "IE0007Z19996",
       "name": "Pictet AI Enhanced European Equity UCITS ETF - Class EUR Dist",
-      "cluster_id": 484
+      "cluster_id": 493
      },
      {
       "isin": "IE000XFUFRR4",
       "name": "Pictet AI Enhanced European Equity UCITS ETF - Class EUR Acc",
-      "cluster_id": 863
+      "cluster_id": 892
      }
     ]
    },
@@ -3598,12 +3610,12 @@
      {
       "isin": "IE00043ZI3D8",
       "name": "Pictet AI Enhanced World Equity UCITS ETF - Class USD Dist",
-      "cluster_id": 421
+      "cluster_id": 424
      },
      {
       "isin": "IE000JBZXFH0",
       "name": "Pictet AI Enhanced World Equity UCITS ETF - Class USD Acc",
-      "cluster_id": 643
+      "cluster_id": 656
      }
     ]
    },
@@ -3614,12 +3626,12 @@
      {
       "isin": "IE000MS76E73",
       "name": "Pictet AI Enhanced World ex US Equity UCITS ETF - Class USD Acc",
-      "cluster_id": 700
+      "cluster_id": 717
      },
      {
       "isin": "IE000RYWBSX8",
       "name": "Pictet AI Enhanced World ex US Equity UCITS ETF - Class USD Dist",
-      "cluster_id": 776
+      "cluster_id": 796
      }
     ]
    },
@@ -3630,17 +3642,17 @@
      {
       "isin": "IE0007Y8Y157",
       "name": "VanEck Quantum Computing UCITS ETF",
-      "cluster_id": 482
+      "cluster_id": 491
      },
      {
       "isin": "IE000C6ITGC8",
       "name": "iShares Quantum Computing UCITS ETF USD (Acc)",
-      "cluster_id": 540
+      "cluster_id": 549
      },
      {
       "isin": "IE000W8WMSL2",
       "name": "WisdomTree Quantum Computing UCITS ETF - USD Acc",
-      "cluster_id": 841
+      "cluster_id": 867
      }
     ]
    },
@@ -3651,12 +3663,12 @@
      {
       "isin": "IE000UYVEVN3",
       "name": "SPDR S&P 400 U.S. Mid Cap UCITS ETF (Dist)",
-      "cluster_id": 814
+      "cluster_id": 838
      },
      {
       "isin": "IE00B4YBJ215",
       "name": "SPDR S&P 400 U.S. Mid Cap UCITS ETF (Acc)",
-      "cluster_id": 943
+      "cluster_id": 976
      }
     ]
    },
@@ -3667,77 +3679,77 @@
      {
       "isin": "IE000FO05UG4",
       "name": "Xtrackers S&P 500 Swap II UCITS ETF 1D",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE000HY30YW6",
       "name": "Xtrackers S&P 500 Swap II UCITS ETF 1C",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE000XZSV718",
       "name": "SPDR S&P 500 UCITS ETF (Acc)",
-      "cluster_id": 14
+      "cluster_id": 16
      },
      {
       "isin": "IE000Z9SJA06",
       "name": "Xtrackers S&P 500 UCITS ETF 4C",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE00B3XXRP09",
       "name": "Vanguard S&P 500 UCITS ETF - (USD) Dist",
-      "cluster_id": 14
+      "cluster_id": 16
      },
      {
       "isin": "IE00B3YCGJ38",
       "name": "Invesco S&P 500 UCITS ETF Acc",
-      "cluster_id": 14
+      "cluster_id": 16
      },
      {
       "isin": "IE00B6YX5C33",
       "name": "SPDR S&P 500 UCITS ETF (Dist)",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE00BFMXXD54",
       "name": "Vanguard S&P 500 UCITS ETF - (USD) Acc",
-      "cluster_id": 14
+      "cluster_id": 16
      },
      {
       "isin": "IE00BMTX1Y45",
       "name": "iShares S&P 500 Swap UCITS ETF USD (Acc)",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "IE00BYML9W36",
       "name": "Invesco S&P 500 UCITS ETF Dist",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "LU0490618542",
       "name": "Xtrackers S&P 500 Swap UCITS ETF 1C",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "LU0496786574",
       "name": "Amundi S&P 500 II UCITS ETF EUR Dist",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "LU0496786657",
       "name": "Amundi S&P 500 II UCITS ETF USD Dist",
-      "cluster_id": 14
+      "cluster_id": 16
      },
      {
       "isin": "LU1681048804",
       "name": "Amundi S&P 500 UCITS ETF - EUR (C)",
-      "cluster_id": 7
+      "cluster_id": 8
      },
      {
       "isin": "LU2009147757",
       "name": "Xtrackers S&P 500 Swap UCITS ETF 1D",
-      "cluster_id": 7
+      "cluster_id": 8
      }
     ]
    },
@@ -3748,22 +3760,22 @@
      {
       "isin": "IE0000TZZ2B2",
       "name": "Invesco S&P 500 Equal Weight Swap UCITS ETF Acc",
-      "cluster_id": 31
+      "cluster_id": 29
      },
      {
       "isin": "IE000CXLGK86",
       "name": "Xtrackers S&P 500 Equal Weight UCITS ETF 2D",
-      "cluster_id": 31
+      "cluster_id": 29
      },
      {
       "isin": "IE000FL46JJ1",
       "name": "Xtrackers S&P 500 Equal Weight Swap UCITS ETF 1D",
-      "cluster_id": 31
+      "cluster_id": 29
      },
      {
       "isin": "IE000FO1A5D1",
       "name": "Xtrackers S&P 500 Equal Weight Swap UCITS ETF 1C",
-      "cluster_id": 31
+      "cluster_id": 29
      },
      {
       "isin": "IE000MLMNYS0",
@@ -3773,7 +3785,7 @@
      {
       "isin": "IE00BLNMYC90",
       "name": "Xtrackers S&P 500 Equal Weight UCITS ETF 1C",
-      "cluster_id": 31
+      "cluster_id": 29
      },
      {
       "isin": "IE00BM8QRY62",
@@ -3783,12 +3795,12 @@
      {
       "isin": "IE00BNGJJT35",
       "name": "Invesco S&P 500 Equal Weight UCITS ETF Acc",
-      "cluster_id": 31
+      "cluster_id": 29
      },
      {
       "isin": "LU2991918421",
       "name": "Amundi S&P 500 Equal Weight UCITS ETF Acc",
-      "cluster_id": 31
+      "cluster_id": 29
      }
     ]
    },
@@ -3799,12 +3811,12 @@
      {
       "isin": "IE000KG7KXI7",
       "name": "Franklin S&P 500 Financials UCITS ETF",
-      "cluster_id": 663
+      "cluster_id": 678
      },
      {
       "isin": "IE000MNNJDT4",
       "name": "Amundi S&P 500 Financials UCITS ETF Acc",
-      "cluster_id": 697
+      "cluster_id": 714
      }
     ]
    },
@@ -3815,12 +3827,12 @@
      {
       "isin": "IE00BMDPBZ72",
       "name": "Franklin S&P 500 Paris Aligned Climate UCITS ETF",
-      "cluster_id": 1157
+      "cluster_id": 1192
      },
      {
       "isin": "IE00BMXC7V63",
       "name": "iShares S&P 500 Paris-Aligned Climate UCITS ETF USD (Acc)",
-      "cluster_id": 1172
+      "cluster_id": 1207
      }
     ]
    },
@@ -3831,12 +3843,28 @@
      {
       "isin": "IE0006FAD976",
       "name": "Franklin S&P 500 Screened UCITS ETF (Acc)",
-      "cluster_id": 454
+      "cluster_id": 461
      },
      {
       "isin": "IE000KXCEXR3",
       "name": "Amundi S&P 500 Screened UCITS ETF - Acc",
-      "cluster_id": 667
+      "cluster_id": 682
+     }
+    ]
+   },
+   {
+    "normalized_name": "scalable msci ac world",
+    "hedged": 0,
+    "members": [
+     {
+      "isin": "LU2903252349",
+      "name": "Scalable MSCI AC World Xtrackers UCITS ETF 1C",
+      "cluster_id": 227
+     },
+     {
+      "isin": "LU3444998531",
+      "name": "Scalable MSCI AC World Xtrackers UCITS ETF",
+      "cluster_id": 1478
      }
     ]
    },
@@ -3847,12 +3875,12 @@
      {
       "isin": "LU1617164998",
       "name": "Amundi EUR Short Term High Yield Corporate Bond ESG UCITS ETF Dist",
-      "cluster_id": 1316
+      "cluster_id": 1352
      },
      {
       "isin": "LU3277835305",
       "name": "Amundi EUR Short Term High Yield Corporate Bond ESG UCITS ETF Acc",
-      "cluster_id": 1423
+      "cluster_id": 1466
      }
     ]
    },
@@ -3863,12 +3891,28 @@
      {
       "isin": "IE00BKTLJB70",
       "name": "iShares Smart City Infrastructure UCITS ETF USD (Dist)",
-      "cluster_id": 1101
+      "cluster_id": 1136
      },
      {
       "isin": "IE00BKTLJC87",
       "name": "iShares Smart City Infrastructure UCITS ETF USD (Acc)",
-      "cluster_id": 1102
+      "cluster_id": 1137
+     }
+    ]
+   },
+   {
+    "normalized_name": "smart overnight return",
+    "hedged": 0,
+    "members": [
+     {
+      "isin": "LU1190417599",
+      "name": "Amundi Smart Overnight Return UCITS ETF Acc",
+      "cluster_id": 1340
+     },
+     {
+      "isin": "LU2082999306",
+      "name": "Amundi Smart Overnight Return UCITS ETF Dist",
+      "cluster_id": 1
      }
     ]
    },
@@ -3879,37 +3923,53 @@
      {
       "isin": "IE00003M6Z62",
       "name": "Xtrackers Stoxx Europe 600 II UCITS ETF 1C",
-      "cluster_id": 359
+      "cluster_id": 361
      },
      {
       "isin": "IE0000QMH1B4",
       "name": "Xtrackers STOXX Europe 600 II UCITS ETF 1D",
-      "cluster_id": 366
+      "cluster_id": 368
      },
      {
       "isin": "IE0004YCLDW1",
       "name": "iShares STOXX Europe 600 UCITS ETF EUR (Dist)",
-      "cluster_id": 427
+      "cluster_id": 431
      },
      {
       "isin": "IE000XSFZL82",
       "name": "iShares STOXX Europe 600 UCITS ETF EUR (Acc)",
-      "cluster_id": 873
+      "cluster_id": 903
      },
      {
       "isin": "IE00B60SWW18",
       "name": "Invesco STOXX Europe 600 UCITS ETF Acc",
-      "cluster_id": 3
+      "cluster_id": 4
      },
      {
       "isin": "LU0328475792",
       "name": "Xtrackers Stoxx Europe 600 UCITS ETF 1C",
-      "cluster_id": 3
+      "cluster_id": 4
      },
      {
       "isin": "LU2581375156",
       "name": "Xtrackers Stoxx Europe 600 UCITS ETF 1D",
-      "cluster_id": 3
+      "cluster_id": 4
+     }
+    ]
+   },
+   {
+    "normalized_name": "stoxx europe 600 banks de",
+    "hedged": 0,
+    "members": [
+     {
+      "isin": "DE000A0F5UJ7",
+      "name": "iShares STOXX Europe 600 Banks UCITS ETF (DE)",
+      "cluster_id": 77
+     },
+     {
+      "isin": "DE000A2QP4K7",
+      "name": "iShares STOXX Europe 600 Banks UCITS ETF (DE) EUR (Acc)",
+      "cluster_id": 334
      }
     ]
    },
@@ -3925,7 +3985,7 @@
      {
       "isin": "IE000VQZQ963",
       "name": "Fidelity Sustainable EUR Corporate Bond Paris-Aligned Multifactor UCITS ETF INC-EUR",
-      "cluster_id": 39
+      "cluster_id": 38
      }
     ]
    },
@@ -3936,12 +3996,12 @@
      {
       "isin": "IE0005B8WVT6",
       "name": "VanEck Sustainable Future of Food UCITS ETF",
-      "cluster_id": 433
+      "cluster_id": 438
      },
      {
       "isin": "IE00BLRPQH31",
       "name": "Rize Sustainable Future of Food UCITS ETF",
-      "cluster_id": 1127
+      "cluster_id": 1162
      }
     ]
    },
@@ -3952,12 +4012,12 @@
      {
       "isin": "IE000ARLR807",
       "name": "Fidelity Sustainable USD High Yield Bond Paris-Aligned Multifactor UCITS ETF INC-USD",
-      "cluster_id": 525
+      "cluster_id": 534
      },
      {
       "isin": "IE000HDEYKM3",
       "name": "Fidelity Sustainable EUR High Yield Bond Paris-Aligned Multifactor UCITS ETF INC-EUR",
-      "cluster_id": 619
+      "cluster_id": 631
      }
     ]
    },
@@ -3973,7 +4033,7 @@
      {
       "isin": "IE00BH04GW44",
       "name": "Vanguard U.K. Gilt UCITS ETF - (GBP) Acc",
-      "cluster_id": 1061
+      "cluster_id": 1095
      }
     ]
    },
@@ -3984,12 +4044,12 @@
      {
       "isin": "IE000GU6MFI0",
       "name": "Vanguard U.S. Treasury 1-3 Year Bond UCITS ETF - (USD) Distributing",
-      "cluster_id": 610
+      "cluster_id": 623
      },
      {
       "isin": "IE000H3Q3AF6",
       "name": "Vanguard U.S. Treasury 1-3 Year Bond UCITS ETF - (USD) Accumulating",
-      "cluster_id": 616
+      "cluster_id": 629
      }
     ]
    },
@@ -4000,12 +4060,12 @@
      {
       "isin": "IE000M6STPW4",
       "name": "Vanguard U.S. Treasury 1-3 Year Bond UCITS ETF - EUR Hedged Distributing",
-      "cluster_id": 687
+      "cluster_id": 704
      },
      {
       "isin": "IE000TAV7246",
       "name": "Vanguard U.S. Treasury 1-3 Year Bond UCITS ETF - EUR Hedged Accumulating",
-      "cluster_id": 792
+      "cluster_id": 813
      }
     ]
    },
@@ -4016,12 +4076,12 @@
      {
       "isin": "IE000128BSS1",
       "name": "Vanguard U.S. Treasury 3-7 Year Bond UCITS ETF - (USD) Distributing",
-      "cluster_id": 371
+      "cluster_id": 373
      },
      {
       "isin": "IE000VZ8BBU9",
       "name": "Vanguard U.S. Treasury 3-7 Year Bond UCITS ETF - (USD) Accumulating",
-      "cluster_id": 835
+      "cluster_id": 860
      }
     ]
    },
@@ -4032,12 +4092,12 @@
      {
       "isin": "IE000U882CN5",
       "name": "Vanguard U.S. Treasury 7-10 Year Bond UCITS ETF - (USD) Distributing",
-      "cluster_id": 804
+      "cluster_id": 827
      },
      {
       "isin": "IE000UXDT343",
       "name": "Vanguard U.S. Treasury 7-10 Year Bond UCITS ETF - (USD) Accumulating",
-      "cluster_id": 813
+      "cluster_id": 837
      }
     ]
    },
@@ -4053,7 +4113,7 @@
      {
       "isin": "IE00BCRY6227",
       "name": "iShares $ Ultrashort Bond UCITS ETF USD (Dist)",
-      "cluster_id": 11
+      "cluster_id": 12
      },
      {
       "isin": "IE00BCRY6557",
@@ -4069,12 +4129,12 @@
      {
       "isin": "IE0002PGSLZ5",
       "name": "Xtrackers US Equity Enhanced Active UCITS ETF 1C",
-      "cluster_id": 398
+      "cluster_id": 401
      },
      {
       "isin": "IE0009VWHAE6",
       "name": "iShares US Equity Enhanced Active UCITS ETF USD (Acc)",
-      "cluster_id": 16
+      "cluster_id": 521
      }
     ]
    },
@@ -4085,12 +4145,12 @@
      {
       "isin": "IE0008RX29L5",
       "name": "Invesco Wind Energy UCITS ETF Acc",
-      "cluster_id": 498
+      "cluster_id": 507
      },
      {
       "isin": "IE000JNHCBM6",
       "name": "Global X Wind Energy UCITS ETF USD Accumulating",
-      "cluster_id": 648
+      "cluster_id": 662
      }
     ]
    },
@@ -4101,12 +4161,33 @@
      {
       "isin": "IE00094GSCQ4",
       "name": "Xtrackers World Equity Enhanced Active UCITS ETF 1C",
-      "cluster_id": 505
+      "cluster_id": 514
      },
      {
       "isin": "IE000D8XC064",
       "name": "iShares World Equity Enhanced Active UCITS ETF USD (Acc)",
-      "cluster_id": 5
+      "cluster_id": 6
+     },
+     {
+      "isin": "IE000SUZX5N6",
+      "name": "Amundi World Equity Enhanced Active UCITS ETF Acc",
+      "cluster_id": 808
+     }
+    ]
+   },
+   {
+    "normalized_name": "world equity high income active hedged",
+    "hedged": 1,
+    "members": [
+     {
+      "isin": "IE0006HLR5N4",
+      "name": "iShares World Equity High Income Active UCITS ETF EUR Hedged (Dist)",
+      "cluster_id": 467
+     },
+     {
+      "isin": "IE000EB0LQO5",
+      "name": "iShares World Equity High Income Active UCITS ETF EUR Hedged (Acc)",
+      "cluster_id": 585
      }
     ]
    },
@@ -4117,12 +4198,12 @@
      {
       "isin": "LU2859297330",
       "name": "Xtrackers World Small Cap Green Tech Innovators UCITS ETF 1C",
-      "cluster_id": 1390
+      "cluster_id": 1425
      },
      {
       "isin": "LU3456232217",
       "name": "Xtrackers World Small Cap Green Tech Innovators UCITS ETF 1D",
-      "cluster_id": 1434
+      "cluster_id": 1480
      }
     ]
    }
