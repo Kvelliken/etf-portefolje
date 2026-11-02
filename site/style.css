@@ -102,7 +102,7 @@ footer { padding: 32px 16px 48px; }
 .grid-port + details { margin-top: 16px; }
 @media (max-width: 860px) { .grid-2, .grid-port { grid-template-columns: minmax(0, 1fr); } }
 td.wide { min-width: 240px; }
-#explorer { max-width: 100%; }
+:is(#explorer, #fund-explorer) { max-width: 100%; }
 .chart { width: 100%; height: 340px; }
 .chart-tall { height: 460px; }
 @media (max-width: 600px) { .chart-tall { height: 380px; } }
@@ -172,22 +172,23 @@ details[open] > summary::before { content: "▾ "; }
 .prose h3 { margin-top: 16px; }
 
 /* Tabulator: follow the tokens in both themes */
-#explorer.tabulator { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; color: var(--ink); }
-#explorer.tabulator .tabulator-header, #explorer.tabulator .tabulator-header .tabulator-col { background: var(--surface-2); color: var(--ink-2); border-color: var(--grid); }
-#explorer.tabulator .tabulator-header .tabulator-col .tabulator-col-content { padding: 6px 8px; }
-#explorer.tabulator .tabulator-header .tabulator-col input { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); }
-#explorer.tabulator .tabulator-tableholder .tabulator-table { background: var(--surface); color: var(--ink); }
-#explorer .tabulator-row { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--grid); }
-#explorer .tabulator-row .tabulator-cell { color: var(--ink); }
-#explorer .tabulator-row.tabulator-row-even { background: var(--surface); }
-#explorer .tabulator-row.tabulator-selectable:hover { background: var(--surface-2); cursor: pointer; }
-#explorer .tabulator-row .tabulator-cell { border-right: 0; padding: 5px 8px; }
-#explorer .tabulator-row .tabulator-cell.num { font-variant-numeric: tabular-nums; }
-#explorer.tabulator .tabulator-footer { background: var(--surface-2); color: var(--ink-2); border-top: 1px solid var(--grid); }
-#explorer.tabulator .tabulator-footer .tabulator-page { background: var(--surface); color: var(--ink); border-color: var(--baseline); }
-#explorer.tabulator .tabulator-footer .tabulator-page.active { color: var(--accent); }
-#explorer .alt-box { padding: 8px 12px 12px 24px; background: var(--surface-2); white-space: normal; }
-#explorer .alt-box table.data { font-size: 0.8rem; }
+:is(#explorer, #fund-explorer).tabulator { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; color: var(--ink); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-header, :is(#explorer, #fund-explorer).tabulator .tabulator-header .tabulator-col { background: var(--surface-2); color: var(--ink-2); border-color: var(--grid); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-header .tabulator-col .tabulator-col-content { padding: 6px 8px; }
+:is(#explorer, #fund-explorer).tabulator .tabulator-header .tabulator-col input { background: var(--surface); color: var(--ink); border: 1px solid var(--baseline); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-tableholder .tabulator-table { background: var(--surface); color: var(--ink); }
+:is(#explorer, #fund-explorer) .tabulator-row { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--grid); }
+:is(#explorer, #fund-explorer) .tabulator-row .tabulator-cell { color: var(--ink); }
+:is(#explorer, #fund-explorer) .tabulator-row.tabulator-row-even { background: var(--surface); }
+:is(#explorer, #fund-explorer) .tabulator-row.tabulator-selectable:hover { background: var(--surface-2); cursor: pointer; }
+:is(#explorer, #fund-explorer) .tabulator-row .tabulator-cell { border-right: 0; padding: 5px 8px; }
+:is(#explorer, #fund-explorer) .tabulator-row .tabulator-cell.num { font-variant-numeric: tabular-nums; }
+:is(#explorer, #fund-explorer).tabulator .tabulator-footer { background: var(--surface-2); color: var(--ink-2); border-top: 1px solid var(--grid); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-footer .tabulator-page { background: var(--surface); color: var(--ink); border-color: var(--baseline); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-footer .tabulator-page.active { color: var(--accent); }
+:is(#explorer, #fund-explorer) .alt-box { padding: 8px 12px 12px 24px; background: var(--surface-2); white-space: normal; }
+#fund-explorer .alt-box { position: sticky; left: 0; box-sizing: border-box; padding-left: 12px; }
+:is(#explorer, #fund-explorer) .alt-box table.data { font-size: 0.8rem; }
 
 @media (forced-colors: active) { .swatch { forced-color-adjust: none; border: 1px solid CanvasText; } }
 
@@ -239,16 +240,26 @@ details[open] > summary::before { content: "▾ "; }
 .add-btn.on { background: var(--mine); border-color: var(--mine); color: #fff; }
 
 /* Tabulator groups */
-#explorer .tabulator-row.tabulator-group { background: var(--surface-2); color: var(--ink); border-bottom: 1px solid var(--grid); border-top: 1px solid var(--baseline); font-weight: 600; }
-#explorer .tabulator-row.tabulator-group span { color: var(--muted); font-weight: 400; margin-left: 6px; }
-#explorer .tabulator-row.tabulator-group .tabulator-arrow { border-left-color: var(--muted); }
-#explorer.tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols { border-top: 1px solid var(--grid); }
-#explorer.tabulator .tabulator-header .tabulator-col .tabulator-col-title { white-space: normal; }
-#explorer.tabulator .tabulator-tableholder { background: var(--surface); }
-#explorer .tabulator-cell.neg-val { color: var(--bad); }
-#explorer .tabulator-row.is-mine { box-shadow: inset 3px 0 0 var(--mine); }
+:is(#explorer, #fund-explorer) .tabulator-row.tabulator-group { background: var(--surface-2); color: var(--ink); border-bottom: 1px solid var(--grid); border-top: 1px solid var(--baseline); font-weight: 600; }
+:is(#explorer, #fund-explorer) .tabulator-row.tabulator-group span { color: var(--muted); font-weight: 400; margin-left: 6px; }
+:is(#explorer, #fund-explorer) .tabulator-row.tabulator-group .tabulator-arrow { border-left-color: var(--muted); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols { border-top: 1px solid var(--grid); }
+:is(#explorer, #fund-explorer).tabulator .tabulator-header .tabulator-col .tabulator-col-title { white-space: normal; }
+:is(#explorer, #fund-explorer).tabulator .tabulator-tableholder { background: var(--surface); }
+:is(#explorer, #fund-explorer) .tabulator-cell.neg-val { color: var(--bad); }
+:is(#explorer, #fund-explorer) .tabulator-row.is-mine { box-shadow: inset 3px 0 0 var(--mine); }
 .tag.mine { background: var(--mine); color: #fff; }
 
 @media print { .topbar, #ombalansering, .nav, #theme-toggle, .filters { display: none; } .card { break-inside: avoid; } }
 #bt-table td:first-child { min-width: 170px; }
 #chart-dd + h3 { margin-top: 12px; }
+
+/* Main tabs (ETF / Fond) */
+.main-tabs { flex: none; }
+.main-tabs button { font-weight: 600; padding: 6px 16px; }
+.tab-pane[hidden] { display: none; }
+.nav[hidden] { display: none; }
+.stars { letter-spacing: 1px; white-space: nowrap; }
+.delta-pos { color: var(--good); }
+.delta-neg { color: var(--bad); }
+@media (max-width: 720px) { .main-tabs { order: 2; } }

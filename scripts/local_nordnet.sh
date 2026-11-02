@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Fallback hvis Nordnet blokkerer GitHubs servere: hent Nordnet-listen på egen maskin og push
-# bare data/etf.db, rå-HTML og data/last_fetch.json. Kjør deretter workflowen «monthly» med
+# bare databasene (data/etf.db, data/fond.db), rå-HTML og data/last_fetch*.json. Kjør deretter workflowen «monthly» med
 # skip_nordnet=true (eller sett repo-variabelen SKIP_NORDNET=true), så bruker Actions databasen
 # i repoet og gjør resten (priser, univers, optimering, publisering).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 git pull --ff-only
 python scripts/fetch_nordnet.py "$@"
+python scripts/fetch_nordnet.py --fond || echo "ADVARSEL: fondslisten feilet; bare ETF-listen pushes."
 git add data/etf.db data/raw data/last_fetch.json
+git add data/fond.db data/raw_fond data/last_fetch_fond.json 2>/dev/null || true
 if git diff --cached --quiet; then
   echo "Ingen endringer."
   exit 0

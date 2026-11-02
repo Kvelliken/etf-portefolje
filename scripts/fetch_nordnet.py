@@ -143,8 +143,9 @@ def main():
     # Machine-readable summary for the workflow commit message.
     summary = {"run_id": res["run_id"], "n_found": len(found), "new": len(res["new"]),
                "gone": len(res["gone"]), "reappeared": len(res["reappeared"]), "changed": res["changed"]}
-    out = resolve(ls["last_fetch"])
-    out.write_text(json.dumps(summary), encoding="utf-8")
+    # Bare for standarddatabasen: en testkjøring (--db /tmp/...) skal ikke overskrive sammendraget.
+    if not args.db:
+        resolve(ls["last_fetch"]).write_text(json.dumps(summary), encoding="utf-8")
 
 
 if __name__ == "__main__":

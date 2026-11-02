@@ -1,0 +1,597 @@
+{
+ "generated_at": "2026-11-02T19:01:56+00:00",
+ "n_funds": 915,
+ "n_sample": 200,
+ "seed": 1,
+ "openfigi": true,
+ "yahoo_calls": 205,
+ "summary": {
+  "totalt": {
+   "n": 200,
+   "med_ticker": 195,
+   "minst_1_år": 148,
+   "minst_3_år": 125,
+   "minst_5_år": 9,
+   "minst_10_år": 1,
+   "dekker_start": 53,
+   "andelsklasse_ok": 134,
+   "avvik": 41,
+   "ulik_valuta": 0,
+   "ukjent": 20,
+   "brukbar": 92,
+   "andel_brukbar": 0.46
+  },
+  "per": {
+   "fund_type": {
+    "Aksje": {
+     "n": 135,
+     "med_ticker": 131,
+     "minst_1_år": 91,
+     "minst_3_år": 75,
+     "minst_5_år": 5,
+     "minst_10_år": 1,
+     "dekker_start": 25,
+     "andelsklasse_ok": 87,
+     "avvik": 24,
+     "ulik_valuta": 0,
+     "ukjent": 20,
+     "brukbar": 56,
+     "andel_brukbar": 0.415
+    },
+    "Rente": {
+     "n": 31,
+     "med_ticker": 30,
+     "minst_1_år": 25,
+     "minst_3_år": 20,
+     "minst_5_år": 2,
+     "minst_10_år": 0,
+     "dekker_start": 15,
+     "andelsklasse_ok": 19,
+     "avvik": 11,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 11,
+     "andel_brukbar": 0.355
+    },
+    "Indeks": {
+     "n": 18,
+     "med_ticker": 18,
+     "minst_1_år": 17,
+     "minst_3_år": 16,
+     "minst_5_år": 2,
+     "minst_10_år": 0,
+     "dekker_start": 11,
+     "andelsklasse_ok": 14,
+     "avvik": 4,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 13,
+     "andel_brukbar": 0.722
+    },
+    "Kombi": {
+     "n": 11,
+     "med_ticker": 11,
+     "minst_1_år": 10,
+     "minst_3_år": 10,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 1,
+     "andelsklasse_ok": 10,
+     "avvik": 1,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 9,
+     "andel_brukbar": 0.818
+    },
+    "Øvrig": {
+     "n": 3,
+     "med_ticker": 3,
+     "minst_1_år": 3,
+     "minst_3_år": 3,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 0,
+     "andelsklasse_ok": 2,
+     "avvik": 1,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 2,
+     "andel_brukbar": 0.667
+    },
+    "Hedge": {
+     "n": 2,
+     "med_ticker": 2,
+     "minst_1_år": 2,
+     "minst_3_år": 1,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 1,
+     "andelsklasse_ok": 2,
+     "avvik": 0,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 1,
+     "andel_brukbar": 0.5
+    }
+   },
+   "domicile": {
+    "LU": {
+     "n": 84,
+     "med_ticker": 81,
+     "minst_1_år": 40,
+     "minst_3_år": 35,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 8,
+     "andelsklasse_ok": 51,
+     "avvik": 11,
+     "ulik_valuta": 0,
+     "ukjent": 19,
+     "brukbar": 27,
+     "andel_brukbar": 0.321
+    },
+    "NO": {
+     "n": 67,
+     "med_ticker": 67,
+     "minst_1_år": 64,
+     "minst_3_år": 52,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 28,
+     "andelsklasse_ok": 43,
+     "avvik": 24,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 33,
+     "andel_brukbar": 0.493
+    },
+    "SE": {
+     "n": 31,
+     "med_ticker": 31,
+     "minst_1_år": 29,
+     "minst_3_år": 25,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 11,
+     "andelsklasse_ok": 25,
+     "avvik": 6,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 20,
+     "andel_brukbar": 0.645
+    },
+    "IE": {
+     "n": 11,
+     "med_ticker": 9,
+     "minst_1_år": 9,
+     "minst_3_år": 9,
+     "minst_5_år": 9,
+     "minst_10_år": 1,
+     "dekker_start": 3,
+     "andelsklasse_ok": 8,
+     "avvik": 0,
+     "ulik_valuta": 0,
+     "ukjent": 1,
+     "brukbar": 8,
+     "andel_brukbar": 0.727
+    },
+    "FI": {
+     "n": 6,
+     "med_ticker": 6,
+     "minst_1_år": 6,
+     "minst_3_år": 4,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 2,
+     "andelsklasse_ok": 6,
+     "avvik": 0,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 4,
+     "andel_brukbar": 0.667
+    },
+    "DK": {
+     "n": 1,
+     "med_ticker": 1,
+     "minst_1_år": 0,
+     "minst_3_år": 0,
+     "minst_5_år": 0,
+     "minst_10_år": 0,
+     "dekker_start": 1,
+     "andelsklasse_ok": 1,
+     "avvik": 0,
+     "ulik_valuta": 0,
+     "ukjent": 0,
+     "brukbar": 0,
+     "andel_brukbar": 0.0
+    }
+   }
+  },
+  "kilder": {
+   "yahoo_search": 185,
+   "openfigi": 39
+  },
+  "børser": {
+   "Irish": 105,
+   "Frankfurt": 36,
+   "OTC Markets OTCPK": 19,
+   "Stockholm": 13,
+   "Munich": 9,
+   "Luxembourg": 7,
+   "Hamburg": 3,
+   "Dusseldorf": 2,
+   "Copenhagen": 1
+  }
+ },
+ "avvik": [
+  {
+   "isin": "SE0011527829",
+   "name": "MetaSpace Fund A",
+   "ticker": "0P0001EC2G.ST",
+   "yahoo_name": "MetaSpace Fund A",
+   "d1": 3.6787317018944834,
+   "d3": 12.436967302097685,
+   "price_ratio": 1.0541902967008772
+  },
+  {
+   "isin": "LU0056508442",
+   "name": "BGF World Technology A2",
+   "ticker": "LU0056508442-USD.LU",
+   "yahoo_name": "BGF World Technology A2",
+   "d1": -0.20891880618812264,
+   "d3": -9.565291735689797,
+   "price_ratio": 1.0069878085043116
+  },
+  {
+   "isin": "LU2701010899",
+   "name": "Fidelity Transition Materials A USD Acc",
+   "ticker": "0P0001RT9P",
+   "yahoo_name": "Fidelity Transition Materials A USD Acc",
+   "d1": 3.3277903339995154,
+   "d3": null,
+   "price_ratio": 1.0276172125883107
+  },
+  {
+   "isin": "NO0010775729",
+   "name": "ODIN USA D NOK",
+   "ticker": "0P00018X54.IR",
+   "yahoo_name": "ODIN USA D NOK",
+   "d1": 2.500831963556265,
+   "d3": 2.7921390172881715,
+   "price_ratio": 1.0254601108796941
+  },
+  {
+   "isin": "LU0328353924",
+   "name": "UBS (Lux) ES Glb EM Markts Opp(USD) Pacc",
+   "ticker": "LU0328353924-USD.LU",
+   "yahoo_name": "UBS (Lux) ES Glb EM Markts Opp(USD) Pacc",
+   "d1": -0.6830574539733352,
+   "d3": -6.607428139029544,
+   "price_ratio": 1.0000857706492838
+  },
+  {
+   "isin": "NO0010105489",
+   "name": "Alfred Berg Gambak R (NOK)",
+   "ticker": "0P00000MVR.IR",
+   "yahoo_name": "Alfred Berg Gambak R (NOK)",
+   "d1": -2.3712508454132077,
+   "d3": 0.5404856133315263,
+   "price_ratio": 1.003022483885662
+  },
+  {
+   "isin": "SE0000740672",
+   "name": "Lannebo Teknik A SEK",
+   "ticker": "0P00000F92.ST",
+   "yahoo_name": "Lannebo Teknik A SEK",
+   "d1": 0.4953181721884006,
+   "d3": 0.6585673251143476,
+   "price_ratio": 1.0325443915966095
+  },
+  {
+   "isin": "NO0013251769",
+   "name": "Norse Trend Global B",
+   "ticker": "0P0001TIQS.IR",
+   "yahoo_name": "Norse Trend Global B",
+   "d1": -112.73429691802517,
+   "d3": null,
+   "price_ratio": 1.0404995459996818
+  },
+  {
+   "isin": "NO0013168708",
+   "name": "Fondsfinans Norge B",
+   "ticker": "0P0001SXYU.IR",
+   "yahoo_name": "Fondsfinans Norge B",
+   "d1": -2.1384176297430706,
+   "d3": null,
+   "price_ratio": 1.003092529178978
+  },
+  {
+   "isin": "LU2794645759",
+   "name": "Nordea 1 - Asian Sust Stars Eq BP NOK",
+   "ticker": "0P0001SPR7.IR",
+   "yahoo_name": "Nordea 1 - Asian Sust Stars Eq BP NOK",
+   "d1": 4.859573812866445,
+   "d3": null,
+   "price_ratio": 1.0280777979191245
+  },
+  {
+   "isin": "NO0008000023",
+   "name": "ODIN Sverige C NOK",
+   "ticker": "0P00000SVH.IR",
+   "yahoo_name": "ODIN Sverige C NOK",
+   "d1": -2.299947246118176,
+   "d3": 2.2668758500910755,
+   "price_ratio": 0.9814306706749372
+  },
+  {
+   "isin": "NO0010073224",
+   "name": "Holberg Norge A",
+   "ticker": "0P00000OCZ.IR",
+   "yahoo_name": "Holberg Norge A",
+   "d1": -2.0528441789802088,
+   "d3": -0.0025688993966497264,
+   "price_ratio": 1.0046280827798288
+  },
+  {
+   "isin": "LU2041044095",
+   "name": "BGF Circular Economy A2",
+   "ticker": "0P0001ILBU",
+   "yahoo_name": "BGF Circular Economy A2",
+   "d1": -2.2118527899299636,
+   "d3": 0.9561382028519354,
+   "price_ratio": 0.9895287615733979
+  },
+  {
+   "isin": "NO0013251777",
+   "name": "Norse Utbytte B",
+   "ticker": "0P0001TIQR.IR",
+   "yahoo_name": "Norse Utbytte B",
+   "d1": -122.6484914588039,
+   "d3": null,
+   "price_ratio": 1.0009035935219295
+  },
+  {
+   "isin": "NO0012444597",
+   "name": "KLP AksjeNorge Aktiv N",
+   "ticker": "0P0001OPBZ.IR",
+   "yahoo_name": "KLP AksjeNorge Aktiv N",
+   "d1": -2.403236271260422,
+   "d3": -0.0015108347088386154,
+   "price_ratio": 0.9984197383577529
+  },
+  {
+   "isin": "LU1807298952",
+   "name": "Thematica - Future Mobility Retl USD Acc",
+   "ticker": "0P0001FIKS",
+   "yahoo_name": "Thematica - Future Mobility Retl USD Acc",
+   "d1": 1.86257377587368,
+   "d3": 0.014965558784743482,
+   "price_ratio": 1.0313396969075268
+  },
+  {
+   "isin": "LU1861217088",
+   "name": "BGF FinTech A2",
+   "ticker": "LU1861217088-USD.LU",
+   "yahoo_name": "BGF FinTech A2",
+   "d1": 0.5171479465785289,
+   "d3": -7.73660482277835,
+   "price_ratio": 1.0
+  },
+  {
+   "isin": "NO0008001476",
+   "name": "C WorldWide Norge",
+   "ticker": "0P00000O6S.IR",
+   "yahoo_name": "C WorldWide Norge",
+   "d1": -2.589051633563148,
+   "d3": -0.09729380846677316,
+   "price_ratio": 0.9994362206998483
+  },
+  {
+   "isin": "SE0000984114",
+   "name": "SEB Teknologifond A (SEK)",
+   "ticker": "0P00000LRR.ST",
+   "yahoo_name": "SEB Teknologifond A (SEK)",
+   "d1": -0.1641804702338856,
+   "d3": 0.906364261227651,
+   "price_ratio": 1.052613393072374
+  },
+  {
+   "isin": "SE0019354218",
+   "name": "Swedbank Robur Emerging Europe A",
+   "ticker": "0P0001QTXY.ST",
+   "yahoo_name": "Swedbank Robur Emerging Europe A",
+   "d1": 2.1784876524519383,
+   "d3": 5.162553662741871,
+   "price_ratio": 1.0252841745056704
+  },
+  {
+   "isin": "LU0078277505",
+   "name": "Templeton Eastern Europe A(acc)EUR",
+   "ticker": "0P00000B0U.F",
+   "yahoo_name": "Templeton Eastern Europe A(acc)EUR",
+   "d1": 2.417096730326527,
+   "d3": 5.500896029365109,
+   "price_ratio": 1.0214698501700317
+  },
+  {
+   "isin": "NO0010337819",
+   "name": "DNB SMB A",
+   "ticker": "0P00000ODE.IR",
+   "yahoo_name": "DNB SMB A",
+   "d1": -2.04270398197691,
+   "d3": 0.0010173821595884647,
+   "price_ratio": 1.0094742077364474
+  },
+  {
+   "isin": "LU3086256214",
+   "name": "Fidelity US Smaller Companies A-Acc-USD",
+   "ticker": "0P0001VFS0",
+   "yahoo_name": "Fidelity US Smaller Companies A-Acc-USD",
+   "d1": 3.072132356029993,
+   "d3": null,
+   "price_ratio": 1.0277077893466133
+  },
+  {
+   "isin": "NO0008001492",
+   "name": "C WorldWide Emerging Markets",
+   "ticker": "0P00000SV7.IR",
+   "yahoo_name": "C WorldWide Emerging Markets",
+   "d1": 3.829361295132997,
+   "d3": 3.6970195115136093,
+   "price_ratio": 1.029337315638182
+  },
+  {
+   "isin": "NO0010582976",
+   "name": "DNB Norge Indeks A",
+   "ticker": "0P0000PS3U.IR",
+   "yahoo_name": "DNB Norge Indeks A",
+   "d1": -2.6160891126213173,
+   "d3": -0.0035843073762293898,
+   "price_ratio": 0.9966038472710642
+  },
+  {
+   "isin": "NO0010817919",
+   "name": "Storebrand Indeks - Nye Markeder N",
+   "ticker": "0P0001EWEQ.IR",
+   "yahoo_name": "Storebrand Indeks - Nye Markeder N",
+   "d1": 2.889197428843048,
+   "d3": 3.523991077380309,
+   "price_ratio": 1.0233464803608996
+  },
+  {
+   "isin": "LU1861135512",
+   "name": "Amundi MSCI USASRIClmtParisAligned-AE(C)",
+   "ticker": "0P0001H0X0.F",
+   "yahoo_name": "Amundi MSCI USASRIClmtParisAligned-AE(C)",
+   "d1": 3.351540217131604,
+   "d3": 1.8235546240410407,
+   "price_ratio": 1.021626742538885
+  },
+  {
+   "isin": "SE0021147386",
+   "name": "SEB Emerging Markets Exposure C",
+   "ticker": "0P0001SDZN.F",
+   "yahoo_name": "SEB Emerging Markets Exposure C",
+   "d1": 4.220541490672793,
+   "d3": null,
+   "price_ratio": 1.0192175277382463
+  },
+  {
+   "isin": "NO0010894710",
+   "name": "Storebrand Fremtid 10 N",
+   "ticker": "0P0001L4T4.IR",
+   "yahoo_name": "Storebrand Fremtid 10 N",
+   "d1": -6.730071361678391,
+   "d3": -18.297722814893884,
+   "price_ratio": 1.0019805699083935
+  },
+  {
+   "isin": "NO0010765134",
+   "name": "ODIN Kreditt D",
+   "ticker": "0P00018CRD.IR",
+   "yahoo_name": "ODIN Kreditt D",
+   "d1": -10.27073855107556,
+   "d3": -21.71263176434812,
+   "price_ratio": 0.9997219589183228
+  },
+  {
+   "isin": "NO0010602188",
+   "name": "FIRST High Yield",
+   "ticker": "0P0000SUKR.IR",
+   "yahoo_name": "FIRST High Yield",
+   "d1": -8.157507857011161,
+   "d3": -33.13008185515023,
+   "price_ratio": 0.9993121146075723
+  },
+  {
+   "isin": "NO0013388504",
+   "name": "Borea Likviditet N",
+   "ticker": "0P0001UK2S.IR",
+   "yahoo_name": "Borea Likviditet N",
+   "d1": -4.878896382230554,
+   "d3": null,
+   "price_ratio": 0.9998261437164249
+  },
+  {
+   "isin": "LU0955580385",
+   "name": "JPM Euro Aggregate Bond A dist EUR",
+   "ticker": "0P0000ZSZ5.F",
+   "yahoo_name": "JPM Euro Aggregate Bond A dist EUR",
+   "d1": -1.895696275883335,
+   "d3": -5.484495217606465,
+   "price_ratio": 1.0013926444234986
+  },
+  {
+   "isin": "NO0012445669",
+   "name": "KLP Obligasjon 1 år N",
+   "ticker": "0P0001OPCT.IR",
+   "yahoo_name": "KLP Obligasjon 1 år N",
+   "d1": -5.017068277198694,
+   "d3": -12.81395350769295,
+   "price_ratio": 0.9996958777921136
+  },
+  {
+   "isin": "NO0010817943",
+   "name": "Storebrand Global Kreditt IG N",
+   "ticker": "0P0001KO96.IR",
+   "yahoo_name": "Storebrand Global Kreditt IG N",
+   "d1": -3.9123202015403318,
+   "d3": -4.437250773233421,
+   "price_ratio": 0.9990958202893594
+  },
+  {
+   "isin": "NO0010827686",
+   "name": "DNB Obligasjon A",
+   "ticker": "0P0001EFNK.IR",
+   "yahoo_name": "DNB Obligasjon A",
+   "d1": -3.849281344458248,
+   "d3": -8.394795910816473,
+   "price_ratio": 0.999479538616045
+  },
+  {
+   "isin": "NO0013474916",
+   "name": "Fondsfinans Obligasjon B",
+   "ticker": "0P0001UU4C.IR",
+   "yahoo_name": "Fondsfinans Obligasjon B",
+   "d1": -5.669282961275693,
+   "d3": null,
+   "price_ratio": 0.9997139530803218
+  },
+  {
+   "isin": "NO0012445701",
+   "name": "KLP Obligasjon 3 år N",
+   "ticker": "0P0001OPCX.IR",
+   "yahoo_name": "KLP Obligasjon 3 år N",
+   "d1": -4.0406070686490665,
+   "d3": -11.05638564792132,
+   "price_ratio": 0.9994338165819667
+  },
+  {
+   "isin": "NO0010813462",
+   "name": "Holberg Obligasjon Norden N",
+   "ticker": "0P0001RTJS.IR",
+   "yahoo_name": "Holberg Obligasjon Norden N",
+   "d1": -4.335920243210725,
+   "d3": null,
+   "price_ratio": 0.999344996585895
+  },
+  {
+   "isin": "NO0011170144",
+   "name": "Storebrand Global Obligasjon 1-3 N",
+   "ticker": "0P0001OD1I.IR",
+   "yahoo_name": "Storebrand Global Obligasjon 1-3 N",
+   "d1": -13.68690741948433,
+   "d3": -15.169805325568275,
+   "price_ratio": 0.9993840999015189
+  },
+  {
+   "isin": "SE0014808457",
+   "name": "AuAg Precious Core B",
+   "ticker": "0P0001KM2E.F",
+   "yahoo_name": "AuAg Precious Core B",
+   "d1": 2.761688598324044,
+   "d3": 5.430390736807684,
+   "price_ratio": 1.0347624919091287
+  }
+ ]
+}

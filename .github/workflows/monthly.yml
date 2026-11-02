@@ -61,6 +61,16 @@ jobs:
       - name: Hent Nordnet
         if: steps.weekday.outputs.run == 'true' && inputs.skip_nordnet != true && vars.SKIP_NORDNET != 'true'
         run: python scripts/fetch_nordnet.py
+      # Fondslisten er ikke kritisk: feiler den (f.eks. sikkerhetssjekken), oppdateres ETF-ene likevel,
+      # og fond-fanen beholder forrige gode data (databasen skrives ikke ved feil).
+      - name: Hent Nordnet (fond)
+        id: fond
+        if: steps.weekday.outputs.run == 'true' && inputs.skip_nordnet != true && vars.SKIP_NORDNET != 'true'
+        continue-on-error: true
+        run: python scripts/fetch_nordnet.py --fond
+      - name: Varsel om fondslisten
+        if: steps.fond.outcome == 'failure'
+        run: echo "::warning title=Fondslisten::Henting av Nordnets fondsliste feilet; fond-fanen viser forrige gode data."
       - name: Ticker-mapping og priser
         if: steps.weekday.outputs.run == 'true'
         env:
@@ -90,8 +100,13 @@ jobs:
           if os.environ.get("SKIPPED") == "true" or not d:
               print(f"Månedlig oppdatering {today} (Nordnet hoppet over)")
           else:
-              print(f"Månedlig oppdatering {today}: {d.get('n_found')} ETF-er, {d.get('new')} nye, "
-                    f"{d.get('gone')} utgått, {d.get('reappeared')} tilbake, {d.get('changed')} feltendringer")
+              msg = (f"Månedlig oppdatering {today}: {d.get('n_found')} ETF-er, {d.get('new')} nye, "
+                     f"{d.get('gone')} utgått, {d.get('reappeared')} tilbake, {d.get('changed')} feltendringer")
+              pf = "data/last_fetch_fond.json"
+              if os.environ.get("FOND_OK") == "success" and os.path.exists(pf):
+                  f = json.load(open(pf))
+                  msg += f"; {f.get('n_found')} fond, {f.get('new')} nye, {f.get('gone')} utgått"
+              print(msg)
           PY
             )
             git commit -m "$msg"
@@ -100,6 +115,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
         env:
           SKIPPED: ${{ inputs.skip_nordnet == true || vars.SKIP_NORDNET == 'true' }}
+          FOND_OK: ${{ steps.fond.outcome }}
 
   pages:
     needs: update

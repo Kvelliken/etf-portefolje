@@ -78,6 +78,8 @@ jobs:
           check "${URL}" "ETF-portefølje"
           check "${URL}data/summary.json" '"returns_until"'
           check "${URL}engine.js" "ledoitWolfCC"
+          check "${URL}fond.js" "ensureFond"
+          check "${URL}data/funds.json" '"etf_returns"'
           check "https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" "plotly"
           check "https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js" "Tabulator"
           echo "Publisert: ${URL}"

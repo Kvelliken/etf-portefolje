@@ -33,10 +33,10 @@ funds:
     report_dir: data/funds       # probe_report.json og probe_details.csv
     sample: 200                  # antall ISIN-er i utvalget (0 = alle), stratifisert på fondstype
     seed: 1
-    # Kontroll av at Yahoo-tickeren er riktig andelsklasse: Yahoos kursavkastning i Yahoos valuta
-    # mot Nordnets yield_1y/yield_3y. Kalibrert på ETF-ene (2026-11): Nordnets yield_1y er
-    # kursavkastning i noteringsvalutaen (ikke totalavkastning, ikke NOK); 86 % av riktig mappede
-    # ETF-er ligger innenfor 2 pp.
+    # Kontroll av at Yahoo-tickeren er riktig andelsklasse: Yahoos kursavkastning mot Nordnets
+    # yield_1y/yield_3y. For fond er Nordnets avkastning i NOK også for fond i USD/EUR/SEK (verifisert
+    # 2026-11: 82 % innen 2 pp i NOK, 0 % i fondets valuta), så Yahoo-kursen regnes om til NOK med
+    # Norges Banks kurser. (For ETF-er er Nordnets yield_1y kursavkastning i noteringsvalutaen.)
     tol_1y_pp: 2.0
     tol_3y_pp: 5.0
     price_ratio_tol: 0.03        # siste Yahoo-kurs mot Nordnets kurs (samme valuta), maks avvik
@@ -45,8 +45,9 @@ funds:
 account:
   type: ASK                    # ASK eller ordinær (AF). Utenfor ASK vises skatteadvarsel.
   # ASK tillater bare fond hjemmehørende i EØS. Utledes fra ISIN-landkoden.
+  # "NO" må stå i anførselstegn: YAML leser ellers NO som false (alle norske fond ble ikke-ASK).
   ask_countries: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE, IS, IT, LI,
-                  LT, LU, LV, MT, NL, NO, PL, PT, RO, SE, SI, SK]
+                  LT, LU, LV, MT, NL, "NO", PL, PT, RO, SE, SI, SK]
   prefer_accumulating: true    # foretrekk akkumulerende andelsklasse ved representantvalg
 
 tickers:

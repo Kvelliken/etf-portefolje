@@ -17,6 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from etfpf import funddata as fd  # noqa: E402
 from etfpf import prices as pr  # noqa: E402
 from etfpf import sitedata as sd  # noqa: E402
 from etfpf.config import load_config, resolve  # noqa: E402
@@ -53,6 +54,12 @@ def main():
         (out / f"{f}.json").unlink(missing_ok=True)
     print(f"{info['n_etfs']} ETF-er, {info['n_returns']} med månedsavkastning "
           f"({info['start']} – {info['end']}, {info['months']} måneder). Risikofri rente: {info['rf_source']}.")
+    fond_db = resolve(cfg.get("funds", {}).get("db", "data/fond.db"))
+    if fond_db.exists():
+        finfo = fd.export(sqlite3.connect(fond_db), prices, cfg, out)
+        print(f"Fond: {finfo['n']} fond per {finfo['as_of']} (ETF-avkastning til samme dato for {finfo['n_etf_returns']} ETF-er).")
+    else:
+        print(f"(ingen fonddatabase {fond_db}: funds.json skrives ikke)")
     print(f"JSON skrevet til {out} ({time.time() - t0:.0f} s)")
 
 

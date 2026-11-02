@@ -13,7 +13,8 @@ For hvert fond i utvalget:
   1. ticker-oppslag som for ETF-ene (Nordnet-symbol, Yahoo-søk på ISIN, OpenFIGI), lagret i
      ticker_map i fonddatabasen så det kan gjenbrukes senere,
   2. historikklengde (måneder med kurs) og om den dekker fondets startdato,
-  3. kontroll av andelsklasse: Yahoos kursavkastning 1 og 3 år og siste kurs mot Nordnets tall.
+  3. kontroll av andelsklasse: Yahoos kursavkastning 1 og 3 år (omregnet til NOK, som Nordnets
+     fondsavkastning) og siste kurs (samme valuta) mot Nordnets tall.
 
 Skriver funds.probe.report_dir/probe_report.json (sammendrag) og probe_details.csv (per ISIN).
 """
@@ -65,6 +66,12 @@ def main():
 
     cfg = load_config(args.config)
     pcfg, tcfg = cfg["funds"]["probe"], cfg["tickers"]
+    # Nordnets fondsavkastning er i NOK: Yahoo-kursene regnes om med Norges Banks kurser før kontrollen.
+    fx_path = resolve(cfg["paths"]["price_cache"]) / "fx.parquet"
+    fx = None
+    if fx_path.exists():
+        fx = pd.read_parquet(fx_path)
+        fx["date"] = pd.to_datetime(fx["date"]).dt.date
     db_path = resolve(args.db or cfg["funds"]["db"])
     if not db_path.exists():
         sys.exit(f"Fant ikke {db_path}. Hent fondslisten først: python scripts/fetch_nordnet.py --fond")
@@ -113,7 +120,7 @@ def main():
             return rec
         meta, closes = (res[0], res[1]) if res else ({}, None)
         rec.update(fp.check_share_class(closes, meta.get("currency") or m.get("currency"), row,
-                                        pcfg["tol_1y_pp"], pcfg["tol_3y_pp"], pcfg["price_ratio_tol"]))
+                                        pcfg["tol_1y_pp"], pcfg["tol_3y_pp"], pcfg["price_ratio_tol"], fx=fx))
         return rec
 
     by_isin = {r["isin"]: r for r in sample}

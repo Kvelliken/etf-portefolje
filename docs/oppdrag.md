@@ -376,3 +376,27 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   `checkout@v7`, `setup-python@v7`, `configure-pages@v6`, `upload-pages-artifact@v5` (bruker
   `upload-artifact@v7`), `deploy-pages@v5`. Inputene vi bruker finnes uendret; ingen av endringene i
   versjonsnotatene treffer oss (checkout v7 nekter bare fork-PR under `pull_request_target`).
+
+## Fond-fanen (2026-11-02)
+
+* Utgangspunkt: grenen `fond-probe` (henting av fondslisten, `make fond-test`, `make fond-probe`).
+* `make fond-test`: fondslisten (916 fond, 915 ISIN) parses med samme parser. Ekstra felt: returprovisjon,
+  plattformavgift, min. innskudd, SFDR, ESG-score, «Nordnets utvalg». Kostnad hos Nordnet = forvaltningshonorar −
+  returprovisjon + plattformavgift (= `fund_total_fee` for 905 av 916).
+* `make fond-probe` (200 fond): Yahoo har ticker for 98 %, men kursene starter stort sett i 2022: ≥ 3 år 62 %,
+  **≥ 5 år 4 %**. Andelsklassekontrollen sammenlignet først i fondets valuta; **Nordnets fondsavkastning er i NOK**
+  også for fond i USD/EUR/SEK (82 % innen 2 pp i NOK, 0 % i fondets valuta), så kontrollen regner nå Yahoo om til NOK:
+  andelsklasse ok 50 → 67 %, brukbar 30 → 46 %.
+* Feil funnet: `NO` i `account.ask_countries` ble lest som `false` av YAML, så alle 239 norske fond var «ikke ASK».
+  Rettet med anførselstegn + test. ETF-ene var ikke berørt (ingen med norsk domisil).
+* Valg (eier, 2026-11-02): utforsker + ETF-alternativ først; eget utvalg per fane; alle fond med filtre.
+* `src/etfpf/funddata.py` → `site/data/funds.json`: alle fond med klassifisering, kostnadsdeler og Nordnets avkastning
+  annualisert (NOK), og ETF-enes totalavkastning i NOK til samme dato (fra egne dagskurser) for sammenligningen.
+* `site/fond.js` + hovedfaner i `index.html`: fondsutforsker (filtre, kostnad mot avkastning-graf, tabell),
+  ETF-er i samme Morningstar-kategori per fond, nøkkeltall: median kostnad aktive 1,25 % / indeks 0,28 %;
+  38 % av aktive fond slo ETF-medianen i kategorien over 5 år (271 av 720); median merkostnad mot billigste ETF
+  1,10 pp/år.
+* `monthly.yml` henter fondslisten etter ETF-listen (ikke-kritisk steg, advarsel ved feil); `local_nordnet.sh` henter
+  begge. `fetch_nordnet.py --db ...` (testkjøringer) overskriver ikke lenger `data/last_fetch*.json`.
+* Kjent begrensning: samme kategori er ikke samme indeks (f.eks. Nordnet Suomi Indeksi ligger i «Europe Equity
+  Mid/Small Cap» og sammenlignes med MDAX/ATX/europeiske småselskaper).

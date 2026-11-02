@@ -93,14 +93,32 @@ def price_return(close, end, days, max_gap_days=10):
     return (s.iloc[-1] / base.iloc[-1] - 1) * 100
 
 
-def check_share_class(closes, yahoo_currency, row, tol_1y=2.0, tol_3y=5.0, price_tol=0.03):
+def to_nok(s, currency, fx):
+    """Price series in `currency` -> NOK with daily rates (fx: DataFrame[date, currency, nok]).
+    None when the currency has no rates."""
+    if currency == "NOK":
+        return s
+    r = fx[fx["currency"] == currency].set_index("date")["nok"].sort_index()
+    if r.empty:
+        return None
+    r = r.reindex(r.index.union(s.index)).ffill().reindex(s.index)
+    return (s * r).dropna()
+
+
+def check_share_class(closes, yahoo_currency, row, tol_1y=2.0, tol_3y=5.0, price_tol=0.03, fx=None):
     """Compare a Yahoo close series with the Nordnet row it was mapped from.
+
+    Nordnet's fund returns (yield_1y/3y) are in NOK, also for funds in USD/EUR/SEK (verified
+    2026-11 against Yahoo + Norges Bank rates), so with `fx` the Yahoo returns are converted to
+    NOK before the comparison. The price check needs the same currency and is skipped otherwise.
+    Without `fx` the returns are compared in the quote currency (as for ETFs, whose Nordnet
+    returns are in the listing currency).
 
     closes: DataFrame[date, close] from yahoo.parse_chart. Returns a dict with the Yahoo and
     Nordnet returns, differences, price ratio and `status`:
       ok          every available check within tolerance
       avvik       at least one check outside tolerance (probably wrong share class or bad data)
-      ulik valuta Yahoo quotes another currency than Nordnet; returns are not comparable
+      ulik valuta another currency than Nordnet and no rates to convert; not comparable
       ukjent      nothing to compare (no Nordnet returns, or too short Yahoo history)
     """
     cur, factor = currency_unit(yahoo_currency)
@@ -111,11 +129,15 @@ def check_share_class(closes, yahoo_currency, row, tol_1y=2.0, tol_3y=5.0, price
         return out
     s = pd.Series(closes["close"].to_numpy(dtype=float) * factor, index=list(closes["date"])).sort_index()
     end = date.fromisoformat(str(row["run_at"])[:10]) if row.get("run_at") else s.index[-1]
-    out["r1_yahoo"] = price_return(s, end, 365)
-    out["r3_yahoo"] = price_return(s, end, 3 * 365)
-    if row.get("currency") and cur != row["currency"]:
+    same_cur = not row.get("currency") or cur == row["currency"]
+    sr = s if fx is None else to_nok(s, cur, fx)
+    if sr is None or (fx is None and not same_cur):
+        out["r1_yahoo"] = price_return(s, end, 365)
+        out["r3_yahoo"] = price_return(s, end, 3 * 365)
         out["status"] = "ulik valuta"
         return out
+    out["r1_yahoo"] = price_return(sr, end, 365)
+    out["r3_yahoo"] = price_return(sr, end, 3 * 365)
     checks = []
     for k, tol in (("1", tol_1y), ("3", tol_3y)):
         y, n = out[f"r{k}_yahoo"], out[f"r{k}_nordnet"]
@@ -123,7 +145,7 @@ def check_share_class(closes, yahoo_currency, row, tol_1y=2.0, tol_3y=5.0, price
             out[f"d{k}"] = y - n
             checks.append(abs(y - n) <= tol)
     last = s[s.index <= end]
-    if row.get("price") and not last.empty:
+    if same_cur and row.get("price") and not last.empty:
         out["price_ratio"] = float(last.iloc[-1] / row["price"])
         checks.append(abs(out["price_ratio"] - 1) <= price_tol)
     out["status"] = "ukjent" if not checks else ("ok" if all(checks) else "avvik")

@@ -1,7 +1,8 @@
 # ETF-portefølje
 
 Statisk side (GitHub Pages) for å finne de beste ETF-ene per sektor hos Nordnet, sette sammen et eget utvalg
-med min./maks.-andeler og backteste det mot en verdens-ETF. Alt oppdateres månedlig av GitHub Actions.
+med min./maks.-andeler og backteste det mot en verdens-ETF, og for å sammenligne Nordnets verdipapirfond med
+billigere ETF-alternativer. Alt oppdateres månedlig av GitHub Actions.
 
 **Siden:** https://kvelliken.github.io/etf-portefolje/
 
@@ -50,26 +51,38 @@ Nøkkeltall, optimering og backtest regnes i nettleseren, så referanse, periode
 | `prices.py`, `rates.py` | Parquet-cache, rensing av feilkurser, totalavkastning i NOK, valuta og styringsrente |
 | `universe.py` | én notering per ISIN, robust TE-klynging, representantvalg |
 | `classify.py`, `sitedata.py` | sektor/region/tema/stil fra kategori og navn, JSON til siden |
+| `funddata.py`, `fundprobe.py` | fond-fanens data (`funds.json`) og målingen av Yahoo-dekning for fond |
 
-## Fond (eksperimentelt)
+## Fond-fanen
 
-Første steg mot en tilsvarende side for verdipapirfond: hent Nordnets fondsliste og mål hvor mange
-fond som har brukbar kurshistorikk hos Yahoo før noe bygges videre.
+Siden har to hovedfaner: **ETF** (alt over) og **Fond**. Fond-fanen viser alle verdipapirfond i Nordnets
+fondsliste (ca. 900) med:
+
+* **kostnad hos Nordnet** = forvaltningshonorar − returprovisjon + plattformavgift (Nordnets totaltall),
+* **avkastning 1/3/5/10 år** annualisert, i NOK etter fondets kostnader (Nordnets tall; de er i NOK også for fond i
+  USD/EUR/SEK),
+* filtre på aktivaklasse, sektor, region, tema, stil, forvalter, aktiv/indeks, kostnad, historikk, SFDR, utbytte,
+  ASK, «Nordnets utvalg» og valutasikring,
+* **ETF-alternativer**: klikk en rad for ETF-er i samme Morningstar-kategori (én per indeks, ASK-tillatt) med
+  kostnad og totalavkastning i NOK til *samme dato* som fondstallene, og «Fond − ETF» per periode. Trykk + for å
+  legge en ETF i utvalget under ETF-fanen.
+
+Optimering og backtest finnes bare for ETF-er: Yahoo har kurser for fond bare fra rundt 2022 (4 % av fondene har
+5 års historikk), se probe-resultatet under. Hver månedlige kjøring lagrer fondenes kurs i `data/fond.db`, så egen
+historikk bygges opp.
 
 ```
-python scripts/fetch_nordnet.py --fond --max-pages 1 --db /tmp/fond-test.db   # sjekk at fondslisten parses
-python scripts/fetch_nordnet.py --fond --from-file data/raw_fond/<dato>/page_001.html.gz   # alle rå-felt
-python scripts/fetch_nordnet.py --fond             # hele listen -> data/fond.db, data/raw_fond/
-python scripts/probe_fund_history.py               # Yahoo-dekning for et stratifisert utvalg (200 fond)
+python scripts/fetch_nordnet.py --fond             # fondslisten -> data/fond.db, data/raw_fond/
+python scripts/build_site.py                       # skriver også site/data/funds.json når data/fond.db finnes
+make fond-test                                     # én side til en midlertidig database + feltrapport
+make fond-probe                                    # Yahoo-dekning for et stratifisert utvalg (200 fond)
 ```
 
 Fondslisten bruker samme parser, databaseskjema og månedlige diff som ETF-listen, men egen database
 (`funds` i `config.yaml`). Probe-skriptet slår opp tickere som for ETF-ene (lagres i `ticker_map` i
-`data/fond.db` og gjenbrukes), og kontrollerer at tickeren er riktig andelsklasse ved å sammenligne
-Yahoos kursavkastning 1 og 3 år og siste kurs med Nordnets tall. Toleransene er kalibrert på ETF-ene:
-Nordnets `yield_1y` er kursavkastning i noteringsvalutaen. Et fond regnes som *brukbart* når det har
-ticker, bestått kontroll og minst 3 års månedskurser. Resultat: `data/funds/probe_report.json`
-(sammendrag per fondstype og domisil) og `probe_details.csv` (per ISIN).
+`data/fond.db`) og kontrollerer andelsklassen ved å sammenligne Yahoos avkastning 1 og 3 år (omregnet til NOK)
+og siste kurs med Nordnets tall. Resultat 2026-11 (200 fond): ticker 98 %, ≥ 3 år 62 %, ≥ 5 år 4 %,
+andelsklasse ok 67 %, brukbar 46 %. Rapport: `data/funds/probe_report.json` og `probe_details.csv`.
 
 ## Kjøre lokalt
 
@@ -98,8 +111,10 @@ Alle terskler står i `config.yaml`, ikke i koden.
 | | `min_fraction_of_previous` | sikkerhetssjekk: avbryt uten å lagre hvis færre enn 90 % av forrige aktive |
 | | `raw_keep_months` | hvor mange måneder rå-HTML som beholdes (0 = alt) |
 | | `list_params` | stabil sortering på navn (sideinndelingen flytter seg ikke under hentingen) |
+| `funds` | `url`, `db`, `raw_dir`, `last_fetch` | Nordnets fondsliste og hvor fonddataene lagres (henteparametere fra `nordnet`) |
+| | `probe.sample`, `probe.tol_1y_pp`, `probe.tol_3y_pp`, `probe.price_ratio_tol` | utvalg og toleranser for `make fond-probe` |
 | `account` | `type` | `ASK` eller ordinær konto; utenfor ASK vises skatteadvarsel |
-| | `ask_countries` | ISIN-landkoder (EØS) som regnes som ASK-tillatt |
+| | `ask_countries` | ISIN-landkoder (EØS) som regnes som ASK-tillatt (`"NO"` i anførselstegn, ellers leser YAML det som false) |
 | | `prefer_accumulating` | foretrekk akkumulerende andelsklasse ved representantvalg |
 | `tickers` | `recheck_days` | slå opp tickeren på nytt etter så mange dager |
 | | `max_candidates`, `max_stale_days` | kandidater per ISIN; siste kurs må være nyere enn dette |
@@ -128,7 +143,8 @@ Alle terskler står i `config.yaml`, ikke i koden.
 ## GitHub Actions og Pages
 
 * **`monthly.yml`** – første virkedag i måneden (cron 1.–3. kl. 06:17 UTC; et steg slipper bare gjennom
-  første virkedag) og manuelt: tester → Nordnet → priser → univers → sidedata → commit av `data/` og
+  første virkedag) og manuelt: tester → Nordnet (ETF-er, så fond; fondslisten er ikke kritisk og gir bare en
+  advarsel hvis den feiler) → priser → univers → sidedata → commit av `data/` og
   `site/data/` med antall nye/utgåtte ETF-er i meldingen → publisering via `pages.yml`.
   Feiler et steg (sikkerhetssjekken mot Nordnet, for mange Yahoo-feil, tester), committes og publiseres
   ingenting, og GitHub sender e-post. To kjøringer kan ikke overlappe (`concurrency`).

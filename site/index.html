@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ETF-portefølje</title>
-  <meta name="description" content="Finn de beste ETF-ene per sektor hos Nordnet, sett sammen ditt eget utvalg med min./maks.-vekter og backtest det mot en verdens-ETF.">
+  <meta name="description" content="Finn de beste ETF-ene per sektor hos Nordnet, sett sammen ditt eget utvalg med min./maks.-vekter og backtest det mot en verdens-ETF. Sammenlign Nordnets fond med billigere ETF-alternativer.">
   <script>
     // Theme before first paint: stored choice wins, otherwise the OS setting.
     try { const t = localStorage.getItem("etfpf.theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
@@ -15,6 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js" defer></script>
   <script src="engine.js?v=__V__" defer></script>
   <script src="app.js?v=__V__" defer></script>
+  <script src="fond.js?v=__V__" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -23,9 +24,16 @@
       <h1>ETF-portefølje</h1>
       <p class="muted" id="updated">Laster data …</p>
     </div>
-    <nav class="nav" aria-label="Seksjoner">
+    <div class="segmented main-tabs" role="tablist" aria-label="Hovedfane">
+      <button type="button" role="tab" id="tabbtn-etf" data-tab="etf" aria-controls="tab-etf" aria-selected="true">ETF</button>
+      <button type="button" role="tab" id="tabbtn-fond" data-tab="fond" aria-controls="tab-fond" aria-selected="false">Fond</button>
+    </div>
+    <nav class="nav" data-for="etf" aria-label="Seksjoner, ETF">
       <a href="#utforsker">1. Utforsker</a><a href="#utvalg">2. Mitt utvalg</a><a href="#backtest">3. Backtest</a>
       <a href="#ombalansering">Ombalansering</a><a href="#tips">Tips</a><a href="#data">Data og metode</a>
+    </nav>
+    <nav class="nav" data-for="fond" aria-label="Seksjoner, fond" hidden>
+      <a href="#fond-utforsker">Fondsutforsker</a><a href="#fond-data">Data og metode</a>
     </nav>
     <button class="btn ghost" id="theme-toggle" type="button" aria-label="Bytt mellom lys og mørk modus">Mørk modus</button>
   </div>
@@ -34,6 +42,8 @@
 <main class="wrap">
   <div id="load-error" class="notice critical" hidden></div>
   <div id="tax-warning" class="notice warning" hidden></div>
+
+  <div id="tab-etf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-etf">
 
   <section class="intro" aria-label="Innstillinger">
     <div class="card settings-bar">
@@ -222,10 +232,62 @@
       <div id="changes-runs"></div>
     </details>
   </section>
+  </div>
+
+  <!-- Fond -->
+  <div id="tab-fond" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-fond" hidden>
+    <section id="fond-utforsker" aria-labelledby="h-fexp">
+      <div class="section-head">
+        <h2 id="h-fexp">Fond hos Nordnet</h2>
+        <p class="muted">Alle verdipapirfond i Nordnets fondsliste med kostnad hos Nordnet og avkastning i NOK.
+          Klikk på en rad for å se ETF-er i samme kategori og hva de har kostet og gitt over samme periode.</p>
+      </div>
+      <div id="fond-status" class="notice" hidden></div>
+      <div class="kpis small" id="fond-kpis"></div>
+      <div class="card filters">
+        <div class="form-row">
+          <label class="grow">Søk <input id="ff-search" type="search" placeholder="Navn, forvalter eller ISIN"></label>
+          <div class="dd-row" id="ff-dd-row"></div>
+        </div>
+        <div class="form-row">
+          <label>Type <select id="ff-kind"><option value="all">Alle</option><option value="active">Aktive fond</option><option value="index">Indeksfond</option></select></label>
+          <label>Maks kostnad (%) <input id="ff-cost" type="number" inputmode="decimal" min="0" step="0.1" placeholder="ingen"></label>
+          <label>Historikk <select id="ff-hist">
+            <option value="0">Alle</option><option value="3">Minst 3 år</option><option value="5">Minst 5 år</option><option value="10">Minst 10 år</option></select></label>
+          <label>Bærekraft (SFDR) <select id="ff-sfdr"><option value="all">Alle</option><option value="8">Artikkel 8 eller 9</option><option value="9">Bare artikkel 9</option></select></label>
+          <label>Utbytte <select id="ff-acc"><option value="all">Alle</option><option value="acc">Akkumulerende</option><option value="dist">Utdelende</option></select></label>
+        </div>
+        <div class="form-row">
+          <label class="check"><input id="ff-ask" type="checkbox" checked> Bare ASK-tillatt</label>
+          <label class="check"><input id="ff-selection" type="checkbox"> Bare Nordnets utvalg</label>
+          <label class="check"><input id="ff-hedged" type="checkbox"> Uten valutasikring</label>
+          <button class="btn ghost" id="ff-reset" type="button">Nullstill filtre</button>
+        </div>
+        <div class="form-row toolbar">
+          <div><span class="muted small-text">Periode</span><div class="segmented" id="ff-period" role="tablist" aria-label="Periode"></div></div>
+          <span class="muted" id="ff-count" aria-live="polite"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Kostnad og avkastning</h3>
+          <p class="muted small-text" id="fond-chart-note"></p>
+        </div>
+        <div id="chart-fond" class="chart chart-tall" role="img" aria-label="Kostnad mot avkastning for filtrerte fond"></div>
+      </div>
+      <p class="muted small-text" id="ff-cols-note"></p>
+      <div id="fund-explorer"></div>
+    </section>
+
+    <section id="fond-data" aria-labelledby="h-fdata">
+      <div class="section-head"><h2 id="h-fdata">Data og metode for fond</h2></div>
+      <div class="card prose" id="fond-method"></div>
+    </section>
+  </div>
 </main>
 <footer class="wrap muted small-text">
   Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.
-  Kilder: Nordnet (ETF-liste), Yahoo Finance (kurser), OpenFIGI (tickere), Norges Bank (valuta og styringsrente).
+  Kilder: Nordnet (ETF- og fondsliste), Yahoo Finance (kurser), OpenFIGI (tickere), Norges Bank (valuta og styringsrente).
 </footer>
 </body>
 </html>

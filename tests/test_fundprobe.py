@@ -82,6 +82,15 @@ def test_check_share_class():
     assert fp.check_share_class(closes, "EUR", row)["status"] == "ulik valuta"
     assert fp.check_share_class(closes, "NOK", dict(row, yield_1y=None, yield_3y=None, price=None))["status"] == "ukjent"
     assert fp.check_share_class(None, "NOK", row)["status"] == "ukjent"
+    # With rates, a USD quote is compared in NOK against Nordnet's NOK returns; price check skipped.
+    fx = pd.DataFrame({"date": [d for d in closes["date"]], "currency": "USD"})
+    fx["nok"] = [10 * 0.9999 ** i for i in range(len(fx))]
+    usd = fp.to_nok(ser, "USD", fx)
+    r1n = fp.price_return(usd, end, 365)
+    c = fp.check_share_class(closes, "USD", dict(row, currency="NOK", yield_1y=r1n, yield_3y=fp.price_return(usd, end, 3 * 365)), fx=fx)
+    assert c["status"] == "ok" and c["price_ratio"] is None and abs(c["d1"]) < 1e-9
+    assert fp.check_share_class(closes, "USD", dict(row, currency="NOK"), fx=fx)["status"] == "avvik"
+    assert fp.check_share_class(closes, "JPY", row, fx=fx)["status"] == "ulik valuta"   # no JPY rates
     # Pence listings are rescaled before the price check.
     gbp = closes.assign(close=closes["close"] * 100)
     assert fp.check_share_class(gbp, "GBp", dict(row, currency="GBP"))["status"] == "ok"
