@@ -17,6 +17,7 @@ from etfpf.config import load_config  # noqa: E402
 
 URLS = {
     "nordnet": "https://www.nordnet.no/etf/liste",
+    "nordnet_fond": "https://www.nordnet.no/fond/liste",
     "yahoo_q1": "https://query1.finance.yahoo.com/v8/finance/chart/EUNL.DE?range=5d&interval=1d",
     "yahoo_q2": "https://query2.finance.yahoo.com/v8/finance/chart/EUNL.DE?range=5d&interval=1d",
     "yahoo_fc": "https://fc.yahoo.com",

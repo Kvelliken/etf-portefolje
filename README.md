@@ -51,6 +51,26 @@ Nøkkeltall, optimering og backtest regnes i nettleseren, så referanse, periode
 | `universe.py` | én notering per ISIN, robust TE-klynging, representantvalg |
 | `classify.py`, `sitedata.py` | sektor/region/tema/stil fra kategori og navn, JSON til siden |
 
+## Fond (eksperimentelt)
+
+Første steg mot en tilsvarende side for verdipapirfond: hent Nordnets fondsliste og mål hvor mange
+fond som har brukbar kurshistorikk hos Yahoo før noe bygges videre.
+
+```
+python scripts/fetch_nordnet.py --fond --max-pages 1 --db /tmp/fond-test.db   # sjekk at fondslisten parses
+python scripts/fetch_nordnet.py --fond --from-file data/raw_fond/<dato>/page_001.html.gz   # alle rå-felt
+python scripts/fetch_nordnet.py --fond             # hele listen -> data/fond.db, data/raw_fond/
+python scripts/probe_fund_history.py               # Yahoo-dekning for et stratifisert utvalg (200 fond)
+```
+
+Fondslisten bruker samme parser, databaseskjema og månedlige diff som ETF-listen, men egen database
+(`funds` i `config.yaml`). Probe-skriptet slår opp tickere som for ETF-ene (lagres i `ticker_map` i
+`data/fond.db` og gjenbrukes), og kontrollerer at tickeren er riktig andelsklasse ved å sammenligne
+Yahoos kursavkastning 1 og 3 år og siste kurs med Nordnets tall. Toleransene er kalibrert på ETF-ene:
+Nordnets `yield_1y` er kursavkastning i noteringsvalutaen. Et fond regnes som *brukbart* når det har
+ticker, bestått kontroll og minst 3 års månedskurser. Resultat: `data/funds/probe_report.json`
+(sammendrag per fondstype og domisil) og `probe_details.csv` (per ISIN).
+
 ## Kjøre lokalt
 
 ```

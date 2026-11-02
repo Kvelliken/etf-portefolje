@@ -21,6 +21,27 @@ nordnet:
   # (standard er 1 års avkastning, som kan flytte rader mellom sider underveis). Verifisert 2026-10-07.
   list_params: {sortField: name, sortOrder: asc}
 
+funds:
+  # Verdipapirfond (ikke børsnotert) fra Nordnets fondsliste. Antatt samme innebygde JSON som
+  # ETF-listen, så parser, database og diff gjenbrukes. Øvrige henteparametere tas fra `nordnet`.
+  # Hentes med `python scripts/fetch_nordnet.py --fond`.
+  url: https://www.nordnet.no/fond/liste
+  db: data/fond.db
+  raw_dir: data/raw_fond
+  last_fetch: data/last_fetch_fond.json
+  probe:
+    report_dir: data/funds       # probe_report.json og probe_details.csv
+    sample: 200                  # antall ISIN-er i utvalget (0 = alle), stratifisert på fondstype
+    seed: 1
+    # Kontroll av at Yahoo-tickeren er riktig andelsklasse: Yahoos kursavkastning i Yahoos valuta
+    # mot Nordnets yield_1y/yield_3y. Kalibrert på ETF-ene (2026-11): Nordnets yield_1y er
+    # kursavkastning i noteringsvalutaen (ikke totalavkastning, ikke NOK); 86 % av riktig mappede
+    # ETF-er ligger innenfor 2 pp.
+    tol_1y_pp: 2.0
+    tol_3y_pp: 5.0
+    price_ratio_tol: 0.03        # siste Yahoo-kurs mot Nordnets kurs (samme valuta), maks avvik
+    history_days: 1200           # dager med dagskurser som hentes til kontrollen (3 år + slakk)
+
 account:
   type: ASK                    # ASK eller ordinær (AF). Utenfor ASK vises skatteadvarsel.
   # ASK tillater bare fond hjemmehørende i EØS. Utledes fra ISIN-landkoden.

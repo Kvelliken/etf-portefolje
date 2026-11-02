@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Henter ETF-listen fra Nordnet og lagrer den i SQLite (data/etf.db).
+"""Henter ETF-listen (eller fondslisten) fra Nordnet og lagrer den i SQLite (data/etf.db).
 
 Bruk:
     python scripts/fetch_nordnet.py                     # full kjøring
+    python scripts/fetch_nordnet.py --fond              # fondslisten -> data/fond.db, data/raw_fond
     python scripts/fetch_nordnet.py --max-pages 1       # liten test (100 ETF-er, markerer ingenting som utgått)
     python scripts/fetch_nordnet.py --from-file side.html[.gz]   # test parsing av lagret side, skriver ikke til db
     python scripts/fetch_nordnet.py --from-raw data/raw/2026-10-01  # bygg kjøring fra lagret rå-HTML
@@ -22,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from etfpf import db, nordnet  # noqa: E402
-from etfpf.config import load_config, resolve  # noqa: E402
+from etfpf.config import list_settings, load_config, resolve  # noqa: E402
 
 
 def read_html(path):
@@ -46,6 +47,8 @@ def field_report(rows):
 
 def cmd_from_file(path, cfg):
     rows, total = nordnet.parse_page(read_html(path), cfg["account"]["ask_countries"])
+    types = Counter(r["instrument_type"] for r in rows)
+    print("instrument_type:", dict(types.most_common()))
     isins = {r["isin"] for r in rows if r["isin"]}
     print(f"total_hits={total}, rader={len(rows)}, unike ISIN={len(isins)}, "
           f"uten ISIN={sum(1 for r in rows if not r['isin'])}")
@@ -71,16 +74,19 @@ def main():
     ap.add_argument("--no-raw", action="store_true", help="ikke lagre rå-HTML")
     ap.add_argument("--from-file", help="parse én lagret HTML-fil og skriv ut resultatet")
     ap.add_argument("--from-raw", help="bygg en kjøring fra en mappe med lagret rå-HTML (page_*.html.gz)")
+    ap.add_argument("--fond", action="store_true",
+                    help="hent fondslisten (funds.url i config) til egen database (funds.db)")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     cfg = load_config(args.config)
-    ncfg, ask = cfg["nordnet"], cfg["account"]["ask_countries"]
+    ls = list_settings(cfg, "fond" if args.fond else "etf")
+    ncfg, ask, noun = ls["nordnet"], cfg["account"]["ask_countries"], ls["noun"]
     if args.from_file:
         cmd_from_file(args.from_file, cfg)
         return
 
-    raw_root = resolve(cfg["paths"]["raw_dir"])
+    raw_root = resolve(ls["raw_dir"])
     today = date.today().isoformat()
     staging = None
     if args.from_raw:
@@ -104,9 +110,9 @@ def main():
         partial = bool(args.max_pages)
 
     if total and len(found) < total and not partial:
-        print(f"MERKNAD: fikk {len(found)} av {total} ETF-er.")
+        print(f"MERKNAD: fikk {len(found)} av {total} {noun}.")
 
-    conn = db.connect(resolve(args.db or cfg["paths"]["db"]))
+    conn = db.connect(resolve(args.db or ls["db"]))
     try:
         res = db.store(conn, found, total, partial, ncfg["min_fraction_of_previous"])
     except db.SafetyCheckError as e:
@@ -125,7 +131,7 @@ def main():
 
     n_isin = len({r["isin"] for r in found.values() if r["isin"]})
     print(f"\nKjøring {res['run_id']} ferdig{' (delvis)' if partial else ''}: "
-          f"{len(found)} ETF-er hentet ({n_isin} unike ISIN), total_hits={total}.")
+          f"{len(found)} {noun} hentet ({n_isin} unike ISIN), total_hits={total}.")
     print(f"Nye: {len(res['new'])} | Utgått: {len(res['gone'])} | Tilbake: {len(res['reappeared'])} "
           f"| Felt endret: {res['changed']}")
     if res["run_id"] > 1:
@@ -137,7 +143,7 @@ def main():
     # Machine-readable summary for the workflow commit message.
     summary = {"run_id": res["run_id"], "n_found": len(found), "new": len(res["new"]),
                "gone": len(res["gone"]), "reappeared": len(res["reappeared"]), "changed": res["changed"]}
-    out = resolve("data/last_fetch.json")
+    out = resolve(ls["last_fetch"])
     out.write_text(json.dumps(summary), encoding="utf-8")
 
 
