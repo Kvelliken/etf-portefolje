@@ -45,9 +45,9 @@ jobs:
           else
             echo "run=false" >> "$GITHUB_OUTPUT"; echo "Ikke første virkedag – hopper over."
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.weekday.outputs.run == 'true'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: steps.weekday.outputs.run == 'true'
         with:
           python-version: "3.12"

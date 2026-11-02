@@ -372,5 +372,7 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   den brukes ikke av siden og finnes i git-historikken (siste versjon i `7033d9a`). `rebalance_band_pp` og
   `portfolio_value_nok` flyttet til `site:`. README utvidet med parametertabell, Actions-oppsett, fallback
   og kjente begrensninger.
-* Ikke endret: action-versjonene (`checkout@v4`, `deploy-pages@v4` osv.) gir advarsel om Node 20, men kjøres
-  på Node 24 og virker. Bør oppgraderes til versjoner som er bygget for Node 24 når de er verifisert.
+* Actions oppgradert til Node 24-versjoner (verifisert `runs.using: node24` i hver `action.yml`):
+  `checkout@v7`, `setup-python@v7`, `configure-pages@v6`, `upload-pages-artifact@v5` (bruker
+  `upload-artifact@v7`), `deploy-pages@v5`. Inputene vi bruker finnes uendret; ingen av endringene i
+  versjonsnotatene treffer oss (checkout v7 nekter bare fork-PR under `pull_request_target`).

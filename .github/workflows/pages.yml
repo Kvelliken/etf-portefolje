@@ -31,7 +31,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.sha }}
       - name: Sjekk at sidedata finnes
@@ -41,17 +41,17 @@ jobs:
           done
       - name: Versjoner CSS/JS (nettleseren henter nye filer etter hver publisering)
         run: sed -i "s/__V__/$(git rev-parse --short HEAD)/g" site/index.html
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
         with:
           enablement: true
       # Eget artefaktnavn per forsøk: «Re-run failed jobs» lager ellers et nytt artefakt med samme navn,
       # og deploy-pages feiler med «Multiple artifacts named github-pages» (skjedde 2026-11-02).
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
           name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         continue-on-error: true
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
@@ -61,7 +61,7 @@ jobs:
         run: sleep 60
       - id: deployment_retry
         if: steps.deployment.outcome == 'failure'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Verifiser publisert side
