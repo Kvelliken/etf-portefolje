@@ -212,7 +212,6 @@ def export(conn, prices, cfg, out_dir, price_root=None, coverage=None, universe_
     write_json(out / "quality.json", {"coverage": coverage or {}, "universe": universe_report or {},
                                       "n_with_returns": len(enc)})
     last_run = conn.execute("SELECT run_at, n_found FROM runs ORDER BY run_id DESC LIMIT 1").fetchone()
-    oc = cfg.get("optimize", {})
     write_json(out / "summary.json", {
         "generated_at": now, "data_until": str(prices.index.max().date()),
         "returns_until": months[-1].strftime("%Y-%m-%d"),
@@ -221,15 +220,15 @@ def export(conn, prices, cfg, out_dir, price_root=None, coverage=None, universe_
                     "tax_warning": cfg.get("account", {}).get("type", "ASK") != "ASK"},
         "rf_source": rf_source, "rf_now": float((1 + rf.iloc[-1]) ** 12 - 1),
         "defaults": {
-            "benchmark": sc.get("benchmark_isin", oc.get("reference_isin")),
-            "market_risk_premium": sc.get("market_risk_premium", oc.get("market_risk_premium", 0.045)),
+            "benchmark": sc.get("benchmark_isin", "IE00B6R52259"),
+            "market_risk_premium": sc.get("market_risk_premium", 0.045),
             "history_weight": sc.get("history_weight", 0.25),
             "estimation_years": sc.get("estimation_years", 5),
             "max_weight": sc.get("default_max_weight", 0.40),
             "min_weight": sc.get("default_min_weight", 0.0),
             "trading_cost_pct": sc.get("trading_cost_pct", 0.25),
-            "rebalance_band_pp": oc.get("rebalance_band_pp", 5),
-            "portfolio_value_nok": oc.get("portfolio_value_nok", 500000),
+            "rebalance_band_pp": sc.get("rebalance_band_pp", 5),
+            "portfolio_value_nok": sc.get("portfolio_value_nok", 500000),
         },
         "te_threshold": (universe_report or {}).get("te_threshold"),
     })

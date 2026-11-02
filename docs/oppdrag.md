@@ -354,3 +354,23 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   PyPortfolioOpt), maks Sharpe/min. varians med boksgrenser (FISTA + projeksjon, verifisert mot cvxpy),
   risikoparitet, månedlig backtest med ombalanseringsregler og kostnad.
 * Gammel modell flyttet til `scripts/build_model_legacy.py` (skriver til `data/legacy_model/`).
+
+## Feilet månedskjøring 2026-11-02 og opprydding (fase 7)
+
+* Kjøring 41478691095 (planlagt, startet 16:09 UTC): `update` var grønn (Nordnet 2298 ETF-er, 45 nye,
+  57 feltendringer; priser, univers og sidedata OK; commit `7033d9a`). Bare `pages / deploy` feilet:
+  `deploy-pages` fikk **HTTP 500** fra Pages-API-et («Server error … Please re-run»).
+* «Re-run failed jobs» feilet så med «Multiple artifacts named github-pages»: et nytt forsøk i samme kjøring
+  laster opp et artefakt til med samme navn. Rotårsaken til at feilen ikke kunne rettes med et nytt forsøk.
+* Mistanke om duplisert build-versjon (`26d9341` var publisert 18.10) ble avkreftet: to manuelle
+  `pages`-kjøringer på samme commit (`7033d9a`) gikk begge grønt. 500-feilen var forbigående hos GitHub.
+  Novemberdataene ble publisert av den første av dem (run 41495861459, verifisert).
+* Retting i `pages.yml`: artefaktnavn per kjøring og forsøk (`github-pages-<run_id>-<attempt>`), og ett
+  automatisk nytt forsøk på `deploy-pages` etter 60 s ved feil.
+* Opprydding: den gamle modellen (`optimize.py`, `backtest.py`, `export.py`, `scripts/build_model_legacy.py`,
+  `tests/test_optimize.py`, `optimize:`-seksjonen i config og avhengigheten PyPortfolioOpt/cvxpy) er fjernet;
+  den brukes ikke av siden og finnes i git-historikken (siste versjon i `7033d9a`). `rebalance_band_pp` og
+  `portfolio_value_nok` flyttet til `site:`. README utvidet med parametertabell, Actions-oppsett, fallback
+  og kjente begrensninger.
+* Ikke endret: action-versjonene (`checkout@v4`, `deploy-pages@v4` osv.) gir advarsel om Node 20, men kjøres
+  på Node 24 og virker. Bør oppgraderes til versjoner som er bygget for Node 24 når de er verifisert.

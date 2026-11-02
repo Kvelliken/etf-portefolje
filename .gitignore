@@ -6,4 +6,3 @@ __pycache__/
 # Personlige beholdninger skal aldri committes
 holdings*.json
 beholdninger*.json
-data/legacy_model/

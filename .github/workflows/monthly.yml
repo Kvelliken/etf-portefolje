@@ -69,7 +69,7 @@ jobs:
       - name: Univers (klynger og representanter)
         if: steps.weekday.outputs.run == 'true'
         run: python scripts/build_universe.py
-      - name: Optimering, backtest og JSON
+      - name: Sidedata (JSON til nettsiden)
         if: steps.weekday.outputs.run == 'true'
         run: python scripts/build_site.py
       - name: Commit data og side
