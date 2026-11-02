@@ -544,7 +544,7 @@ cluster_id,cluster_size,max_te_in_cluster,isin,symbol,name,is_representative,eli
 67,4,0.0042,IE00BJ38QD84,ZPRR,State Street SPDR RUSSELL 2000 U.S. Small Cap UCITS ETF (Acc),0,1,alternativ i klyngen,0.3000,0.3000,1,0,11.9800,5132718620.0000,738.0000,US Equity Small Cap
 67,4,0.0042,IE00BJZ2DD79,XRS2,Xtrackers Russell 2000 UCITS ETF 1C,0,1,alternativ i klyngen,0.3000,0.3000,1,0,11.6600,2528312236.0000,862.0000,US Equity Small Cap
 67,4,0.0042,LU1681038672,RS2K,Amundi Russell 2000 UCITS ETF - EUR (C),0,1,alternativ i klyngen,0.3500,0.3500,1,0,12.8200,835758321.0000,20.0000,US Equity Small Cap
-68,4,0.0089,IE00BGYWSV06,VAGY,Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Acc,1,1,byttet: 0.10 pp lavere avgift enn forrige representant,0.0900,0.0900,1,0,7.7000,3319218092.0000,7.0000,US Fixed Income
+68,4,0.0089,IE00BGYWSV06,VAGY,Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Acc,1,1,beholdt forrige representant,0.0900,0.0900,1,0,7.7000,3319218092.0000,7.0000,US Fixed Income
 68,4,0.0089,IE00BDD48R20,VUSC,Vanguard USD Corporate 1-3 Year Bond UCITS ETF - (USD) Dist,0,1,alternativ i klyngen,0.0900,0.1900,0,0,8.4500,3319218092.0000,18.0000,US Fixed Income
 68,4,0.0089,IE00BC7GZX26,SYBF,SPDR Bloomberg 0-3 Year U.S. Corporate Bond UCITS ETF (Dist),0,1,alternativ i klyngen,0.1200,0.2200,0,0,13.1800,152754748.0000,3.0000,US Fixed Income
 68,4,0.0089,IE00BZ048579,SNAV,iShares $ Corp Bond 0-3Yr ESG SRI UCITS ETF USD (Dist),0,1,alternativ i klyngen,0.1200,0.2200,0,0,7.8900,1355493710.0000,8.0000,US Fixed Income
@@ -688,7 +688,7 @@ cluster_id,cluster_size,max_te_in_cluster,isin,symbol,name,is_representative,eli
 114,3,0.0054,IE00BFNM3J75,SNAW,iShares MSCI World Screened UCITS ETF USD (Acc),1,1,beholdt forrige representant,0.2000,0.2000,1,0,8.0400,7146349606.0000,1172.0000,Global Equity Large Cap
 114,3,0.0054,IE00BCHWNQ94,XDWY,Xtrackers MSCI World Screened UCITS ETF 1D,0,1,alternativ i klyngen,0.1900,0.2900,0,0,8.6000,769873469.0000,53.0000,Global Equity Large Cap
 114,3,0.0054,IE00BFNM3K80,S6DW,iShares MSCI World Screened UCITS ETF USD (Dist),0,1,alternativ i klyngen,0.2000,0.3000,0,0,8.0400,7146349606.0000,1050.0000,Global Equity Large Cap
-115,3,0.0044,IE00BFNM3B99,SLMA,iShares MSCI EMU Screened UCITS ETF EUR (Acc),1,1,lavest avgift,0.1200,0.1200,1,0,8.0400,2102418185.0000,88.0000,Europe Equity Large Cap
+115,3,0.0044,IE00BFNM3B99,SLMA,iShares MSCI EMU Screened UCITS ETF EUR (Acc),1,1,beholdt forrige representant,0.1200,0.1200,1,0,8.0400,2102418185.0000,88.0000,Europe Equity Large Cap
 115,3,0.0044,IE00BDGN9Z19,XMVE,Xtrackers MSCI EMU Screened UCITS ETF 1D,0,1,alternativ i klyngen,0.1200,0.2200,0,0,9.8300,11776115.0000,7.0000,Europe Equity Large Cap
 115,3,0.0044,IE00BFNM3C07,SLMB,iShares MSCI EMU Screened UCITS ETF EUR (Dist),0,1,alternativ i klyngen,0.1200,0.2200,0,0,8.0400,2102418185.0000,14.0000,Europe Equity Large Cap
 116,3,0.0032,IE00BMX0B631,VDTE,Vanguard USD Treasury Bond UCITS ETF - EUR Hedged Acc,1,1,beholdt forrige representant,0.0800,0.0800,1,1,6.1700,2970602030.0000,17.0000,US Fixed Income
@@ -756,7 +756,7 @@ cluster_id,cluster_size,max_te_in_cluster,isin,symbol,name,is_representative,eli
 141,2,0.0071,DE000ETF9603,E960,Amundi STOXX Europe 600 ESG II UCITS ETF Dist,0,1,alternativ i klyngen,0.2000,0.3000,0,0,8.7600,641699163.0000,1.0000,Europe Equity Large Cap
 142,2,0.0035,FR0010424135,LSK7,Amundi EURO STOXX 50 Daily (-1x) Inverse UCITS ETF Acc,0,0,giret/invers/handelsverktøy,0.4000,0.4000,1,0,18.8300,32167137.0000,3.0000,Trading Tools
 142,2,0.0035,LU0292106753,DXSP,Xtrackers Euro Stoxx 50 Short Daily Swap UCITS ETF 1C,0,0,giret/invers/handelsverktøy,0.4000,0.4000,1,0,18.8300,29835309.0000,9.0000,Trading Tools
-143,2,0.0047,LU1681037864,TTPX,Amundi Japan TOPIX UCITS ETF - Daily Hedged EUR (C),1,1,lavest avgift,0.4800,0.4800,1,1,13.6800,816251953.0000,4.0000,Japan Equity
+143,2,0.0047,LU1681037864,TTPX,Amundi Japan TOPIX UCITS ETF - Daily Hedged EUR (C),1,1,beholdt forrige representant,0.4800,0.4800,1,1,13.6800,816251953.0000,4.0000,Japan Equity
 143,2,0.0047,FR0011475078,JPNH,Amundi Japan TOPIX II UCITS ETF EUR Hedged Dist,0,1,alternativ i klyngen,0.4500,0.5500,0,1,13.5200,111862852333.0000,7.0000,Japan Equity
 144,2,0.0014,IE000Y77LGG9,XAMB,Amundi MSCI World SRI Climate Paris Aligned UCITS ETF Acc,0,0,"historikk 2,8 år < 5",0.1800,0.1800,1,0,2.7900,4492848590.0000,233.0000,Global Equity Large Cap
 144,2,0.0014,IE000004V778,WGES,Amundi MSCI World SRI Climate Paris Aligned UCITS ETF Dist,0,0,"historikk 2,8 år < 5",0.1800,0.2800,0,0,2.7500,4492848590.0000,318.0000,Global Equity Large Cap
@@ -776,7 +776,7 @@ cluster_id,cluster_size,max_te_in_cluster,isin,symbol,name,is_representative,eli
 151,2,0.0032,IE0001VXZTV7,V3ML,Vanguard Esg Emerg Mark Ucits Etf Usd D,0,0,"historikk 4,1 år < 5",0.1900,0.2900,0,0,4.0600,140104761.0000,5.0000,Global Emerging Markets Equity
 152,2,0.0028,IE000LTA2082,WELH,Amundi S&P World Industrials Screened UCITS ETF Acc,0,0,"historikk 4,1 år < 5",0.1800,0.1800,1,0,4.1200,369256960.0000,83.0000,Industrials Sector Equity
 152,2,0.0028,IE00026BEVM6,WELT,Amundi S&P World Industrials Screened UCITS ETF Dist,0,0,"historikk 4,1 år < 5",0.1800,0.2800,0,0,4.1200,369256960.0000,1.0000,Industrials Sector Equity
-153,2,0.0018,IE0002EI5AG0,XDEE,Xtrackers S&P 500 Equal Weight UCITS ETF 2C EUR Hedged,1,1,eneste kvalifiserte,0.3000,0.3000,1,1,5.0000,15185053642.0000,13.0000,US Equity Large Cap Blend
+153,2,0.0018,IE0002EI5AG0,XDEE,Xtrackers S&P 500 Equal Weight UCITS ETF 2C EUR Hedged,1,1,beholdt forrige representant,0.3000,0.3000,1,1,5.0000,15185053642.0000,13.0000,US Equity Large Cap Blend
 153,2,0.0018,IE000DVLBQ03,EFRW,iShares S&P 500 Equal Weight UCITS ETF EUR Hedged (Acc),0,0,"historikk 1,5 år < 5",0.1700,0.1700,1,1,1.4800,6648552338.0000,56.0000,US Equity Large Cap Blend
 154,2,0.0068,IE0005CH3U28,JPGR,JPM Active US Growth UCITS ETF - USD (acc),0,0,"historikk 2,8 år < 5",0.4900,0.4900,1,0,2.7900,549125488.0000,1.0000,US Equity Large Cap Growth
 154,2,0.0068,IE0003KQ8JX1,JPGD,JPM Active US Growth UCITS ETF - USD (dist),0,0,"historikk 2,8 år < 5",0.4900,0.5900,0,0,2.7900,549125488.0000,1.0000,US Equity Large Cap Growth
