@@ -83,3 +83,27 @@ def test_export_roundtrip(tmp_path):
     assert info["n"] == 1 and d["n"] == 1 and d["funds"][0]["isin"] == "NO0000000001"
     assert d["funds"][0]["r1"] == pytest.approx(0.10) and d["periods"] == [1, 3, 5, 10]
     assert "IE0000000002" in d["etf_returns"]
+    assert d["funds"][0]["vol3"] is None and d["n_risk"] == 0
+
+
+def test_export_with_risk_and_nav_date(tmp_path):
+    from etfpf import db, funddetails as fdet, nordnet
+    conn = db.connect(tmp_path / "fond.db")
+    raw = raw_fund()
+    raw["instrument_info"].update({"instrument_id": 7, "name": "Test Global Indeks A", "isin": "NO0000000001",
+                                   "currency": "NOK"})
+    raw["price_info"] = {"tick_timestamp": 1793318400000}       # 2026-10-30
+    db.store(conn, {7: nordnet.normalize_row(raw, ["NO"])}, 1, partial=False)
+    fdet.connect(conn)
+    conn.execute("INSERT INTO fund_details VALUES (7,'NO0000000001','s','2026-11-13T10:00:00+00:00',200,?,200,?)",
+                 (json.dumps({"risk_statistics": {"standard_deviation_y3": 12.5, "sharpe_ratio_y3": 0.8}}),
+                  json.dumps({"threeYears": {"r2": 95.0}})))
+    cfg = {"account": {"ask_countries": ["NO"]}, "universe": {"hedged_name_regex": "hedg"}}
+    idx = pd.bdate_range("2020-01-01", "2026-11-13")
+    prices = pd.DataFrame({"IE0000000002": np.linspace(100, 150, len(idx))}, index=idx)
+    info = fd.export(conn, prices, cfg, tmp_path)
+    d = json.loads((tmp_path / "funds.json").read_text())
+    f = d["funds"][0]
+    assert f["nav_date"] == "2026-10-30" and d["as_of"] == "2026-10-30"   # ETF returns to the fund NAV date
+    assert f["vol3"] == pytest.approx(0.125) and f["sharpe3"] == pytest.approx(0.8) and f["r23"] == pytest.approx(0.95)
+    assert d["risk_fetched"] == "2026-11-13" and d["n_risk"] == 1 and info["n"] == 1

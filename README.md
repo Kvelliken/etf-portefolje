@@ -52,6 +52,7 @@ Nøkkeltall, optimering og backtest regnes i nettleseren, så referanse, periode
 | `universe.py` | én notering per ISIN, robust TE-klynging, representantvalg |
 | `classify.py`, `sitedata.py` | sektor/region/tema/stil fra kategori og navn, JSON til siden |
 | `funddata.py`, `fundprobe.py` | fond-fanens data (`funds.json`) og målingen av Yahoo-dekning for fond |
+| `funddetails.py` | risikotall per fond fra Nordnet (volatilitet, Sharpe, alfa, beta i NOK; R² fra Morningstar) |
 
 ## Fond-fanen
 
@@ -59,8 +60,14 @@ Siden har to hovedfaner: **ETF** (alt over) og **Fond**. Fond-fanen viser alle v
 fondsliste (ca. 900) med:
 
 * **kostnad hos Nordnet** = forvaltningshonorar − returprovisjon + plattformavgift (Nordnets totaltall),
-* **avkastning 1/3/5/10 år** annualisert, i NOK etter fondets kostnader (Nordnets tall; de er i NOK også for fond i
-  USD/EUR/SEK),
+* **avkastning 1/3/5/10 år** per år (annualisert), i NOK etter fondets kostnader og med utbytte (Nordnets tall fra
+  fondslisten; de er i NOK også for fond i USD/EUR/SEK, og annualiseringen gir nøyaktig Nordnets egen «årlig vekst»).
+  Nordnets *fondsside* viser noe annet – samlet kursutvikling i fondets egen valuta – så tallene der kan avvike mye
+  for utenlandske fond,
+* **risikotall for 1/3/5 år** (10 år bruker 5 år): volatilitet, Sharpe, alfa og beta i NOK fra Nordnets fond-API,
+  og R² fra Nordnets fondsside (Morningstar). Morningstar-tallene på fondssiden er regnet i SEK (et norsk
+  pengemarkedsfond får 6 % volatilitet der mot 0,2 % i NOK), så bare R² og tracking error tas derfra. Grafen viser
+  avkastning mot volatilitet (eller mot kostnad),
 * filtre på aktivaklasse, sektor, region, tema, stil, forvalter, aktiv/indeks, kostnad, historikk, SFDR, utbytte,
   ASK, «Nordnets utvalg» og valutasikring,
 * **ETF-alternativer**: klikk en rad for ETF-er i samme Morningstar-kategori (én per indeks, ASK-tillatt) med
@@ -73,6 +80,7 @@ historikk bygges opp.
 
 ```
 python scripts/fetch_nordnet.py --fond             # fondslisten -> data/fond.db, data/raw_fond/
+python scripts/fetch_fund_details.py               # risikotall per fond -> fund_details i data/fond.db (~75 min)
 python scripts/build_site.py                       # skriver også site/data/funds.json når data/fond.db finnes
 make fond-test                                     # én side til en midlertidig database + feltrapport
 make fond-probe                                    # Yahoo-dekning for et stratifisert utvalg (200 fond)
@@ -113,6 +121,7 @@ Alle terskler står i `config.yaml`, ikke i koden.
 | | `list_params` | stabil sortering på navn (sideinndelingen flytter seg ikke under hentingen) |
 | `funds` | `url`, `db`, `raw_dir`, `last_fetch` | Nordnets fondsliste og hvor fonddataene lagres (henteparametere fra `nordnet`) |
 | | `probe.sample`, `probe.tol_1y_pp`, `probe.tol_3y_pp`, `probe.price_ratio_tol` | utvalg og toleranser for `make fond-probe` |
+| | `details.refresh_days`, `details.delay_seconds`, `details.pages` | risikotall per fond: hent på nytt etter N dager, pause per kall, hent fondssiden (R²) |
 | `account` | `type` | `ASK` eller ordinær konto; utenfor ASK vises skatteadvarsel |
 | | `ask_countries` | ISIN-landkoder (EØS) som regnes som ASK-tillatt (`"NO"` i anførselstegn, ellers leser YAML det som false) |
 | | `prefer_accumulating` | foretrekk akkumulerende andelsklasse ved representantvalg |
@@ -143,8 +152,8 @@ Alle terskler står i `config.yaml`, ikke i koden.
 ## GitHub Actions og Pages
 
 * **`monthly.yml`** – første virkedag i måneden (cron 1.–3. kl. 06:17 UTC; et steg slipper bare gjennom
-  første virkedag) og manuelt: tester → Nordnet (ETF-er, så fond; fondslisten er ikke kritisk og gir bare en
-  advarsel hvis den feiler) → priser → univers → sidedata → commit av `data/` og
+  første virkedag) og manuelt: tester → Nordnet (ETF-er, så fond og risikotall per fond; fondsstegene er ikke
+  kritiske og gir bare en advarsel hvis de feiler) → priser → univers → sidedata → commit av `data/` og
   `site/data/` med antall nye/utgåtte ETF-er i meldingen → publisering via `pages.yml`.
   Feiler et steg (sikkerhetssjekken mot Nordnet, for mange Yahoo-feil, tester), committes og publiseres
   ingenting, og GitHub sender e-post. To kjøringer kan ikke overlappe (`concurrency`).

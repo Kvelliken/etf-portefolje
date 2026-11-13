@@ -1,7 +1,7 @@
 # Lokale kommandoer. Krever Python 3.11+ og `pip install -r requirements.txt`.
 PY ?= python
 
-.PHONY: install test nordnet nordnet-test prices universe site all serve local-nordnet fond fond-test fond-probe
+.PHONY: install test nordnet nordnet-test prices universe site all serve local-nordnet fond fond-risk fond-test fond-probe
 
 install:
 	$(PY) -m pip install -r requirements.txt
@@ -34,6 +34,9 @@ local-nordnet:      ## fallback: hent Nordnet lokalt, push databasen og start Ac
 
 fond:               ## hent fondslisten fra Nordnet til data/fond.db
 	$(PY) scripts/fetch_nordnet.py --fond
+
+fond-risk:          ## risikotall per fond (volatilitet, Sharpe, alfa, beta, R²) til data/fond.db
+	$(PY) scripts/fetch_fund_details.py
 
 fond-test:          ## én side av fondslisten til en midlertidig database, med feltrapport
 	$(PY) scripts/fetch_nordnet.py --fond --max-pages 1 --db /tmp/fond-test.db
