@@ -400,3 +400,30 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
   begge. `fetch_nordnet.py --db ...` (testkjøringer) overskriver ikke lenger `data/last_fetch*.json`.
 * Kjent begrensning: samme kategori er ikke samme indeks (f.eks. Nordnet Suomi Indeksi ligger i «Europe Equity
   Mid/Small Cap» og sammenlignes med MDAX/ATX/europeiske småselskaper).
+
+## Risikotall for fond og kontroll av avkastningen (2026-11-13)
+
+* Ønske (eier): volatilitet på x-aksen i fondsgrafen, alfa, beta, R² og Sharpe i fondsutforskeren, og rette
+  annualisert avkastning som «må være feil».
+* **Avkastningen:** annualiseringen av Nordnets listetall gir nøyaktig Nordnets egen `annual_growth_info` for alle
+  fond og perioder (0 avvik over 0,05 pp). Listetallene er totalavkastning i NOK (DWS US Top Div EUR: liste 3 år
+  +30,8 % i NOK = fondssidens +50,7 % i EUR × EURNOK −13,2 %; Jupiter Financial USD: +94,3 % = +136,2 % × USDNOK
+  −17,5 %; KLP Nåtid (utdelende): liste +16 % med utbytte, fondssiden +5 % bare kurs). Nordnets fondsside viser
+  samlet kursutvikling i fondets valuta, så tallene der er ikke sammenlignbare med siden vår. Rettet: ETF-avkastningen
+  i sammenligningen ble regnet til hentedatoen (02.11) mens fondstallene gjelder NAV-datoen (30.10 for 723 av 916
+  fond); `as_of` er nå den vanligste NAV-datoen, og hvert fond har `nav_date`. Forklaringen står på siden.
+* **Kilder for risikotall:** fondssidens `risksStatistics` (Morningstar: σ, Sharpe, alfa, beta, R², TE for 1/3/5 år)
+  er regnet i **SEK** – DNB Likviditet (NOK) har 6,3 % volatilitet der, Carnegie Likviditetsfond (SEK) 0,23 %.
+  Nordnets fond-API `api/2/instruments/<id>/fund/info` (5 kB JSON, uten innlogging) har `risk_statistics`
+  (σ, Sharpe, alfa, beta for 1/3/5 år) i **NOK**: DNB Likviditet 0,22 %, Carnegie 6,4 %, og Sharpe 1 år for KLP
+  AksjeGlobal Indeks −0,12 stemmer med NOK-avkastning 2,7 % minus styringsrente over σ 12–13 %. Valg: σ, Sharpe,
+  alfa og beta fra API-et (NOK); R² og tracking error fra fondssiden (finnes ikke i API-et), merket som Morningstar/SEK.
+* `src/etfpf/funddetails.py` + `scripts/fetch_fund_details.py` (`make fond-risk`): to kall per fond, lagres i
+  tabellen `fund_details` i `data/fond.db`; fond hentet siste 20 dager hoppes over (avbrutt kjøring kan fortsette).
+  Ca. 5 s per fond (fondssiden er ~1 MB), ~75 min for alle. Eget ikke-kritisk steg i `monthly.yml` (90 min grense).
+* `site/fond.js`: grafen viser avkastning mot volatilitet (standard) eller mot kostnad; tabellen har gruppen
+  «Risiko, N år (NOK)» med Vol., Sharpe, Alfa, Beta og R² for valgt periode (10 år → 5 år); ETF-alternativene viser
+  volatilitet og Sharpe fra ETF-fanens beregning; kolonnen «Risiko» heter nå «Risikoklasse».
+* Første fulle henting 2026-11-13: 916/916 API-svar, 915/916 fondssider. Volatilitet for 891 av 915 fond i
+  `funds.json` (1 år 891, 3 år 834, 5 år 784), alfa/beta/R² for 686 (3 år). Median volatilitet 5 år 14,2 %,
+  median beta 3 år 1,00, median R² 3 år 86.

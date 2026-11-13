@@ -29,7 +29,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 210
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
       run: ${{ steps.weekday.outputs.run }}
@@ -71,6 +71,18 @@ jobs:
       - name: Varsel om fondslisten
         if: steps.fond.outcome == 'failure'
         run: echo "::warning title=Fondslisten::Henting av Nordnets fondsliste feilet; fond-fanen viser forrige gode data."
+      # Risikotall per fond (volatilitet, Sharpe, alfa, beta, R²): to kall per fond, ca. 75 min for alle.
+      # Ikke kritisk: hvert fond lagres med en gang, så et tidsavbrudd beholder det som ble hentet, og
+      # neste kjøring henter bare det som mangler eller er eldre enn funds.details.refresh_days.
+      - name: Risikotall for fond
+        id: fond_details
+        if: steps.weekday.outputs.run == 'true' && inputs.skip_nordnet != true && vars.SKIP_NORDNET != 'true'
+        continue-on-error: true
+        timeout-minutes: 90
+        run: python scripts/fetch_fund_details.py
+      - name: Varsel om risikotall
+        if: steps.fond_details.outcome == 'failure'
+        run: echo "::warning title=Risikotall for fond::Hentingen feilet eller ble avbrutt; fond-fanen bruker det som ble hentet (resten neste måned)."
       - name: Ticker-mapping og priser
         if: steps.weekday.outputs.run == 'true'
         env:

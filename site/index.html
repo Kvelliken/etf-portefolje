@@ -239,8 +239,8 @@
     <section id="fond-utforsker" aria-labelledby="h-fexp">
       <div class="section-head">
         <h2 id="h-fexp">Fond hos Nordnet</h2>
-        <p class="muted">Alle verdipapirfond i Nordnets fondsliste med kostnad hos Nordnet og avkastning i NOK.
-          Klikk på en rad for å se ETF-er i samme kategori og hva de har kostet og gitt over samme periode.</p>
+        <p class="muted">Alle verdipapirfond i Nordnets fondsliste med kostnad hos Nordnet, avkastning og risikotall
+          (volatilitet, Sharpe, alfa, beta, R²) i NOK. Klikk på en rad for å se ETF-er i samme kategori og hva de har kostet og gitt over samme periode.</p>
       </div>
       <div id="fond-status" class="notice" hidden></div>
       <div class="kpis small" id="fond-kpis"></div>
@@ -270,10 +270,13 @@
       </div>
       <div class="card">
         <div class="card-head">
-          <h3>Kostnad og avkastning</h3>
+          <div class="segmented" id="ff-xaxis" role="tablist" aria-label="Vannrett akse">
+            <button type="button" data-x="vol" aria-selected="true">Risiko og avkastning</button>
+            <button type="button" data-x="cost" aria-selected="false">Kostnad og avkastning</button>
+          </div>
           <p class="muted small-text" id="fond-chart-note"></p>
         </div>
-        <div id="chart-fond" class="chart chart-tall" role="img" aria-label="Kostnad mot avkastning for filtrerte fond"></div>
+        <div id="chart-fond" class="chart chart-tall" role="img" aria-label="Volatilitet eller kostnad mot avkastning for filtrerte fond"></div>
       </div>
       <p class="muted small-text" id="ff-cols-note"></p>
       <div id="fund-explorer"></div>

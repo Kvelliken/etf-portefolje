@@ -4,10 +4,16 @@ Nordnet's fund list gives, per fund, cumulative returns for 1 month to 10 years.
 also for funds quoted in USD/EUR/SEK (verified 2026-11 against Yahoo prices converted with Norges
 Bank rates), so they are comparable with the ETFs' NOK returns without currency conversion.
 Yahoo's fund histories mostly start in 2022, so the fund tab uses Nordnet's numbers rather than
-price series.
+price series. Annualizing them gives exactly Nordnet's own `annual_growth_info` (checked for all funds
+2026-11). Nordnet's fund *page* shows something else: cumulative price change in the fund's own
+currency, so e.g. a USD fund can show +16 % there and +1 % (NOK, total return) here.
+
+Risk figures (volatility, Sharpe, alpha, beta in NOK; R² and tracking error from Morningstar) come from
+`fund_details` (see funddetails.py), fetched per fund.
 
 For the "cheaper ETF alternative" comparison the ETFs' annualized total returns in NOK are
-computed from our own daily prices up to the same date as the fund numbers (`as_of`).
+computed from our own daily prices up to the date of the fund numbers (`as_of` = the most common NAV
+date in the list; Nordnet's list is fetched after close, so most funds are one trading day behind).
 """
 import json
 import re
@@ -16,6 +22,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from . import classify as cl
+from . import funddetails as fdet
 from .sitedata import write_json
 
 PERIODS = (1, 3, 5, 10)
@@ -53,7 +60,16 @@ def latest_funds(conn):
     return df.drop(columns=["raw_json"])
 
 
-def fund_row(r, ask_countries, hedged_re):
+def nav_date(raw):
+    """Date of the NAV behind Nordnet's return figures (price_info.tick_timestamp), ISO string or None."""
+    ts = (raw.get("price_info") or {}).get("tick_timestamp")
+    try:
+        return datetime.fromtimestamp(float(ts) / 1000, timezone.utc).date().isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def fund_row(r, ask_countries, hedged_re, details=None):
     raw = r["raw"]
     fi = raw.get("fund_info") or {}
     hr = raw.get("historical_returns_info") or {}
@@ -84,6 +100,8 @@ def fund_row(r, ask_countries, hedged_re):
         "start": start, "start_year": int(str(start)[:4]) if start else None,
         **ret,
         "ytd": _f(hr.get("yield_ytd")), "m1": _f(hr.get("yield_1m")), "m3": _f(hr.get("yield_3m")),
+        "nav_date": nav_date(raw),
+        **fdet.risk_fields(*(details or (None, None))[:2]),
         "tradable": str(r["is_tradable"]).lower() in ("1", "true"),
         "url": f"https://www.nordnet.no/fond/liste/{slug}" if slug else None,
     }
@@ -120,13 +138,20 @@ def export(fund_conn, etf_prices, cfg, out_dir):
     hedged_re = re.compile(cfg["universe"]["hedged_name_regex"], re.I)
     # One row per ISIN (a fund can appear twice): keep the listing with most owners.
     df = df.sort_values("number_of_owners", ascending=False).drop_duplicates("isin")
-    funds = [fund_row(r, ask_countries, hedged_re) for _, r in df.sort_values("name").iterrows()]
+    details = fdet.load_details(fund_conn)
+    funds = [fund_row(r, ask_countries, hedged_re, details.get(r["instrument_id"]))
+             for _, r in df.sort_values("name").iterrows()]
     run_at = df["run_at"].max()
-    as_of = str(run_at)[:10]
+    navs = pd.Series([f["nav_date"] for f in funds]).dropna()
+    as_of = navs.mode().iloc[0] if len(navs) else str(run_at)[:10]
     etf_ret = etf_returns(etf_prices, as_of) if etf_prices is not None else {}
+    fetched = sorted(d[2] for d in details.values() if d[2])
     write_json(out_dir / "funds.json", {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "nordnet_run_at": run_at, "as_of": as_of, "n": len(funds),
-        "periods": list(PERIODS), "funds": funds, "etf_returns": etf_ret,
+        "periods": list(PERIODS), "risk_periods": list(fdet.PERIODS), "funds": funds, "etf_returns": etf_ret,
+        "risk_fetched": fetched[-1][:10] if fetched else None,
+        "n_risk": sum(any(f[f"vol{P}"] is not None for P in fdet.PERIODS) for f in funds),
     })
-    return {"n": len(funds), "as_of": as_of, "n_etf_returns": len(etf_ret)}
+    return {"n": len(funds), "as_of": as_of, "n_etf_returns": len(etf_ret),
+            "n_risk": sum(any(f[f"vol{P}"] is not None for P in fdet.PERIODS) for f in funds)}

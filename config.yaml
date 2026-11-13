@@ -41,6 +41,12 @@ funds:
     tol_3y_pp: 5.0
     price_ratio_tol: 0.03        # siste Yahoo-kurs mot Nordnets kurs (samme valuta), maks avvik
     history_days: 1200           # dager med dagskurser som hentes til kontrollen (3 år + slakk)
+  # Risikotall per fond (scripts/fetch_fund_details.py, src/etfpf/funddetails.py). Volatilitet, Sharpe,
+  # alfa og beta i NOK fra Nordnets fond-API; R² og tracking error fra fondssiden (Morningstar, i SEK).
+  details:
+    refresh_days: 20             # hent på nytt når forrige henting er eldre enn dette
+    delay_seconds: 0.8           # pause etter hvert kall (to kall per fond)
+    pages: true                  # hent også fondssiden (~1 MB per fond) for R² og tracking error
 
 account:
   type: ASK                    # ASK eller ordinær (AF). Utenfor ASK vises skatteadvarsel.
