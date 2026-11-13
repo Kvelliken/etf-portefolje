@@ -424,3 +424,6 @@ Etter hver fase: vis kort hva som er gjort, hva som ble testet og resultatet, og
 * `site/fond.js`: grafen viser avkastning mot volatilitet (standard) eller mot kostnad; tabellen har gruppen
   «Risiko, N år (NOK)» med Vol., Sharpe, Alfa, Beta og R² for valgt periode (10 år → 5 år); ETF-alternativene viser
   volatilitet og Sharpe fra ETF-fanens beregning; kolonnen «Risiko» heter nå «Risikoklasse».
+* Første fulle henting 2026-11-13: 916/916 API-svar, 915/916 fondssider. Volatilitet for 891 av 915 fond i
+  `funds.json` (1 år 891, 3 år 834, 5 år 784), alfa/beta/R² for 686 (3 år). Median volatilitet 5 år 14,2 %,
+  median beta 3 år 1,00, median R² 3 år 86.
