@@ -22,6 +22,11 @@ Siden svarer så på:
 5. **Kan fordelingen bli bedre?** Velg risiko med en glider; forslaget er den blandingen av fondene dine som gir
    mest forventet avkastning for den risikoen. Risiko/avkastning-kartet har bakgrunn fra rødt til grønt etter Sharpe.
 
+Forsiden har også en **anbefalt portefølje** (globalt indeksfond + fremvoksende markeder + små selskaper + pengemarkedsfond,
+med aksjeandel etter sparetid), valgt på nytt fra dataene hver måned, et «på ett blikk»-panel som følger med mens du
+justerer, rutekart over hva pengene er plassert i, avkastning år for år, hvem som står for svingningene, og en vifte
+over hva sparingen kan bli verdt (dårlig / mest sannsynlig / bra).
+
 **Finn fond** og **Finn ETF-er** er utforskere med filtre, nøkkeltall (avkastning 1/3/5/10 år, volatilitet, Sharpe,
 alfa, beta, R²) og risiko/avkastning-graf med samme Sharpe-bakgrunn. Klikk en rad for tvillinger (fond) eller
 ETF-er på samme indeks.

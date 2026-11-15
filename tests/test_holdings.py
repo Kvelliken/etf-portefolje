@@ -108,6 +108,7 @@ console.log(JSON.stringify({{
   cheap: I.savingsValue(0, 1000, 20, 0.07, 0.002), dear: I.savingsValue(0, 1000, 20, 0.07, 0.015), lump: I.savingsValue(1000, 0, 2, 0.1, 0),
   s: {{ worst: s.worst, fall: s.fall, neg: s.negShare }}, same: I.similarity(A, B).score, diff: I.similarity(A, C), none: I.similarity(A, null),
   look: I.lookThrough([{{ w: 0.5, h: A }}, {{ w: 0.3, h: C }}, {{ w: 0.2, h: R }}]),
+  flat: I.projection(1000, 100, 3, 0.05, 0), pr: I.projection(100000, 1000, 20, 0.07, 0.15), pr2: I.projection(100000, 1000, 20, 0.07, 0.15),
   crCorr: corr(Array.from(cr), Array.from(mkt)), crVol: sd(Array.from(cr)),
   ps5: ann(ps, 12, 71), early: ps[0] - proxy[0], syn3: ann(syn, 36, 71), synVol: sd(Array.from(syn)),
   mid: Array.from(I.forRisk(pts, 0.06)), low: Array.from(I.forRisk(pts, 0.0)), high: Array.from(I.forRisk(pts, 0.5)),
@@ -132,4 +133,10 @@ console.log(JSON.stringify({{
     assert abs(out["early"] + 0.001) < 1e-9              # before that: the proxy minus the cost difference
     assert abs(out["syn3"] - 0.05) < 1e-6 and abs(out["synVol"] - 0.02) < 0.004
     assert 0.3 < out["crCorr"] < 0.7 and abs(out["crVol"] - 0.04) < 0.008      # credit fund: follows the market halfway
+    flat, pr = out["flat"], out["pr"]
+    assert flat["paid"] == [1000, 2200, 3400, 4600]
+    assert abs(flat["p50"][3] - (1000 * 1.05 ** 3 + 100 * sum(1.05 ** (k / 12) for k in range(1, 37)))) < 1e-6   # no risk: plain compounding
+    assert flat["p10"] == flat["p90"] and pr == out["pr2"]                           # deterministic
+    assert pr["p10"][20] < pr["p50"][20] < pr["p90"][20] and pr["p10"][0] == 100000
+    assert 0.75 < pr["p50"][20] / (100000 * 1.07 ** 20 + 1000 * sum(1.07 ** (k / 12) for k in range(1, 241))) < 1.0  # median below the mean
     assert out["mid"] == pytest.approx([0.75, 0.25]) and out["low"] == [1, 0] and out["high"] == [0, 1]
