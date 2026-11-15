@@ -1,27 +1,33 @@
-# ETF-portefølje
+# Fond- og ETF-portefølje
 
-Statisk side (GitHub Pages) for å finne de beste ETF-ene per sektor hos Nordnet, sette sammen et eget utvalg
-med min./maks.-andeler og backteste det mot en verdens-ETF, og for å sammenligne Nordnets verdipapirfond med
-billigere ETF-alternativer. Alt oppdateres månedlig av GitHub Actions.
+Statisk side (GitHub Pages) for å sette sammen en portefølje av rentefond, indeksfond, ETF-er og spesialfond
+hos Nordnet, og forstå den uten å være økonom: hva du egentlig eier, hva det koster i kroner, hvor ille det
+kan gå, og om fordelingen kan bli bedre. Alt oppdateres månedlig av GitHub Actions.
 
 **Siden:** https://kvelliken.github.io/etf-portefolje/
 
 ## Slik brukes siden
 
-1. **Utforsker** – alle ETF-er hos Nordnet med filtre på aktivaklasse, sektor, tema, region, stil, utsteder,
-   historikk, avgift, størrelse, valutasikring, utbytte og ESG. «Én per indeks» skjuler kopier av samme indeks.
-   Kolonner: annualisert avkastning 1/3/5/10 år og volatilitet, Sharpe, alfa, beta, R², tracking error,
-   informasjonsrate og maks fall for valgt periode. «Beste i hver gruppe» viser topp N per sektor/tema/region.
-   Grafen (risiko/avkastning eller utvikling for de 10 øverste radene) følger filtrene.
-2. **Mitt utvalg** – trykk + på ETF-ene du vil ha. Sett min./maks. per ETF og velg mål (maks Sharpe,
-   minimum varians, risikoparitet, lik vekt eller manuelt). Vektene beregnes i nettleseren.
-3. **Backtest** – utvalget mot valgt verdens-ETF (standard iShares MSCI ACWI), med faste vekter eller
-   walk-forward (ny optimering hvert år/kvartal med bare data som fantes da), valgfri ombalansering og
-   handelskostnad.
-4. **Ombalansering** – legg inn beholdningene dine (lagres bare i nettleseren) og få kjøp/salg mot vektene fra steg 2.
+**Min portefølje** (forsiden). Legg inn sparingen din (beløp i dag, per måned, antall år), og velg fond og ETF-er:
+søk, start med Forsiktig/Balansert/Offensiv, eller trykk + under *Finn fond* / *Finn ETF-er*. Sett andelen til hver.
+Siden svarer så på:
 
-Utvalg, filtre og beholdninger lagres bare i nettleseren (localStorage). «Kopier lenke» lager en lenke med
-ISIN-er og grenser (ingen beløp). Ingen beholdninger eller personlige data committes noen gang.
+1. **Hva eier jeg egentlig?** Innholdet i fondene legges sammen: «21 % av pengene dine ligger i de samme 10
+   amerikanske selskapene», fordeling på land og bransjer, og om to fond eier det samme.
+2. **Samme innhold, billigere tvilling.** Fond og ETF-er som eier nesten det samme som dine, men koster mindre,
+   med forskjellen i kroner for sparingen din og en «Bytt»-knapp.
+3. **Kostnad i kroner.** Hva kostnadene tar over årene, mot helt uten kostnader og mot de billigste tvillingene.
+4. **Risiko som en historie.** «I det verste året ville 100 000 kr blitt til 82 000 kr, og det tok 1 år og 9
+   måneder å komme tilbake», med grafen for akkurat din fordeling.
+5. **Kan fordelingen bli bedre?** Velg risiko med en glider; forslaget er den blandingen av fondene dine som gir
+   mest forventet avkastning for den risikoen. Risiko/avkastning-kartet har bakgrunn fra rødt til grønt etter Sharpe.
+
+**Finn fond** og **Finn ETF-er** er utforskere med filtre, nøkkeltall (avkastning 1/3/5/10 år, volatilitet, Sharpe,
+alfa, beta, R²) og risiko/avkastning-graf med samme Sharpe-bakgrunn. Klikk en rad for tvillinger (fond) eller
+ETF-er på samme indeks.
+
+Porteføljen, sparingen og filtrene lagres bare i nettleseren (localStorage). «Kopier lenke» lager en lenke med
+ISIN-er og andeler (ingen beløp). Ingen personlige data committes noen gang.
 
 ## Arkitektur
 
@@ -37,12 +43,16 @@ Nordnet ETF-liste ─► fetch_nordnet.py ─► data/etf.db (SQLite: runs, etf_
                                              ▼
                      build_site.py ─► site/data/etfs.json     metadata + sektor/tema/region/stil + klynge
                                       site/data/returns.json  månedlig totalavkastning i NOK, risikofri rente
+                                      site/data/funds.json    fondslisten med kostnad, avkastning og risikotall
+                                      site/data/innhold.json  hva hvert fond/ETF eier (fra data/holdings.db)
                                       site/data/summary.json, changes.json, quality.json
                                              ▼
-                     site/engine.js (nøkkeltall, Ledoit-Wolf, optimering, backtest) + site/app.js (UI)
+                     site/engine.js   nøkkeltall, Ledoit-Wolf, effisient front (uten DOM)
+                     site/insight.js  kostnad i kroner, risikohistorie, likhet/tvillinger, gjennomlysning (uten DOM)
+                     site/portefolje.js (Min portefølje) · fond.js (Finn fond) · app.js (Finn ETF-er, felles)
 ```
 
-Nøkkeltall, optimering og backtest regnes i nettleseren, så referanse, periode og grenser kan endres på siden.
+Alle beregninger gjøres i nettleseren, så andeler, sparing og risiko kan endres på siden.
 
 | Modul (`src/etfpf/`) | Innhold |
 |---|---|
@@ -53,34 +63,31 @@ Nøkkeltall, optimering og backtest regnes i nettleseren, så referanse, periode
 | `classify.py`, `sitedata.py` | sektor/region/tema/stil fra kategori og navn, JSON til siden |
 | `funddata.py`, `fundprobe.py` | fond-fanens data (`funds.json`) og målingen av Yahoo-dekning for fond |
 | `funddetails.py` | risikotall per fond fra Nordnet (volatilitet, Sharpe, alfa, beta i NOK; R² fra Morningstar) |
+| `holdings.py` | innholdet i fond og ETF-er fra Nordnet: land, bransjer, aktivaklasser og største beholdninger |
 
-## Fond-fanen
+## Innhold, tvillinger og historikk for fond
 
-Siden har to hovedfaner: **ETF** (alt over) og **Fond**. Fond-fanen viser alle verdipapirfond i Nordnets
-fondsliste (ca. 900) med:
-
-* **kostnad hos Nordnet** = forvaltningshonorar − returprovisjon + plattformavgift (Nordnets totaltall),
-* **avkastning 1/3/5/10 år** per år (annualisert), i NOK etter fondets kostnader og med utbytte (Nordnets tall fra
-  fondslisten; de er i NOK også for fond i USD/EUR/SEK, og annualiseringen gir nøyaktig Nordnets egen «årlig vekst»).
-  Nordnets *fondsside* viser noe annet – samlet kursutvikling i fondets egen valuta – så tallene der kan avvike mye
-  for utenlandske fond,
-* **risikotall for 1/3/5 år** (10 år bruker 5 år): volatilitet, Sharpe, alfa og beta i NOK fra Nordnets fond-API,
-  og R² fra Nordnets fondsside (Morningstar). Morningstar-tallene på fondssiden er regnet i SEK (et norsk
-  pengemarkedsfond får 6 % volatilitet der mot 0,2 % i NOK), så bare R² og tracking error tas derfra. Grafen viser
-  avkastning mot volatilitet (eller mot kostnad),
-* filtre på aktivaklasse, sektor, region, tema, stil, forvalter, aktiv/indeks, kostnad, historikk, SFDR, utbytte,
-  ASK, «Nordnets utvalg» og valutasikring,
-* **ETF-alternativer**: klikk en rad for ETF-er i samme Morningstar-kategori (én per indeks, ASK-tillatt) med
-  kostnad og totalavkastning i NOK til *samme dato* som fondstallene, og «Fond − ETF» per periode. Trykk + for å
-  legge en ETF i utvalget under ETF-fanen.
-
-Optimering og backtest finnes bare for ETF-er: Yahoo har kurser for fond bare fra rundt 2022 (4 % av fondene har
-5 års historikk), se probe-resultatet under. Hver månedlige kjøring lagrer fondenes kurs i `data/fond.db`, så egen
-historikk bygges opp.
+* **Innhold** (`scripts/fetch_holdings.py` → `data/holdings.db` → `site/data/innhold.json`): Nordnets fond-API
+  (`api/2/instruments/<id>/fund/info`, uten innlogging, virker for både fond og ETF-er) gir fordeling på land,
+  bransjer og aktivaklasser og de 25–35 største beholdningene (Morningstar). Navnene slås opp med
+  `api/2/instruments/<id,id,…>`. Beholdninger Nordnet ikke har som instrument (de fleste obligasjoner) mangler, så
+  andelen i enkeltselskaper er et minimum.
+* **Tvillinger**: minst 90 % felles landfordeling, 85 % felles bransjefordeling og 60 % overlapp i de største
+  beholdningene, samme aktivaklasse og valutasikring (tersklene står øverst i `site/portefolje.js`). ETF-er i
+  samme klynge (samme indeks) er alltid tvillinger. Rentefond sammenlignes på kategori, valuta og volatilitet.
+* **Historikk for fond**: Nordnet gir ikke kurshistorikk for fond, og Yahoo dekker dem dårlig (probe 2026-11:
+  4 % har 5 år). Risikohistorien og forslaget trenger månedsavkastning, så et fond låner månedsmønsteret fra
+  ETF-en med likest innhold, skalert til fondets egen volatilitet og forskjøvet slik at de siste 5 (3/1) årene
+  gir nøyaktig fondets egen avkastning (Nordnets tall). Norske rentefond anslås fra styringsrenten pluss fondets
+  egen meravkastning og volatilitet. Slike fond er merket «historikk anslått» på siden.
+* **Fondstallene** (kostnad = forvaltningshonorar − returprovisjon + plattformavgift; avkastning 1/3/5/10 år i NOK
+  etter kostnader; volatilitet, Sharpe, alfa, beta i NOK; R² fra Morningstar) er som før, se `funddata.py` og
+  `funddetails.py`.
 
 ```
 python scripts/fetch_nordnet.py --fond             # fondslisten -> data/fond.db, data/raw_fond/
 python scripts/fetch_fund_details.py               # risikotall per fond -> fund_details i data/fond.db (~75 min)
+python scripts/fetch_holdings.py                   # innhold i fond og ETF-er -> data/holdings.db (~45 min)
 python scripts/build_site.py                       # skriver også site/data/funds.json når data/fond.db finnes
 make fond-test                                     # én side til en midlertidig database + feltrapport
 make fond-probe                                    # Yahoo-dekning for et stratifisert utvalg (200 fond)
@@ -122,6 +129,7 @@ Alle terskler står i `config.yaml`, ikke i koden.
 | `funds` | `url`, `db`, `raw_dir`, `last_fetch` | Nordnets fondsliste og hvor fonddataene lagres (henteparametere fra `nordnet`) |
 | | `probe.sample`, `probe.tol_1y_pp`, `probe.tol_3y_pp`, `probe.price_ratio_tol` | utvalg og toleranser for `make fond-probe` |
 | | `details.refresh_days`, `details.delay_seconds`, `details.pages` | risikotall per fond: hent på nytt etter N dager, pause per kall, hent fondssiden (R²) |
+| | `holdings.db`, `holdings.refresh_days`, `holdings.delay_seconds`, `holdings.threads` | innhold i fond og ETF-er: database, hent på nytt etter N dager, pause og samtidige kall |
 | `account` | `type` | `ASK` eller ordinær konto; utenfor ASK vises skatteadvarsel |
 | | `ask_countries` | ISIN-landkoder (EØS) som regnes som ASK-tillatt (`"NO"` i anførselstegn, ellers leser YAML det som false) |
 | | `prefer_accumulating` | foretrekk akkumulerende andelsklasse ved representantvalg |
@@ -144,16 +152,14 @@ Alle terskler står i `config.yaml`, ikke i koden.
 | | `dist_fee_penalty`, `hysteresis_fee_pp` | utdelende regnes som dyrere på ASK; representant byttes bare ved tydelig lavere avgift |
 | `site` | `benchmark_isin` | standard referanse på siden (iShares MSCI ACWI) |
 | | `market_risk_premium`, `history_weight` | forventet avkastning: likevektsprior + andel historisk snitt |
-| | `estimation_years` | år med månedsdata i optimeringen |
-| | `default_min_weight`, `default_max_weight` | standard grenser per ETF i utvalget |
-| | `trading_cost_pct` | handelskostnad i backtesten (% av handlet beløp) |
-| | `rebalance_band_pp`, `portfolio_value_nok` | ombalanseringsbånd (±pp) og standard porteføljeverdi |
+| | `estimation_years` | år med månedsdata bak samvariasjon og forslag |
+| | øvrige (`default_*_weight`, `trading_cost_pct`, `rebalance_band_pp`, `portfolio_value_nok`) | fra den gamle optimeringen/backtesten; brukes ikke av siden lenger |
 
 ## GitHub Actions og Pages
 
 * **`monthly.yml`** – første virkedag i måneden (cron 1.–3. kl. 06:17 UTC; et steg slipper bare gjennom
-  første virkedag) og manuelt: tester → Nordnet (ETF-er, så fond og risikotall per fond; fondsstegene er ikke
-  kritiske og gir bare en advarsel hvis de feiler) → priser → univers → sidedata → commit av `data/` og
+  første virkedag) og manuelt: tester → Nordnet (ETF-er, så fond, risikotall per fond og innhold i fond/ETF-er;
+  fonds- og innholdsstegene er ikke kritiske og gir bare en advarsel hvis de feiler) → priser → univers → sidedata → commit av `data/` og
   `site/data/` med antall nye/utgåtte ETF-er i meldingen → publisering via `pages.yml`.
   Feiler et steg (sikkerhetssjekken mot Nordnet, for mange Yahoo-feil, tester), committes og publiseres
   ingenting, og GitHub sender e-post. To kjøringer kan ikke overlappe (`concurrency`).
@@ -185,7 +191,9 @@ repo-variabelen `SKIP_NORDNET=true`, så hopper også de planlagte kjøringene o
   likevektsprior og Ledoit-Wolf, men vektene bør tas som et utgangspunkt, ikke en fasit.
 * **Klassifisering:** sektor/tema er utledet fra Morningstar-kategori og navn med enkle regler og kan være feil
   for enkelte fond.
-* **Kostnader:** kurtasje og valutapåslag i backtesten er forenklet; sjekk Nordnets prisliste.
+* **Fond uten kurshistorikk:** risikohistorien for fond er et anslag (se over). For indeksfond er det treffsikkert,
+  for aktive fond og rentefond grovere.
+* **Kostnader:** kurtasje, kursforskjell og valutapåslag for ETF-er er ikke med i kroneregnestykket; sjekk Nordnets prisliste.
 
 ## Forbehold
 
