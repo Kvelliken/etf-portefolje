@@ -1,27 +1,26 @@
-/* Fond-fanen: alle verdipapirfond i Nordnets fondsliste, kostnad hos Nordnet, avkastning og risikotall i NOK,
- * sammenlignet med ETF-er i samme Morningstar-kategori (avkastning til samme dato, se funddata.py).
+/* Finn fond: alle verdipapirfond i Nordnets fondsliste med kostnad hos Nordnet, avkastning og risikotall i NOK.
  * Risikotallene (volatilitet, Sharpe, alfa, beta, R²) hentes per fond fra Nordnet, se funddetails.py.
- * Bruker hjelpefunksjonene og ETF-dataene (D) fra app.js. Hovedfanene (ETF/Fond) styres herfra. */
+ * Bruker hjelpefunksjonene fra app.js. Hovedfanene (Min portefølje / Finn fond / Finn ETF-er) styres herfra. */
 "use strict";
 
 const FPERIODS = [1, 3, 5, 10];
 const FLS = { tab: "etfpf.tab", filters: "etfpf.fond.filters.v1" };
 const FDD = [["asset_class", "Aktivaklasse"], ["sector", "Sektor"], ["region", "Region"], ["theme", "Tema"],
   ["style", "Stil"], ["company", "Forvalter"]];
-const FS = { f: null, period: 5, xaxis: "vol", table: null, data: null, loading: null, list: [] };
+const FS = { f: null, period: 5, xaxis: "vol", table: null, data: null, loading: null, list: [], by: {} };
+const TABS = ["pf", "fond", "etf"];
 // Nordnet har risikotall for 1, 3 og 5 år. For 10 år brukes 5 år.
 const riskP = (P) => (P >= 5 ? 5 : P);
 const rk = (k, P) => `${k}${riskP(P)}`;
 
 // ---------------------------------------------------------------- main tabs
 function showTab(tab, { scroll = false } = {}) {
-  for (const t of ["etf", "fond"]) {
+  for (const t of TABS) {
     $(`tab-${t}`).hidden = t !== tab;
     $(`tabbtn-${t}`).setAttribute("aria-selected", t === tab ? "true" : "false");
     document.querySelector(`.nav[data-for="${t}"]`).hidden = t !== tab;
   }
   store.set(FLS.tab, tab);
-  if (tab === "fond") ensureFond();
   // Charts and tables drawn while hidden have no width: let them measure again.
   requestAnimationFrame(() => {
     window.dispatchEvent(new Event("resize"));
@@ -33,8 +32,8 @@ function showTab(tab, { scroll = false } = {}) {
 
 function tabFromHash() {
   const h = location.hash;
-  if (h.startsWith("#fond")) return "fond";
-  if (h && document.querySelector(`#tab-etf ${CSS.escape(h)}`)) return "etf";
+  if (!h || h.length < 2 || h.includes("=")) return null;
+  for (const t of TABS) if (document.querySelector(`#tab-${t} ${CSS.escape(h)}`)) return t;
   return null;
 }
 
@@ -43,8 +42,13 @@ function setupTabs() {
     const b = ev.target.closest("button[data-tab]"); if (!b) return;
     showTab(b.dataset.tab, { scroll: true });
   });
-  window.addEventListener("hashchange", () => { const t = tabFromHash(); if (t) showTab(t); });
-  showTab(tabFromHash() || store.get(FLS.tab, "etf"));
+  window.addEventListener("hashchange", () => {
+    const t = tabFromHash(); if (!t) return;
+    showTab(t);
+    requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView());
+  });
+  const saved = store.get(FLS.tab, "pf");
+  showTab(tabFromHash() || (TABS.includes(saved) ? saved : "pf"));
 }
 
 // ---------------------------------------------------------------- data
@@ -82,6 +86,7 @@ function ensureFond() {
     renderFundMethod();
     refreshFunds();
     redraw.push(renderFundChart);
+    FS.ready2 = true;
   }).catch((e) => {
     notice($("fond-status"), "critical", `<strong>⚠ Feil:</strong> Kunne ikke laste fonddata (${esc(e.message)}).`);
     console.error(e);
@@ -90,21 +95,10 @@ function ensureFond() {
 }
 
 function prepareFunds() {
-  const R = FS.data.etf_returns || {};
-  const byCat = {};
-  for (const e of D.list) {
-    e.fr = R[e.isin] || null;
-    if (!e.fr || !e.pick || !e.ask || e.leveraged || e.asset_class === "Giret/invers") continue;
-    (byCat[e.category] ||= []).push(e);
-  }
-  for (const list of Object.values(byCat)) list.sort((a, b) => (a.fee ?? 9) - (b.fee ?? 9) || (b.fund_size || 0) - (a.fund_size || 0));
   const asOf = new Date(FS.data.as_of);
   FS.list = FS.data.funds;
+  FS.by = Object.fromEntries(FS.list.map((f) => [f.isin, f]));
   for (const f of FS.list) {
-    f.alts = byCat[f.category] || [];
-    f.cheapest = f.alts.find((e) => ok(e.fee)) || null;
-    f.etf_med = {};
-    FPERIODS.forEach((P, k) => { f.etf_med[P] = median(f.alts.map((e) => e.fr[k])); });
     f.years = f.start ? (asOf - new Date(f.start)) / (365.25 * 864e5) : null;
     f.size_m = ok(f.fund_size) ? f.fund_size / 1e6 : null;
   }
@@ -113,7 +107,7 @@ function prepareFunds() {
 // ---------------------------------------------------------------- filters
 function defaultFundFilters() {
   return { q: "", dd: Object.fromEntries(FDD.map(([k]) => [k, []])), kind: "all", cost: "", hist: 0, sfdr: "all", acc: "all",
-    ask: true, selection: false, unhedged: false, period: 5, xaxis: "vol" };
+    ask: true, selection: false, unhedged: false, mine: false, period: 5, xaxis: "vol" };
 }
 function saveFundFilters() { store.set(FLS.filters, { ...FS.f, period: FS.period, xaxis: FS.xaxis }); }
 const onFundFilter = debounce(() => { saveFundFilters(); refreshFunds(); }, 60);
@@ -148,7 +142,7 @@ function setupFundFilters() {
   };
   const s = $("ff-search"); s.value = F.q; s.addEventListener("input", debounce(() => { F.q = s.value; onFundFilter(); }, 150));
   bind("ff-kind", "kind"); bind("ff-cost", "cost", "value", "input"); bind("ff-hist", "hist"); bind("ff-sfdr", "sfdr"); bind("ff-acc", "acc");
-  bind("ff-ask", "ask", "checked"); bind("ff-selection", "selection", "checked"); bind("ff-hedged", "unhedged", "checked");
+  bind("ff-ask", "ask", "checked"); bind("ff-selection", "selection", "checked"); bind("ff-hedged", "unhedged", "checked"); bind("ff-mine", "mine", "checked");
   $("ff-reset").addEventListener("click", () => { store.set(FLS.filters, defaultFundFilters()); location.reload(); });
   const pe = $("ff-period");
   pe.innerHTML = FPERIODS.map((P) => `<button type="button" role="tab" data-p="${P}" aria-selected="${P === FS.period}">${P} år</button>`).join("");
@@ -177,7 +171,8 @@ function syncFundDD() {
   });
 }
 
-function fundPasses(f, F) {
+function fundPasses(f, F, mine) {
+  if (F.mine) return mine.has(f.isin);
   if (F.ask && !f.ask) return false;
   if (F.selection && !f.nordnet_selection) return false;
   if (F.unhedged && f.hedged) return false;
@@ -199,23 +194,18 @@ function fundPasses(f, F) {
 
 // ---------------------------------------------------------------- KPIs, chart
 const rKey = (P) => `r${P}`;
-const diffVsEtf = (f, P) => (ok(f[rKey(P)]) && ok(f.etf_med[P]) ? f[rKey(P)] - f.etf_med[P] : null);
 
 function renderFundKpis(list) {
   const P = FS.period;
   const act = list.filter((f) => !f.index), idx = list.filter((f) => f.index);
-  const cmp = act.filter((f) => ok(diffVsEtf(f, P)));
-  const beat = cmp.filter((f) => diffVsEtf(f, P) > 0).length;
-  const extra = median(act.map((f) => (f.cheapest && ok(f.cost) ? f.cost - f.cheapest.fee : null)));
+  const med = (a, k) => median(a.map((f) => f[k]));
+  const fmt = (v) => (ok(v) ? nf(2).format(v) + " %" : "–");
   $("fond-kpis").innerHTML = [
     kpi("Fond i utvalget", num(list.length), `av ${num(FS.list.length)} hos Nordnet`),
-    kpi("Median kostnad, aktive", ok(median(act.map((f) => f.cost))) ? nf(2).format(median(act.map((f) => f.cost))) + " %" : "–",
-      `${num(act.length)} aktive fond`),
-    kpi("Median kostnad, indeksfond", ok(median(idx.map((f) => f.cost))) ? nf(2).format(median(idx.map((f) => f.cost))) + " %" : "–",
-      `${num(idx.length)} indeksfond`),
-    kpi(`Aktive fond som slo ETF-ene, ${P} år`, cmp.length ? pct(beat / cmp.length, 0) : "–",
-      `${num(beat)} av ${num(cmp.length)} over medianen for ETF-er i samme kategori`),
-    kpi("Merkostnad mot billigste ETF", ok(extra) ? nf(2).format(extra) + " pp/år" : "–", "median for aktive fond, samme kategori"),
+    kpi("Median kostnad, aktive", fmt(med(act, "cost")), `${num(act.length)} aktive fond`),
+    kpi("Median kostnad, indeksfond", fmt(med(idx, "cost")), `${num(idx.length)} indeksfond`),
+    kpi(`Median avkastning ${P} år, aktive`, pct(med(act, rKey(P))), "per år, etter kostnader"),
+    kpi(`Median avkastning ${P} år, indeksfond`, pct(med(idx, rKey(P))), "per år, etter kostnader"),
   ].join("");
 }
 
@@ -227,28 +217,35 @@ function renderFundChart() {
   const noRisk = byVol ? FS.filtered.filter((f) => ok(f[k]) && !ok(f[vk])).length : 0;
   $("fond-chart-note").textContent = `Annualisert avkastning ${P} år i NOK etter fondets kostnader, per ${dateNo(FS.data.as_of)}. ` +
     (byVol ? `Volatilitet = årlig standardavvik ${RP} år i NOK${RP !== P ? " (Nordnet har ikke 10 år)" : ""}. ` : "") +
-    `${num(pts.length)} fond${noRisk ? ` (${num(noRisk)} mangler volatilitet)` : ""}.`;
+    `${num(pts.length)} fond${noRisk ? ` (${num(noRisk)} mangler volatilitet)` : ""}. Klikk på en prikk for å legge fondet i porteføljen. ${byVol ? SHARPE_HINT : ""}`;
   if (!pts.length) { emptyChart("chart-fond", "Ingen fond med tall for perioden – løsne på filtrene"); return; }
-  const groups = [["Aktive fond", (f) => !f.index, "--pf-max_sharpe", "circle"], ["Indeksfond", (f) => f.index, "--pf-min_variance", "diamond"]];
-  const traces = groups.map(([name, fn, col, sym]) => {
+  const mine = mineSet();
+  const groups = [["Aktive fond", (f) => !f.index && !mine.has(f.isin), css("--ink"), "circle", 7, 0.6],
+    ["Indeksfond", (f) => f.index && !mine.has(f.isin), css("--surface"), "diamond", 9, 1],
+    ["I porteføljen", (f) => mine.has(f.isin), css("--mine"), "star", 15, 1]];
+  const bg = byVol ? sharpeBackdrop(pts.map(xOf), pts.map((f) => f[k] * 100), D.summary.rf_now * 100) : null;
+  const traces = groups.map(([name, fn, col, sym, size, op]) => {
     const g = pts.filter(fn);
     return {
-      type: "scatter", mode: "markers", name, x: g.map(xOf), y: g.map((f) => f[k] * 100),
-      marker: { size: 9, color: css(col), symbol: sym, opacity: 0.85, line: { color: css("--surface"), width: 1 } },
-      customdata: g.map((f) => [f.name, f.company || "", ok(f.etf_med[P]) ? pct(f.etf_med[P]) : "–", ok(diffVsEtf(f, P)) ? pp(diffVsEtf(f, P)) : "–",
-        pctPP(f.cost), pct(f[vk]), num(f[rk("sharpe", P)], 2), pct(f[rk("alpha", P)]), num(f[rk("beta", P)], 2),
-        ok(f[rk("r2", P)]) ? num(f[rk("r2", P)] * 100, 0) : "–"]),
+      type: "scatter", mode: "markers", name, x: g.map(xOf), y: g.map((f) => f[k] * 100), ids: g.map((f) => f.isin),
+      marker: { size, color: col, symbol: sym, opacity: op, line: { color: sym === "diamond" ? css("--ink") : css("--surface"), width: sym === "diamond" ? 1.5 : 1 } },
+      customdata: g.map((f) => [f.name, f.company || "", f.isin, "", pctPP(f.cost), pct(f[vk]), num(f[rk("sharpe", P)], 2), pct(f[rk("alpha", P)]),
+        num(f[rk("beta", P)], 2), ok(f[rk("r2", P)]) ? num(f[rk("r2", P)] * 100, 0) : "–"]),
       hovertemplate: "<b>%{customdata[0]}</b><br>%{customdata[1]}<br>Avkastning %{y:.1f} % per år · kostnad %{customdata[4]}" +
-        `<br>${RP} år: vol. %{customdata[5]} · Sharpe %{customdata[6]}<br>Alfa %{customdata[7]} · beta %{customdata[8]} · R² %{customdata[9]}` +
-        "<br>ETF-median i kategorien %{customdata[2]} (fond − ETF %{customdata[3]})<extra></extra>",
+        `<br>${RP} år: vol. %{customdata[5]} · Sharpe %{customdata[6]}<br>Alfa %{customdata[7]} · beta %{customdata[8]} · R² %{customdata[9]}<extra></extra>`,
     };
   }).filter((t) => t.x.length);
-  plot("chart-fond", traces, layout({
-    xaxis: byVol ? axis({ titleText: `Volatilitet ${RP} år (NOK, % per år)`, ticksuffix: " %", rangemode: "tozero" })
+  plot("chart-fond", [...(bg ? bg.traces : []), ...traces], layout({
+    xaxis: byVol ? axis({ titleText: `Svingninger (volatilitet) ${RP} år (NOK, % per år)`, ticksuffix: " %", range: bg.xr, showgrid: false })
       : axis({ titleText: "Kostnad hos Nordnet (% per år)", ticksuffix: " %", rangemode: "tozero" }),
-    yaxis: axis({ titleText: `Annualisert avkastning ${P} år (NOK)`, ticksuffix: " %" }),
-    hovermode: "closest", margin: { l: 64, r: 16, t: 32, b: 52 },
+    yaxis: axis({ titleText: `Avkastning per år, ${P} år (NOK)`, ticksuffix: " %", ...(bg ? { range: bg.yr, showgrid: false } : {}) }),
+    hovermode: "closest", margin: { l: 64, r: 16, t: 32, b: 52 }, annotations: bg ? bg.annotations : [],
   }));
+  const el = $("chart-fond");
+  if (!el._clickBound && el.on) {
+    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata?.[2]; if (i) toggleSelect(i); });
+    el._clickBound = true;
+  }
 }
 
 // ---------------------------------------------------------------- table
@@ -272,6 +269,9 @@ function fundColumns() {
   const numCol = (title, field, d, tip, mult = 1) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
     formatter: (c) => { const v = c.getValue(); return ok(v) ? (v < 0 ? `<span class="neg">${num(v * mult, d)}</span>` : num(v * mult, d)) : "–"; } });
   return [
+    { title: "", field: "mine", frozen: true, headerSort: false, hozAlign: "center", width: 44,
+      formatter: (c) => `<button type="button" class="add-btn ${c.getValue() ? "on" : ""}" aria-label="${c.getValue() ? "Fjern fra" : "Legg til i"} porteføljen">${c.getValue() ? "✓" : "+"}</button>`,
+      cellClick: (e, cell) => { e.stopPropagation(); toggleSelect(cell.getRow().getData().isin); } },
     { title: "Fond", field: "name", frozen: true, width: 260, tooltip: true,
       formatter: (c) => { const d = c.getRow().getData(); return d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>` : esc(d.name); } },
     txt("Forvalter", "company", 130),
@@ -295,16 +295,6 @@ function fundColumns() {
       numCol("Beta", "beta", 2, "Beta: hvor mye fondet svinger med referanseindeksen (1 = like mye), i NOK (Nordnet)"),
       numCol("R²", "r2", 0, "R²: hvor stor del av svingningene referanseindeksen forklarer, 0–100. Morningstar, målt i SEK (som på Nordnets fondsside). Høy R² + lav alfa = indeksnært", 100),
     ] },
-    { title: `Mot ETF-er i samme kategori, ${P} år`, columns: [
-      retCol("ETF-median", "etf_med", "Median annualisert avkastning for ETF-er i samme Morningstar-kategori (én per indeks, ASK-tillatt), til samme dato"),
-      { title: "Fond − ETF", field: "vs_etf", hozAlign: "right", cssClass: "num", sorter: sorterNull,
-        headerTooltip: "Fondets avkastning minus ETF-medianen, prosentpoeng per år. Positivt = fondet slo ETF-ene",
-        formatter: (c) => { const v = c.getValue(); return ok(v) ? `<span class="${v >= 0 ? "delta-pos" : "delta-neg"}">${pp(v)}</span>` : "–"; } },
-      { title: "Billigste ETF", field: "cheapest_fee", hozAlign: "right", cssClass: "num", sorter: sorterNull,
-        headerTooltip: "Lavest årlig kostnad (TER) blant ETF-ene i samme kategori. Klikk raden for å se dem",
-        formatter: (c) => { const d = c.getRow().getData(); return ok(d.cheapest_fee) ? `${pctPP(d.cheapest_fee)} <span class="muted">${esc(d.cheapest_ticker)}</span>` : "–"; } },
-      { title: "Antall", field: "n_alts", hozAlign: "right", cssClass: "num", headerTooltip: "ETF-er i samme kategori (klikk raden)" },
-    ] },
     { title: "Risikoklasse", field: "risk", hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: "Nordnets risikoklasse 1–7 (svingninger)" },
     { title: "Rating", field: "rating", sorter: sorterNull, formatter: (c) => stars(c.getValue()), headerTooltip: "Morningstar-rating" },
     { title: "SFDR", field: "sfdr", hozAlign: "right", sorter: sorterNull, formatter: (c) => (ok(c.getValue()) ? `Art. ${c.getValue()}` : "–"),
@@ -321,14 +311,13 @@ function fundColumns() {
   ];
 }
 
-function fundRow(f) {
+function fundRow(f, mine) {
   const P = FS.period;
   return {
     isin: f.isin, name: f.name, url: f.url, company: f.company, kind: f.index ? "Indeks" : (f.fund_type || "Aktiv"),
     sector: f.sector, region: f.region, cost: f.cost, fee: f.fee, kickback: f.kickback, platform_fee: f.platform_fee,
-    r1: f.r1, r3: f.r3, r5: f.r5, r10: f.r10, etf_med: f.etf_med[P], vs_etf: diffVsEtf(f, P),
+    r1: f.r1, r3: f.r3, r5: f.r5, r10: f.r10, mine: mine.has(f.isin),
     vol: f[rk("vol", P)], sharpe: f[rk("sharpe", P)], alpha: f[rk("alpha", P)], beta: f[rk("beta", P)], r2: f[rk("r2", P)],
-    cheapest_fee: f.cheapest?.fee ?? null, cheapest_ticker: f.cheapest?.ticker || "", n_alts: f.alts.length || null,
     risk: f.risk, rating: f.rating, sfdr: f.sfdr, size_m: f.size_m, owners: f.owners, start_year: f.start_year,
     acc: f.acc, currency: f.currency, min_investment: f.min_investment, category: f.category,
   };
@@ -339,6 +328,7 @@ function setupFundTable() {
   FS.table = new Tabulator("#fund-explorer", {
     data: [], index: "isin", layout: "fitDataFill", maxHeight: "640px", placeholder: "Ingen treff – løsne på filtrene",
     columns: fundColumns(), initialSort: [{ column: "owners", dir: "desc" }], columnHeaderVertAlign: "bottom",
+    rowFormatter: (row) => row.getElement().classList.toggle("is-mine", !!row.getData().mine),
   });
   FS.ready = new Promise((res) => FS.table.on("tableBuilt", res));
   FS.table.on("rowClick", (e, row) => {
@@ -346,7 +336,7 @@ function setupFundTable() {
     const el = row.getElement();
     const open = el.querySelector(".alt-box");
     if (open) { open.remove(); row.normalizeHeight(); return; }
-    const box = altBox(FS.list.find((f) => f.isin === row.getData().isin));
+    const box = altBox(FS.by[row.getData().isin]);
     // The row is as wide as all columns; keep the box within the visible part of the table.
     const holder = FS.table.element.querySelector(".tabulator-tableholder");
     box.style.width = `${Math.max(280, holder.clientWidth - 2)}px`;
@@ -355,30 +345,24 @@ function setupFundTable() {
   });
 }
 
+/** Twins of a fund: funds and ETFs that own nearly the same, cheapest first (see portefolje.js). */
 function altBox(f) {
-  const P = FS.period, k = FPERIODS.indexOf(P), RP = riskP(P);
   const box = document.createElement("div");
   box.className = "alt-box";
-  if (!f.alts.length) {
-    box.innerHTML = `<span class="muted">Ingen ETF-er hos Nordnet i samme kategori (${esc(f.category || "ukjent")}).</span>`;
-    return box;
-  }
+  const tw = typeof PF !== "undefined" && PF.ready ? PF.twinsOf(f.isin, { all: true }) : null;
+  if (!tw) { box.innerHTML = '<span class="muted">Innholdet i fondene er ikke lastet ennå.</span>'; return box; }
+  if (!tw.length) { box.innerHTML = `<span class="muted">Fant ingen fond eller ETF-er hos Nordnet med nesten samme innhold som ${esc(f.name)}.</span>`; return box; }
   const mine = mineSet();
-  const rows = f.alts.slice(0, 8).map((e) => {
-    const d = ok(f[rKey(P)]) && ok(e.fr[k]) ? f[rKey(P)] - e.fr[k] : null;
-    return `<tr><td><button type="button" class="add-btn ${mine.has(e.isin) ? "on" : ""}" data-isin="${e.isin}" aria-label="Legg i ETF-utvalget">${mine.has(e.isin) ? "✓" : "+"}</button></td>
-      <td>${esc(e.ticker)}</td><td>${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.name)}</a>` : esc(e.name)}</td>
-      <td class="num">${pctPP(e.fee)}</td>${FPERIODS.map((_, j) => `<td class="num">${pct(e.fr[j])}</td>`).join("")}
-      <td class="num">${pct(e.m?.[RP]?.vol)}</td><td class="num">${num(e.m?.[RP]?.sharpe, 2)}</td>
-      <td class="num">${ok(d) ? `<span class="${d >= 0 ? "delta-pos" : "delta-neg"}">${pp(d)}</span>` : "–"}</td></tr>`;
-  }).join("");
-  box.innerHTML = `<strong>ETF-er i samme kategori</strong> <span class="muted">(${esc(f.category)}; ${num(f.alts.length)} ETF-er, én per indeks, sortert på kostnad.
-      Samme kategori betyr lignende marked, ikke nødvendigvis samme indeks.)</span>
-    <div class="table-scroll"><table class="data"><thead><tr><th></th><th>Ticker</th><th>Navn</th><th class="num">Kostnad</th>${FPERIODS.map((p) => `<th class="num">${p} år</th>`).join("")}<th class="num">Vol. ${RP} år</th><th class="num">Sharpe ${RP} år</th><th class="num">Fond − ETF, ${P} år</th></tr></thead><tbody>
-      <tr class="total"><td></td><td>Fondet</td><td>${esc(f.name)}</td><td class="num">${pctPP(f.cost)}</td>${FPERIODS.map((p) => `<td class="num">${pct(f[rKey(p)])}</td>`).join("")}<td class="num">${pct(f[rk("vol", P)])}</td><td class="num">${num(f[rk("sharpe", P)], 2)}</td><td></td></tr>
-      ${rows}</tbody></table></div>
-    <p class="muted small-text">Trykk + for å legge en ETF i utvalget ditt under ETF-fanen. ETF-kostnaden er årlig TER; ved kjøp kommer kurtasje og spread i tillegg.
-      Volatilitet og Sharpe for ETF-ene er regnet fra månedsavkastning i NOK til siste månedsslutt, for fondet er de Nordnets tall i NOK.</p>`;
+  const line = (p, sim, cls = "") => `<tr class="${cls}"><td>${cls ? "" : `<button type="button" class="add-btn ${mine.has(p.id) ? "on" : ""}" data-isin="${p.id}" aria-label="Legg i porteføljen">${mine.has(p.id) ? "✓" : "+"}</button>`}</td>
+      <td>${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</td><td>${esc(p.kindLabel)}</td>
+      <td class="num">${pctPP(p.cost)}</td><td class="num">${ok(p.cost) && ok(f.cost) && !cls ? pp((p.cost - f.cost) / 100, 2) : ""}</td>
+      <td class="num">${pct(p.ret[1])}</td><td class="num">${pct(p.ret[3])}</td><td class="num">${pct(p.ret[5])}</td><td class="num">${pct(p.vol)}</td>
+      <td class="num">${cls ? "" : sim}</td></tr>`;
+  box.innerHTML = `<strong>Tvillinger: nesten samme innhold</strong> <span class="muted">(${num(tw.length)} funnet, billigst først)</span>
+    <div class="table-scroll"><table class="data"><thead><tr><th></th><th>Navn</th><th>Type</th><th class="num">Kostnad</th><th class="num">Mot fondet</th>
+      <th class="num">1 år</th><th class="num">3 år</th><th class="num">5 år</th><th class="num">Vol. 5 år</th><th class="num">Likhet</th></tr></thead><tbody>
+      ${line(PF.product(f.isin), "", "total")}${tw.slice(0, 10).map((t) => line(t.p, t.label)).join("")}</tbody></table></div>
+    <p class="muted small-text">Likhet er målt på hva fondene eier (land, bransjer og de største selskapene). ETF-er har kurtasje og kursforskjell ved kjøp i tillegg til årskostnaden.</p>`;
   box.addEventListener("click", (ev) => {
     const b = ev.target.closest("button[data-isin]"); if (!b) return;
     ev.stopPropagation(); toggleSelect(b.dataset.isin);
@@ -387,16 +371,25 @@ function altBox(f) {
   return box;
 }
 
+/** Called by portefolje.js when the portfolio's members change. */
+function onPortfolioMembersFond() {
+  if (!FS.table || !FS.filtered) return;
+  const mine = mineSet();
+  for (const row of FS.table.getRows()) { const d = row.getData(); if (d.mine !== mine.has(d.isin)) row.update({ mine: mine.has(d.isin) }); }
+  if (FS.f.mine) refreshFunds(); else renderFundChart();
+}
+
 async function refreshFunds() {
-  const list = FS.list.filter((f) => fundPasses(f, FS.f));
+  const mine = mineSet();
+  const list = FS.list.filter((f) => fundPasses(f, FS.f, mine));
   FS.filtered = list;
   $("ff-count").textContent = `${num(list.length)} fond`;
   $("ff-cols-note").textContent = `Avkastning er Nordnets tall i NOK per ${dateNo(FS.data.as_of)}, per år (annualisert), etter fondets kostnader. ` +
     "Nordnets fondsside viser i stedet samlet avkastning i fondets egen valuta, så tallene der er ikke direkte sammenlignbare. " +
-    `Risikotallene er Nordnets i NOK${FS.data.risk_fetched ? `, hentet ${dateNo(FS.data.risk_fetched)}` : ""}. ETF-tallene er totalavkastning i NOK til samme dato. ` +
+    `Risikotallene er Nordnets i NOK${FS.data.risk_fetched ? `, hentet ${dateNo(FS.data.risk_fetched)}` : ""}. ` +
     "Hold musen over en kolonneoverskrift for forklaring.";
   renderFundKpis(list);
-  if (FS.table) { await FS.ready; await FS.table.replaceData(list.map(fundRow)); }
+  if (FS.table) { await FS.ready; await FS.table.replaceData(list.map((f) => fundRow(f, mine))); }
   renderFundChart();
 }
 
@@ -416,11 +409,8 @@ function renderFundMethod() {
       ETF-fanens nøkkeltall er regnet mot valgt verdens-ETF, så alfa, beta og R² for fond og ETF-er er ikke direkte sammenlignbare; volatilitet og Sharpe er det.</p>
     <p><strong>Kostnad hos Nordnet</strong> = forvaltningshonorar − returprovisjon (det Nordnet betaler tilbake) + Nordnets plattformavgift.
       Det er Nordnets eget totaltall. Fond har ingen kurtasje.</p>
-    <p><strong>ETF-sammenligningen</strong> bruker ETF-er hos Nordnet i samme Morningstar-kategori som fondet (én ETF per indeks, ASK-tillatt,
-      ikke giret). ETF-avkastningen er totalavkastning i NOK regnet fra våre egne kurser til samme dato som fondstallene. Samme kategori betyr
-      lignende marked, ikke samme indeks, så forskjellen sier noe om aktiv forvaltning og kostnad, men er ingen eksakt sammenligning.</p>
-    <p><strong>Hvorfor ikke optimering og backtest for fond?</strong> Yahoo har bare kurser for fond fra rundt 2022, og for halvparten av fondene
-      var tickeren feil andelsklasse. Hver månedlige kjøring lagrer fondets kurs, så egen historikk bygges opp over tid.</p>
+    <p><strong>Tvillinger</strong> (klikk en rad) er fond og ETF-er som eier nesten det samme, målt på land, bransjer og de største
+      selskapene i fondene (Nordnets tall fra Morningstar). Se «Slik er tallene regnet» under Min portefølje.</p>
     <p class="muted">Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.</p>`;
 }
 

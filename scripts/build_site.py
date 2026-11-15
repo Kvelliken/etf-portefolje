@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Data til nettsiden: ETF-liste med klassifisering (sektor, region, tema, stil), månedlig
-totalavkastning i NOK for alle ETF-er og risikofri rente. Nøkkeltall, optimering av eget utvalg og
-backtest beregnes i nettleseren.
+totalavkastning i NOK for alle ETF-er, risikofri rente, fondslisten og innholdet i fond og ETF-er.
+Nøkkeltall og porteføljeberegninger gjøres i nettleseren.
 
 Bruk:
     python scripts/build_site.py              # skriver site/data/*.json
@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from etfpf import funddata as fd  # noqa: E402
+from etfpf import holdings as hd  # noqa: E402
 from etfpf import prices as pr  # noqa: E402
 from etfpf import sitedata as sd  # noqa: E402
 from etfpf.config import load_config, resolve  # noqa: E402
@@ -60,6 +61,12 @@ def main():
         print(f"Fond: {finfo['n']} fond per {finfo['as_of']} (ETF-avkastning til samme dato for {finfo['n_etf_returns']} ETF-er).")
     else:
         print(f"(ingen fonddatabase {fond_db}: funds.json skrives ikke)")
+    hdb = resolve(cfg.get("funds", {}).get("holdings", {}).get("db", "data/holdings.db"))
+    if hdb.exists():
+        hinfo = hd.export(hd.connect(hdb), out)
+        print(f"Innhold: {hinfo['n']} fond/ETF-er, {hinfo['n_top']} med beholdninger, {hinfo['n_names']} selskaper.")
+    else:
+        print(f"(ingen {hdb}: innhold.json skrives ikke – kjør scripts/fetch_holdings.py)")
     print(f"JSON skrevet til {out} ({time.time() - t0:.0f} s)")
 
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ETF-portefølje</title>
-  <meta name="description" content="Finn de beste ETF-ene per sektor hos Nordnet, sett sammen ditt eget utvalg med min./maks.-vekter og backtest det mot en verdens-ETF. Sammenlign Nordnets fond med billigere ETF-alternativer.">
+  <title>Fond- og ETF-portefølje</title>
+  <meta name="description" content="Sett sammen en portefølje av rentefond, indeksfond, ETF-er og spesialfond hos Nordnet. Se hva du egentlig eier, hva det koster i kroner, hvor ille det kan gå, og om fordelingen kan bli bedre.">
   <script>
     // Theme before first paint: stored choice wins, otherwise the OS setting.
     try { const t = localStorage.getItem("etfpf.theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
@@ -14,23 +14,29 @@
   <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js" defer></script>
   <script src="engine.js?v=__V__" defer></script>
+  <script src="insight.js?v=__V__" defer></script>
   <script src="app.js?v=__V__" defer></script>
   <script src="fond.js?v=__V__" defer></script>
+  <script src="portefolje.js?v=__V__" defer></script>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap topbar-inner">
     <div class="brand">
-      <h1>ETF-portefølje</h1>
+      <h1>Fond- og ETF-portefølje</h1>
       <p class="muted" id="updated">Laster data …</p>
     </div>
     <div class="segmented main-tabs" role="tablist" aria-label="Hovedfane">
-      <button type="button" role="tab" id="tabbtn-etf" data-tab="etf" aria-controls="tab-etf" aria-selected="true">ETF</button>
-      <button type="button" role="tab" id="tabbtn-fond" data-tab="fond" aria-controls="tab-fond" aria-selected="false">Fond</button>
+      <button type="button" role="tab" id="tabbtn-pf" data-tab="pf" aria-controls="tab-pf" aria-selected="true">Min portefølje <span class="count" id="pf-count" hidden></span></button>
+      <button type="button" role="tab" id="tabbtn-fond" data-tab="fond" aria-controls="tab-fond" aria-selected="false">Finn fond</button>
+      <button type="button" role="tab" id="tabbtn-etf" data-tab="etf" aria-controls="tab-etf" aria-selected="false">Finn ETF-er</button>
     </div>
-    <nav class="nav" data-for="etf" aria-label="Seksjoner, ETF">
-      <a href="#utforsker">1. Utforsker</a><a href="#utvalg">2. Mitt utvalg</a><a href="#backtest">3. Backtest</a>
-      <a href="#ombalansering">Ombalansering</a><a href="#tips">Tips</a><a href="#data">Data og metode</a>
+    <nav class="nav" data-for="pf" aria-label="Seksjoner, portefølje">
+      <a href="#pf-bygg">Bygg</a><a href="#pf-innhold">Hva eier jeg?</a><a href="#pf-tvilling">Billigere tvilling</a>
+      <a href="#pf-kostnad">Kostnad i kroner</a><a href="#pf-risiko">Risiko</a><a href="#pf-bedre">Bedre fordeling</a>
+    </nav>
+    <nav class="nav" data-for="etf" aria-label="Seksjoner, ETF" hidden>
+      <a href="#utforsker">ETF-utforsker</a><a href="#tips">Nøkkeltallene forklart</a><a href="#data">Data og metode</a>
     </nav>
     <nav class="nav" data-for="fond" aria-label="Seksjoner, fond" hidden>
       <a href="#fond-utforsker">Fondsutforsker</a><a href="#fond-data">Data og metode</a>
@@ -43,7 +49,113 @@
   <div id="load-error" class="notice critical" hidden></div>
   <div id="tax-warning" class="notice warning" hidden></div>
 
-  <div id="tab-etf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-etf">
+  <!-- Min portefølje -->
+  <div id="tab-pf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-pf">
+    <section id="pf-bygg" aria-labelledby="h-pf">
+      <div class="section-head">
+        <h2 id="h-pf">Bygg porteføljen din</h2>
+        <p class="muted">Velg rentefond, indeksfond, ETF-er og spesialfond, og sett hvor stor andel hver skal ha.
+          Under ser du hva du egentlig eier, hva det koster i kroner, hvor ille det kan gå, og om fordelingen kan bli bedre.</p>
+      </div>
+      <div id="pf-status" class="notice" hidden></div>
+      <div class="card">
+        <h3>Sparingen din</h3>
+        <div class="form-row plan">
+          <label>Har i dag (kr) <input id="pl-start" type="number" inputmode="numeric" min="0" step="10000"></label>
+          <label>Sparer per måned (kr) <input id="pl-monthly" type="number" inputmode="numeric" min="0" step="500"></label>
+          <label>I hvor mange år? <input id="pl-years" type="number" inputmode="numeric" min="1" max="50" step="1"></label>
+          <label title="Brukes i kroneregnestykket. Står feltet tomt, brukes anslaget for porteføljen din.">Avkastning før kostnader (% per år)
+            <input id="pl-ret" type="number" inputmode="decimal" min="0" max="20" step="0.5"></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Dette er i porteføljen</h3>
+          <div class="starter"><span class="muted small-text">Start enkelt:</span>
+            <button class="btn ghost" type="button" data-tpl="30">Forsiktig</button>
+            <button class="btn ghost" type="button" data-tpl="60">Balansert</button>
+            <button class="btn ghost" type="button" data-tpl="90">Offensiv</button></div>
+        </div>
+        <div class="pf-search">
+          <label class="grow">Legg til fond eller ETF
+            <input id="pf-q" type="search" autocomplete="off" placeholder="Søk på navn, f.eks. «global indeks», «DNB teknologi» eller «obligasjon»" aria-controls="pf-results" aria-expanded="false"></label>
+          <div id="pf-results" class="pf-results" role="listbox" hidden></div>
+        </div>
+        <div class="table-scroll"><table class="data" id="pf-table"></table></div>
+        <div class="form-row buttons">
+          <button class="btn ghost" id="pf-equal" type="button">Fordel likt</button>
+          <button class="btn ghost" id="pf-norm" type="button">Juster til 100 %</button>
+          <button class="btn ghost" id="pf-link" type="button">Kopier lenke</button>
+          <button class="btn ghost" id="pf-clear" type="button">Tøm</button>
+          <span class="muted small-text">Flere finner du under <a href="#fond-utforsker">Finn fond</a> og <a href="#utforsker">Finn ETF-er</a> – trykk + der.</span>
+        </div>
+      </div>
+      <div class="kpis" id="pf-kpis"></div>
+    </section>
+
+    <div id="pf-body">
+    <section id="pf-innhold" aria-labelledby="h-own">
+      <div class="section-head"><h2 id="h-own">Hva eier jeg egentlig?</h2>
+        <p class="muted">Vi åpner fondene og legger sammen det som ligger inni.</p></div>
+      <div class="card lead" id="own-lead"></div>
+      <div class="grid-3">
+        <div class="card"><h3>Hvor i verden</h3><p class="muted small-text">Andel av aksjene dine.</p><div id="own-reg" class="bars"></div></div>
+        <div class="card"><h3>Hvilke bransjer</h3><p class="muted small-text">Andel av aksjene dine.</p><div id="own-sec" class="bars"></div></div>
+        <div class="card"><h3>De største selskapene</h3><p class="muted small-text" id="own-comp-note"></p><div id="own-comp" class="bars"></div></div>
+      </div>
+      <div class="card" id="own-overlap-card"><h3>Eier du det samme flere ganger?</h3><div id="own-overlap"></div></div>
+    </section>
+
+    <section id="pf-tvilling" aria-labelledby="h-twin">
+      <div class="section-head"><h2 id="h-twin">Samme innhold, billigere tvilling</h2>
+        <p class="muted">Fond og ETF-er som eier nesten det samme som dine, men koster mindre. Forskjellen er regnet i kroner for sparingen din.</p></div>
+      <div id="twins"></div>
+    </section>
+
+    <section id="pf-kostnad" aria-labelledby="h-cost">
+      <div class="section-head"><h2 id="h-cost">Hva koster det – i kroner?</h2>
+        <p class="muted">En prosent høres lite ut. Over mange år blir det mye penger.</p></div>
+      <div class="card lead" id="cost-lead"></div>
+      <div class="grid-2">
+        <div class="card"><h3>Sparingen din etter <span class="yrs"></span> år</h3><div id="chart-cost" class="chart" role="img" aria-label="Sluttverdi med og uten kostnader"></div></div>
+        <div class="card"><h3>Kostnad per fond</h3><div class="table-scroll"><table class="data" id="cost-table"></table></div>
+          <p class="muted small-text" id="cost-note"></p></div>
+      </div>
+    </section>
+
+    <section id="pf-risiko" aria-labelledby="h-risk">
+      <div class="section-head"><h2 id="h-risk">Risiko – hva kan skje med pengene?</h2>
+        <p class="muted">Slik hadde akkurat denne porteføljen gått gjennom de siste årenes opp- og nedturer.</p></div>
+      <div class="card lead" id="risk-lead"></div>
+      <div class="card"><div class="card-head"><h3>100 000 kr i porteføljen din</h3><p class="muted small-text" id="risk-chart-note"></p></div>
+        <div id="chart-risk" class="chart chart-tall" role="img" aria-label="Verdiutvikling for porteføljen med det største fallet markert"></div></div>
+      <div class="kpis small" id="risk-kpis"></div>
+    </section>
+
+    <section id="pf-bedre" aria-labelledby="h-better">
+      <div class="section-head"><h2 id="h-better">Kan fordelingen bli bedre?</h2>
+        <p class="muted">Samme fond, andre andeler: mest mulig forventet avkastning for den risikoen du velger.</p></div>
+      <div class="card">
+        <label class="range risk-range">Hvor mye svingninger tåler du?
+          <span><span class="muted small-text">Tryggest</span><input id="sg-risk" type="range" min="0" max="100" step="1"><span class="muted small-text">Mest avkastning</span></span></label>
+        <p id="sg-lead" class="lead-inline"></p>
+        <div class="table-scroll"><table class="data" id="sg-table"></table></div>
+        <div class="form-row buttons">
+          <button class="btn" id="sg-apply" type="button">Bruk forslaget</button>
+          <button class="btn ghost" id="sg-same" type="button">Samme risiko som i dag</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><h3>Risiko og avkastning</h3><p class="muted small-text" id="map-note"></p></div>
+        <div id="chart-map" class="chart chart-tall" role="img" aria-label="Risiko og forventet avkastning for fondene, porteføljen og forslaget"></div></div>
+    </section>
+
+    <section id="pf-metode" aria-labelledby="h-pfm">
+      <details class="card"><summary><h3 id="h-pfm">Slik er tallene regnet</h3></summary><div class="prose" id="pf-method"></div></details>
+    </section>
+    </div>
+  </div>
+
+  <div id="tab-etf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-etf" hidden>
 
   <section class="intro" aria-label="Innstillinger">
     <div class="card settings-bar">
@@ -59,8 +171,8 @@
   <!-- 1. Utforsker -->
   <section id="utforsker" aria-labelledby="h-exp">
     <div class="section-head">
-      <h2 id="h-exp">1. Finn ETF-ene: utforsker</h2>
-      <p class="muted">Filtrer på sektor, tema, region og mer, og sorter på nøkkeltallene. Trykk <strong>+</strong> for å legge en ETF i utvalget ditt.
+      <h2 id="h-exp">Finn ETF-er</h2>
+      <p class="muted">Filtrer på sektor, tema, region og mer, og sorter på nøkkeltallene. Trykk <strong>+</strong> for å legge en ETF i porteføljen din.
         Klikk på en rad for å se andre ETF-er som følger samme indeks.</p>
     </div>
     <div class="card filters" id="filters">
@@ -82,7 +194,7 @@
         <label class="check"><input id="f-pick" type="checkbox" checked> Én per indeks (billigste)</label>
         <label class="check"><input id="f-ask" type="checkbox" checked> Bare ASK-tillatt</label>
         <label class="check"><input id="f-lev" type="checkbox" checked> Uten giret/invers</label>
-        <label class="check"><input id="f-mine" type="checkbox"> Bare mitt utvalg</label>
+        <label class="check"><input id="f-mine" type="checkbox"> Bare det som er i porteføljen</label>
         <button class="btn ghost" id="f-reset" type="button">Nullstill filtre</button>
       </div>
       <div class="form-row toolbar">
@@ -114,108 +226,6 @@
     <div id="explorer"></div>
   </section>
 
-  <!-- 2. Mitt utvalg -->
-  <section id="utvalg" aria-labelledby="h-sel">
-    <div class="section-head">
-      <h2 id="h-sel">2. Mitt utvalg og optimale andeler</h2>
-      <p class="muted">Velg mål og min./maks. andel per ETF. Vektene beregnes i nettleseren og lagres bare her (localStorage).</p>
-    </div>
-    <div class="card">
-      <div class="form-row">
-        <div><span class="muted small-text">Mål</span><div class="segmented" id="o-objective" role="tablist" aria-label="Optimeringsmål"></div></div>
-        <label>Estimeringsvindu <select id="o-window"><option value="36">3 år</option><option value="60">5 år</option><option value="120">10 år</option><option value="999">Alt felles</option></select></label>
-        <label class="range">Andel historikk i forventet avkastning <span><input id="o-hist" type="range" min="0" max="100" step="5"> <output id="o-hist-v"></output></span></label>
-        <label>Risikopremie (%) <input id="o-premium" type="number" inputmode="decimal" min="0" max="15" step="0.5"></label>
-        <label class="check" title="Bruker en ETF i samme klynge (samme indeks, TE under terskelen) for månedene før ETF-en startet"><input id="o-extend" type="checkbox"> Forleng kort historikk med ETF på samme indeks</label>
-      </div>
-      <div id="sel-table-wrap" class="table-scroll"><table class="data" id="sel-table"></table></div>
-      <div class="form-row buttons">
-        <label>Min. for alle (%) <input id="o-allmin" type="number" inputmode="decimal" min="0" max="100" step="1"></label>
-        <label>Maks for alle (%) <input id="o-allmax" type="number" inputmode="decimal" min="0" max="100" step="1"></label>
-        <button class="btn ghost" id="o-apply-all" type="button">Bruk på alle</button>
-        <button class="btn ghost" id="o-add-core" type="button">Legg til referansen som kjerne</button>
-        <button class="btn ghost" id="o-export" type="button">Eksporter (JSON)</button>
-        <label class="btn ghost file">Importer (JSON)<input id="o-import" type="file" accept="application/json,.json"></label>
-        <button class="btn ghost" id="o-link" type="button">Kopier lenke</button>
-        <button class="btn ghost" id="o-clear" type="button">Tøm</button>
-      </div>
-    </div>
-    <div id="opt-status" class="notice" hidden></div>
-    <div class="kpis small" id="opt-kpis"></div>
-    <div class="grid-2">
-      <div class="card"><h3>Vekter</h3><p class="muted small-text">Søyle: optimal vekt. Strek: tillatt intervall (min.–maks.).</p>
-        <div id="chart-weights" class="chart" role="img" aria-label="Vekter i utvalget"></div></div>
-      <div class="card"><h3>Effisient frontier for utvalget</h3><p class="muted small-text">Forventet avkastning og volatilitet fra modellen (ikke historikk) innenfor grensene dine.</p>
-        <div id="chart-frontier" class="chart" role="img" aria-label="Effisient frontier for utvalget"></div></div>
-    </div>
-    <div class="grid-2">
-      <div class="card"><h3>Korrelasjon</h3><div id="chart-corr" class="chart" role="img" aria-label="Korrelasjonsmatrise"></div></div>
-      <div class="card"><h3>Risikobidrag mot vekt</h3><div id="chart-rc" class="chart" role="img" aria-label="Risikobidrag per ETF"></div></div>
-    </div>
-  </section>
-
-  <!-- 3. Backtest -->
-  <section id="backtest" aria-labelledby="h-bt">
-    <div class="section-head">
-      <h2 id="h-bt">3. Backtest mot referansen</h2>
-      <p class="muted">Månedlig simulering i NOK etter ETF-enes avgifter (de ligger i kursen) og handelskostnad ved ombalansering.</p>
-    </div>
-    <div class="card">
-      <div class="form-row">
-        <label>Vekter <select id="b-mode">
-          <option value="fixed">Faste: vektene fra steg 2</option>
-          <option value="wf12">Walk-forward: ny optimering hvert år</option>
-          <option value="wf3">Walk-forward: ny optimering hvert kvartal</option></select></label>
-        <label>Ombalansering <select id="b-rule">
-          <option value="band">Ved avvik (±5 pp)</option><option value="monthly">Månedlig</option><option value="quarterly">Kvartalsvis</option>
-          <option value="annual">Årlig</option><option value="none">Aldri (kjøp og hold)</option></select></label>
-        <label>Fra <select id="b-start"></select></label>
-        <label>Handelskostnad (%) <input id="b-cost" type="number" inputmode="decimal" min="0" max="5" step="0.05"></label>
-        <label>Startbeløp (kr) <input id="b-amount" type="number" inputmode="decimal" min="0" step="10000"></label>
-        <label class="check"><input id="b-log" type="checkbox"> Logaritmisk akse</label>
-      </div>
-    </div>
-    <div id="bt-status" class="notice" hidden></div>
-    <div class="card"><h3>Verdiutvikling</h3><div id="chart-bt" class="chart chart-tall" role="img" aria-label="Verdiutvikling mot referansen"></div></div>
-    <div class="grid-2">
-      <div class="card"><h3>Nøkkeltall</h3><div class="table-scroll"><table class="data" id="bt-table"></table></div>
-        <p class="muted small-text" id="bt-table-note"></p></div>
-      <div class="card"><h3>Fall fra toppen</h3><div id="chart-dd" class="chart" role="img" aria-label="Drawdown"></div>
-        <h3>Avkastning per kalenderår</h3><div id="chart-years" class="chart" role="img" aria-label="Avkastning per år"></div></div>
-    </div>
-    <div class="card"><h3>Annualisert avkastning bakover fra siste måned</h3>
-      <div class="table-scroll"><table class="data" id="bt-trailing"></table></div></div>
-  </section>
-
-  <!-- 4. Ombalansering -->
-  <section id="ombalansering" aria-labelledby="h-rebal">
-    <div class="section-head">
-      <h2 id="h-rebal">Ombalansering</h2>
-      <p class="muted">Målet er vektene fra steg 2. Beholdningene lagres bare i denne nettleseren (localStorage), aldri på serveren eller i repoet.</p>
-    </div>
-    <div class="card">
-      <div class="form-row">
-        <label>Nytt innskudd (kr) <input id="rebal-cash" type="number" inputmode="decimal" min="0" step="100" value="0"></label>
-        <label class="check"><input id="rebal-equiv" type="checkbox" checked> Regn ETF-er som følger samme indeks som likeverdige</label>
-      </div>
-      <h3>Mine beholdninger</h3>
-      <datalist id="etf-options"></datalist>
-      <div id="holdings"></div>
-      <div class="form-row buttons">
-        <button class="btn" id="add-holding" type="button">Legg til ETF</button>
-        <button class="btn ghost" id="export-holdings" type="button">Eksporter (JSON)</button>
-        <label class="btn ghost file">Importer (JSON)<input id="import-holdings" type="file" accept="application/json,.json"></label>
-        <button class="btn ghost" id="clear-holdings" type="button">Tøm</button>
-      </div>
-    </div>
-    <div id="rebal-status" class="notice" hidden></div>
-    <div class="card">
-      <h3>Handler</h3>
-      <div class="table-scroll"><table class="data" id="rebal-table"></table></div>
-      <p class="muted small-text" id="rebal-note"></p>
-    </div>
-  </section>
-
   <!-- 5. Tips -->
   <section id="tips" aria-labelledby="h-tips">
     <div class="section-head"><h2 id="h-tips">Slik bruker du nøkkeltallene</h2></div>
@@ -238,9 +248,10 @@
   <div id="tab-fond" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-fond" hidden>
     <section id="fond-utforsker" aria-labelledby="h-fexp">
       <div class="section-head">
-        <h2 id="h-fexp">Fond hos Nordnet</h2>
+        <h2 id="h-fexp">Finn fond</h2>
         <p class="muted">Alle verdipapirfond i Nordnets fondsliste med kostnad hos Nordnet, avkastning og risikotall
-          (volatilitet, Sharpe, alfa, beta, R²) i NOK. Klikk på en rad for å se ETF-er i samme kategori og hva de har kostet og gitt over samme periode.</p>
+          (volatilitet, Sharpe, alfa, beta, R²) i NOK. Trykk <strong>+</strong> for å legge et fond i porteføljen din.
+          Klikk på en rad for å se tvillinger: fond og ETF-er som eier nesten det samme, billigst først.</p>
       </div>
       <div id="fond-status" class="notice" hidden></div>
       <div class="kpis small" id="fond-kpis"></div>
@@ -261,6 +272,7 @@
           <label class="check"><input id="ff-ask" type="checkbox" checked> Bare ASK-tillatt</label>
           <label class="check"><input id="ff-selection" type="checkbox"> Bare Nordnets utvalg</label>
           <label class="check"><input id="ff-hedged" type="checkbox"> Uten valutasikring</label>
+          <label class="check"><input id="ff-mine" type="checkbox"> Bare det som er i porteføljen</label>
           <button class="btn ghost" id="ff-reset" type="button">Nullstill filtre</button>
         </div>
         <div class="form-row toolbar">
@@ -290,7 +302,7 @@
 </main>
 <footer class="wrap muted small-text">
   Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.
-  Kilder: Nordnet (ETF- og fondsliste), Yahoo Finance (kurser), OpenFIGI (tickere), Norges Bank (valuta og styringsrente).
+  Kilder: Nordnet (ETF- og fondsliste, fondenes innhold), Yahoo Finance (kurser), OpenFIGI (tickere), Norges Bank (valuta og styringsrente).
 </footer>
 </body>
 </html>

@@ -47,6 +47,14 @@ funds:
     refresh_days: 20             # hent på nytt når forrige henting er eldre enn dette
     delay_seconds: 0.8           # pause etter hvert kall (to kall per fond)
     pages: true                  # hent også fondssiden (~1 MB per fond) for R² og tracking error
+  # Innhold per fond og ETF (scripts/fetch_holdings.py, src/etfpf/holdings.py): region-, sektor- og
+  # aktivafordeling og de største beholdningene fra Nordnets fond-API. Brukes av «Hva eier jeg egentlig?»
+  # og til å finne tvillinger (fond/ETF-er med samme innhold).
+  holdings:
+    db: data/holdings.db
+    refresh_days: 20             # hent på nytt når forrige henting er eldre enn dette
+    delay_seconds: 0.4           # pause etter hvert kall (ett lite kall per fond/ETF)
+    threads: 3                   # samtidige kall
 
 account:
   type: ASK                    # ASK eller ordinær (AF). Utenfor ASK vises skatteadvarsel.

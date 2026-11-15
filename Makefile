@@ -1,7 +1,7 @@
 # Lokale kommandoer. Krever Python 3.11+ og `pip install -r requirements.txt`.
 PY ?= python
 
-.PHONY: install test nordnet nordnet-test prices universe site all serve local-nordnet fond fond-risk fond-test fond-probe
+.PHONY: install test nordnet nordnet-test prices universe site all serve local-nordnet fond fond-risk fond-test fond-probe innhold
 
 install:
 	$(PY) -m pip install -r requirements.txt
@@ -21,7 +21,7 @@ prices:             ## ticker-mapping og priser i NOK
 universe:           ## dedup, TE-klynging og representantvalg
 	$(PY) scripts/build_universe.py
 
-site:               ## sidedata: ETF-liste med sektor/tema, månedsavkastning og risikofri rente
+site:               ## sidedata: ETF-er, månedsavkastning, risikofri rente, fond og innhold
 	$(PY) scripts/build_site.py
 
 all: nordnet prices universe site
@@ -37,6 +37,9 @@ fond:               ## hent fondslisten fra Nordnet til data/fond.db
 
 fond-risk:          ## risikotall per fond (volatilitet, Sharpe, alfa, beta, R²) til data/fond.db
 	$(PY) scripts/fetch_fund_details.py
+
+innhold:            ## hva fond og ETF-er eier (land, bransjer, største beholdninger) til data/holdings.db
+	$(PY) scripts/fetch_holdings.py
 
 fond-test:          ## én side av fondslisten til en midlertidig database, med feltrapport
 	$(PY) scripts/fetch_nordnet.py --fond --max-pages 1 --db /tmp/fond-test.db

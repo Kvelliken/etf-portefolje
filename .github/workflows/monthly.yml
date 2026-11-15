@@ -29,7 +29,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 210
+    timeout-minutes: 300
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
       run: ${{ steps.weekday.outputs.run }}
@@ -83,6 +83,17 @@ jobs:
       - name: Varsel om risikotall
         if: steps.fond_details.outcome == 'failure'
         run: echo "::warning title=Risikotall for fond::Hentingen feilet eller ble avbrutt; fond-fanen bruker det som ble hentet (resten neste måned)."
+      # Innhold i fond og ETF-er (land, bransjer, største beholdninger): ett lite kall per fond/ETF, ca. 45 min.
+      # Ikke kritisk: hvert svar lagres med en gang, og siden bruker det som finnes i data/holdings.db.
+      - name: Innhold i fond og ETF-er
+        id: holdings
+        if: steps.weekday.outputs.run == 'true' && inputs.skip_nordnet != true && vars.SKIP_NORDNET != 'true'
+        continue-on-error: true
+        timeout-minutes: 75
+        run: python scripts/fetch_holdings.py
+      - name: Varsel om innhold
+        if: steps.holdings.outcome == 'failure'
+        run: echo "::warning title=Innhold i fond::Hentingen feilet eller ble avbrutt; «Hva eier jeg egentlig?» bruker det som ble hentet (resten neste måned)."
       - name: Ticker-mapping og priser
         if: steps.weekday.outputs.run == 'true'
         env:
