@@ -33,7 +33,7 @@
     </div>
     <nav class="nav" data-for="pf" aria-label="Seksjoner, portefølje">
       <a href="#pf-bygg">Bygg</a><a href="#pf-innhold">Hva eier jeg?</a><a href="#pf-tvilling">Billigere tvilling</a>
-      <a href="#pf-kostnad">Kostnad i kroner</a><a href="#pf-risiko">Risiko</a><a href="#pf-bedre">Bedre fordeling</a>
+      <a href="#pf-kostnad">Kostnad</a><a href="#pf-risiko">Risiko og utfall</a><a href="#pf-bedre">Bedre fordeling</a>
     </nav>
     <nav class="nav" data-for="etf" aria-label="Seksjoner, ETF" hidden>
       <a href="#utforsker">ETF-utforsker</a><a href="#tips">Nøkkeltallene forklart</a><a href="#data">Data og metode</a>
@@ -51,51 +51,77 @@
 
   <!-- Min portefølje -->
   <div id="tab-pf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-pf">
-    <section id="pf-bygg" aria-labelledby="h-pf">
-      <div class="section-head">
-        <h2 id="h-pf">Bygg porteføljen din</h2>
-        <p class="muted">Velg rentefond, indeksfond, ETF-er og spesialfond, og sett hvor stor andel hver skal ha.
-          Under ser du hva du egentlig eier, hva det koster i kroner, hvor ille det kan gå, og om fordelingen kan bli bedre.</p>
-      </div>
+    <section id="pf-bygg" class="hero" aria-labelledby="h-pf">
+      <p class="eyebrow">Fond og ETF-er hos Nordnet</p>
+      <h2 id="h-pf">Bygg en portefølje du faktisk forstår</h2>
+      <p class="hero-lead">Velg fond, sett andelene, og se med en gang hva du egentlig eier, hva det koster i kroner,
+        hvor ille det kan gå – og om fordelingen kan bli bedre.</p>
       <div id="pf-status" class="notice" hidden></div>
-      <div class="card">
-        <h3>Sparingen din</h3>
-        <div class="form-row plan">
-          <label>Har i dag (kr) <input id="pl-start" type="number" inputmode="numeric" min="0" step="10000"></label>
-          <label>Sparer per måned (kr) <input id="pl-monthly" type="number" inputmode="numeric" min="0" step="500"></label>
-          <label>I hvor mange år? <input id="pl-years" type="number" inputmode="numeric" min="1" max="50" step="1"></label>
-          <label title="Brukes i kroneregnestykket. Står feltet tomt, brukes anslaget for porteføljen din.">Avkastning før kostnader (% per år)
-            <input id="pl-ret" type="number" inputmode="decimal" min="0" max="20" step="0.5"></label>
+
+      <div class="builder">
+        <div class="builder-main">
+          <div class="card step">
+            <div class="step-head"><span class="step-no">1</span><h3>Sparingen din</h3></div>
+            <div class="form-row plan">
+              <label>Har i dag <span class="unit"><input id="pl-start" type="number" inputmode="numeric" min="0" step="10000"><i>kr</i></span></label>
+              <label>Sparer per måned <span class="unit"><input id="pl-monthly" type="number" inputmode="numeric" min="0" step="500"><i>kr</i></span></label>
+              <label>I hvor mange år? <span class="unit"><input id="pl-years" type="number" inputmode="numeric" min="1" max="50" step="1"><i>år</i></span></label>
+              <label title="Brukes i kroneregnestykket. Står feltet tomt, brukes anslaget for porteføljen din.">Avkastning før kostnader
+                <span class="unit"><input id="pl-ret" type="number" inputmode="decimal" min="0" max="20" step="0.5"><i>%</i></span></label>
+            </div>
+          </div>
+
+          <details class="card step reco" id="reco" open>
+            <summary><div class="step-head"><span class="step-no">2</span><h3>Start med en anbefalt portefølje</h3><span class="muted small-text sum-hint">eller hopp over og velg selv</span></div></summary>
+            <p class="muted reco-intro">Få, brede og billige indeksfond slår de fleste dyre alternativer over tid. Velg hvor mye svingninger du tåler – vi foreslår resten.</p>
+            <div class="segmented" id="reco-profile" role="tablist" aria-label="Risikoprofil"></div>
+            <p class="small-text muted" id="reco-why"></p>
+            <div class="mixbar" id="reco-bar" role="img" aria-label="Fordeling i den anbefalte porteføljen"></div>
+            <div id="reco-list" class="reco-list"></div>
+            <div class="reco-foot">
+              <div class="reco-stats" id="reco-stats"></div>
+              <button class="btn big" id="reco-use" type="button">Bruk denne porteføljen</button>
+            </div>
+          </details>
+
+          <div class="card step">
+            <div class="step-head"><span class="step-no">3</span><h3>Dette er i porteføljen</h3></div>
+            <div class="pf-search">
+              <label class="grow">Legg til fond eller ETF
+                <input id="pf-q" type="search" autocomplete="off" placeholder="Søk på navn, f.eks. «global indeks», «DNB teknologi» eller «obligasjon»" aria-controls="pf-results" aria-expanded="false"></label>
+              <div id="pf-results" class="pf-results" role="listbox" hidden></div>
+            </div>
+            <div class="table-scroll"><table class="data" id="pf-table"></table></div>
+            <div class="form-row buttons">
+              <button class="btn ghost" id="pf-equal" type="button">Fordel likt</button>
+              <button class="btn ghost" id="pf-norm" type="button">Juster til 100 %</button>
+              <button class="btn ghost" id="pf-link" type="button">Kopier lenke</button>
+              <button class="btn ghost" id="pf-clear" type="button">Tøm</button>
+              <span class="muted small-text">Flere finner du under <a href="#fond-utforsker">Finn fond</a> og <a href="#utforsker">Finn ETF-er</a> – trykk + der.</span>
+            </div>
+          </div>
         </div>
+
+        <aside class="builder-side" aria-label="Porteføljen på ett blikk">
+          <div class="card glance" id="glance">
+            <p class="eyebrow">På ett blikk</p>
+            <div id="glance-empty" class="muted">Legg til fond, så ser du resultatet her mens du justerer.</div>
+            <div id="glance-body" hidden>
+              <div class="mixbar" id="pf-mix" role="img" aria-label="Fordeling mellom fondene"></div>
+              <div class="mix-legend" id="pf-mix-legend"></div>
+              <div class="kpis glance-kpis" id="pf-kpis"></div>
+              <div class="meter-wrap"><div class="meter-title"><span>Risikonivå</span><strong id="meter-label"></strong></div>
+                <div class="meter" id="risk-meter" role="img" aria-label="Risikonivå"><span class="meter-dot" id="meter-dot"></span></div>
+                <div class="meter-scale"><span>Bankkonto</span><span>Rentefond</span><span>Balansert</span><span>Verdensindeks</span><span>Enkeltbransje</span></div></div>
+            </div>
+          </div>
+        </aside>
       </div>
-      <div class="card">
-        <div class="card-head">
-          <h3>Dette er i porteføljen</h3>
-          <div class="starter"><span class="muted small-text">Start enkelt:</span>
-            <button class="btn ghost" type="button" data-tpl="30">Forsiktig</button>
-            <button class="btn ghost" type="button" data-tpl="60">Balansert</button>
-            <button class="btn ghost" type="button" data-tpl="90">Offensiv</button></div>
-        </div>
-        <div class="pf-search">
-          <label class="grow">Legg til fond eller ETF
-            <input id="pf-q" type="search" autocomplete="off" placeholder="Søk på navn, f.eks. «global indeks», «DNB teknologi» eller «obligasjon»" aria-controls="pf-results" aria-expanded="false"></label>
-          <div id="pf-results" class="pf-results" role="listbox" hidden></div>
-        </div>
-        <div class="table-scroll"><table class="data" id="pf-table"></table></div>
-        <div class="form-row buttons">
-          <button class="btn ghost" id="pf-equal" type="button">Fordel likt</button>
-          <button class="btn ghost" id="pf-norm" type="button">Juster til 100 %</button>
-          <button class="btn ghost" id="pf-link" type="button">Kopier lenke</button>
-          <button class="btn ghost" id="pf-clear" type="button">Tøm</button>
-          <span class="muted small-text">Flere finner du under <a href="#fond-utforsker">Finn fond</a> og <a href="#utforsker">Finn ETF-er</a> – trykk + der.</span>
-        </div>
-      </div>
-      <div class="kpis" id="pf-kpis"></div>
     </section>
 
     <div id="pf-body">
     <section id="pf-innhold" aria-labelledby="h-own">
-      <div class="section-head"><h2 id="h-own">Hva eier jeg egentlig?</h2>
+      <div class="section-head"><div><p class="eyebrow">Spørsmål 1</p><h2 id="h-own">Hva eier jeg egentlig?</h2></div>
         <p class="muted">Vi åpner fondene og legger sammen det som ligger inni.</p></div>
       <div class="card lead" id="own-lead"></div>
       <div class="grid-3">
@@ -103,42 +129,55 @@
         <div class="card"><h3>Hvilke bransjer</h3><p class="muted small-text">Andel av aksjene dine.</p><div id="own-sec" class="bars"></div></div>
         <div class="card"><h3>De største selskapene</h3><p class="muted small-text" id="own-comp-note"></p><div id="own-comp" class="bars"></div></div>
       </div>
+      <div class="card"><div class="card-head"><h3>Slik er pengene dine plassert</h3><p class="muted small-text">Hver rute er en del av porteføljen. Store ruter = mye av pengene dine.</p></div>
+        <div id="chart-tree" class="chart chart-tree" role="img" aria-label="Rutekart over hva porteføljen er plassert i"></div></div>
       <div class="card" id="own-overlap-card"><h3>Eier du det samme flere ganger?</h3><div id="own-overlap"></div></div>
     </section>
 
     <section id="pf-tvilling" aria-labelledby="h-twin">
-      <div class="section-head"><h2 id="h-twin">Samme innhold, billigere tvilling</h2>
+      <div class="section-head"><div><p class="eyebrow">Spørsmål 2</p><h2 id="h-twin">Samme innhold, billigere tvilling</h2></div>
         <p class="muted">Fond og ETF-er som eier nesten det samme som dine, men koster mindre. Forskjellen er regnet i kroner for sparingen din.</p></div>
       <div id="twins"></div>
     </section>
 
     <section id="pf-kostnad" aria-labelledby="h-cost">
-      <div class="section-head"><h2 id="h-cost">Hva koster det – i kroner?</h2>
+      <div class="section-head"><div><p class="eyebrow">Spørsmål 3</p><h2 id="h-cost">Hva koster det – i kroner?</h2></div>
         <p class="muted">En prosent høres lite ut. Over mange år blir det mye penger.</p></div>
       <div class="card lead" id="cost-lead"></div>
       <div class="grid-2">
-        <div class="card"><h3>Sparingen din etter <span class="yrs"></span> år</h3><div id="chart-cost" class="chart" role="img" aria-label="Sluttverdi med og uten kostnader"></div></div>
+        <div class="card"><h3>Slik vokser gapet år for år</h3><p class="muted small-text">Det røde feltet er pengene kostnadene tar – det vokser fordi du også mister avkastningen på dem.</p>
+          <div id="chart-cost" class="chart" role="img" aria-label="Sparingens verdi over tid med og uten kostnader"></div></div>
         <div class="card"><h3>Kostnad per fond</h3><div class="table-scroll"><table class="data" id="cost-table"></table></div>
           <p class="muted small-text" id="cost-note"></p></div>
       </div>
     </section>
 
     <section id="pf-risiko" aria-labelledby="h-risk">
-      <div class="section-head"><h2 id="h-risk">Risiko – hva kan skje med pengene?</h2>
+      <div class="section-head"><div><p class="eyebrow">Spørsmål 4</p><h2 id="h-risk">Risiko – hva kan skje med pengene?</h2></div>
         <p class="muted">Slik hadde akkurat denne porteføljen gått gjennom de siste årenes opp- og nedturer.</p></div>
       <div class="card lead" id="risk-lead"></div>
       <div class="card"><div class="card-head"><h3>100 000 kr i porteføljen din</h3><p class="muted small-text" id="risk-chart-note"></p></div>
         <div id="chart-risk" class="chart chart-tall" role="img" aria-label="Verdiutvikling for porteføljen med det største fallet markert"></div></div>
       <div class="kpis small" id="risk-kpis"></div>
+      <div class="grid-2">
+        <div class="card"><h3>År for år</h3><p class="muted small-text">Avkastning hvert kalenderår. De fleste år er gode – noen få er vonde.</p>
+          <div id="chart-years" class="chart" role="img" aria-label="Avkastning per kalenderår"></div></div>
+        <div class="card"><h3>Hvem står for svingningene?</h3><p class="muted small-text">Andel av pengene mot andel av risikoen. Et lite fond kan stå for mye av uroen.</p>
+          <div id="risk-contrib" class="contrib"></div></div>
+      </div>
+      <div class="card lead" id="fan-lead"></div>
+      <div class="card"><div class="card-head"><h3>Hva kan sparingen bli verdt?</h3><p class="muted small-text" id="fan-note"></p></div>
+        <div id="chart-fan" class="chart chart-tall" role="img" aria-label="Mulig verdi av sparingen over tid: dårlig, vanlig og godt utfall"></div></div>
     </section>
 
     <section id="pf-bedre" aria-labelledby="h-better">
-      <div class="section-head"><h2 id="h-better">Kan fordelingen bli bedre?</h2>
+      <div class="section-head"><div><p class="eyebrow">Spørsmål 5</p><h2 id="h-better">Kan fordelingen bli bedre?</h2></div>
         <p class="muted">Samme fond, andre andeler: mest mulig forventet avkastning for den risikoen du velger.</p></div>
       <div class="card">
         <label class="range risk-range">Hvor mye svingninger tåler du?
           <span><span class="muted small-text">Tryggest</span><input id="sg-risk" type="range" min="0" max="100" step="1"><span class="muted small-text">Mest avkastning</span></span></label>
         <p id="sg-lead" class="lead-inline"></p>
+        <div class="ba" id="sg-bars"></div>
         <div class="table-scroll"><table class="data" id="sg-table"></table></div>
         <div class="form-row buttons">
           <button class="btn" id="sg-apply" type="button">Bruk forslaget</button>

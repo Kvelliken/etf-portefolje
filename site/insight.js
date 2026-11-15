@@ -6,6 +6,7 @@
  *   lookThrough(parts)                                what a whole portfolio owns (regions, sectors, companies)
  *   proxySeries(...)                                  monthly returns for a fund without price history
  *   forRisk(points, vol)                              the frontier portfolio with the wanted risk
+ *   projection(start, monthly, years, mu, vol)        bad / typical / good outcome of a savings plan
  *
  * A holdings record is {reg, sec, ast: {name: percent}, top: [[id, percent], ...]} (see holdings.py).
  */
@@ -193,7 +194,31 @@
     return Float64Array.from(p[p.length - 1].w);
   }
 
-  const api = { savingsValue, riskStory, overlap, topOverlap, similarity, lookThrough, proxySeries, forRisk };
+  // ------------------------------------------------------------ possible outcomes
+  /** Simulated value of a savings plan at the end of each year: 10th, 50th and 90th percentile.
+   *  mu = expected yearly return after costs, vol = yearly volatility. Deposits at the start of each
+   *  month. Same seed gives the same result. Returns {p10, p50, p90, paid}, each with years + 1 values. */
+  function projection(start, monthly, years, mu, vol, paths = 800, seed = 7) {
+    let a = seed >>> 0;
+    const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const gauss = () => Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
+    const sm = vol / Math.sqrt(12), drift = Math.log(Math.max(1e-9, 1 + mu)) / 12 - sm * sm / 2;
+    const Y = Math.round(years), vals = Array.from({ length: Y + 1 }, () => new Float64Array(paths));
+    for (let p = 0; p < paths; p++) {
+      let v = start;
+      vals[0][p] = v;
+      for (let y = 1; y <= Y; y++) {
+        for (let m = 0; m < 12; m++) v = (v + monthly) * Math.exp(drift + sm * gauss());
+        vals[y][p] = v;
+      }
+    }
+    const q = (arr, f) => { const s = Float64Array.from(arr).sort(); return s[Math.min(s.length - 1, Math.round(f * (s.length - 1)))]; };
+    const out = { p10: [], p50: [], p90: [], paid: [] };
+    for (let y = 0; y <= Y; y++) { out.p10.push(q(vals[y], 0.1)); out.p50.push(q(vals[y], 0.5)); out.p90.push(q(vals[y], 0.9)); out.paid.push(start + monthly * 12 * y); }
+    return out;
+  }
+
+  const api = { savingsValue, projection, riskStory, overlap, topOverlap, similarity, lookThrough, proxySeries, forRisk };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Insight = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -43,6 +43,24 @@ function sharpeColor(s) {
   return "rgb(46,158,79)";
 }
 
+// ---------------------------------------------------------------- colour per fund (follows the fund, never its rank)
+const SLOTS = 8;
+function assignColors() {
+  const used = new Set(PF.items.map((x) => x.c).filter((c) => Number.isInteger(c) && c < SLOTS));
+  for (const it of PF.items) {
+    if (Number.isInteger(it.c)) continue;
+    let k = 0; while (used.has(k) && k < SLOTS) k++;
+    it.c = k; used.add(k);                       // past eight funds: neutral
+  }
+}
+const colorOf = (it) => (it && Number.isInteger(it.c) && it.c < SLOTS ? css(`--s${it.c + 1}`) : css("--axis"));
+const swatch = (it) => `<span class="swatch" style="background:${colorOf(it)}"></span>`;
+/** Segmented 100 % bar. parts = [{label, w (0..1), color, title}] */
+function mixbar(el, parts) {
+  const p = parts.filter((x) => x.w > 0.002);
+  (typeof el === "string" ? $(el) : el).innerHTML = p.map((x) => `<span class="seg" style="flex:${(x.w * 100).toFixed(2)} 0 0;background:${x.color}" title="${esc(x.title || x.label)}: ${pc0(x.w)}">${x.w >= 0.11 ? `<b>${pc0(x.w)}</b>` : ""}</span>`).join("");
+}
+
 // ---------------------------------------------------------------- products (funds and ETFs alike)
 function isRate(x) { return x.asset_class === "Renter" || x.asset_class === "Pengemarked"; }
 
@@ -104,13 +122,15 @@ function fundSeries(f, p) {
   const h = holdingsOf(f.isin);
   let best = null;
   if (h) {
+    const scored = [];
     for (const e of proxyCandidates()) {
       if (e.asset_class !== f.asset_class || !!e.hedged !== !!f.hedged) continue;
       const sim = I.similarity(h, holdingsOf(e.isin));
-      if (!sim) continue;
-      const score = sim.score + Math.min(D.end - e.f0, 180) / 180 * 0.03;      // prefer long history when equally alike
-      if (!best || score > best.score) best = { e, score, sim: sim.score };
+      if (sim) scored.push({ e, sim: sim.score, months: D.end - (seriesFor(e.isin, true)?.s ? E.firstIdx(seriesFor(e.isin, true).s) : e.f0) });
     }
+    // among the ETFs that are about as alike as the best one, take the longest history (a risk story needs bad years)
+    const top = Math.max(0, ...scored.map((x) => x.sim));
+    best = scored.filter((x) => x.sim >= top - 0.08).sort((a, b) => b.months - a.months || b.sim - a.sim)[0] || null;
     if (best && best.sim < 0.3) best = null;                           // nothing alike: fall back to the category
   }
   if (!best) {
@@ -178,7 +198,7 @@ function twinsOf(id, opt = {}) {
 }
 
 // ---------------------------------------------------------------- state
-function savePF() { store.set(PLS, { items: PF.items, plan: PF.plan, risk: PF.risk }); }
+function savePF() { assignColors(); store.set(PLS, { items: PF.items, plan: PF.plan, risk: PF.risk, profile: PF.profile ?? null }); }
 PF.ids = () => new Set(PF.items.map((x) => x.id));
 PF.product = product;
 PF.twinsOf = twinsOf;
@@ -186,7 +206,7 @@ PF.toggle = (id) => {
   const i = PF.items.findIndex((x) => x.id === id);
   if (i >= 0) removeItem(i); else addItem(id);
 };
-PF.refresh = () => { PF.U = {}; PF.S = {}; PF.cand = null; if (PF.ready) { renderPfTable(); analyse(); } };
+PF.refresh = () => { PF.U = {}; PF.S = {}; PF.cand = null; if (PF.ready) { renderPfTable(); analyse(); renderReco(); } };
 
 function scaleTo100() {
   const s = PF.items.reduce((a, x) => a + (+x.w || 0), 0);
@@ -240,9 +260,11 @@ function setupPortfolio() {
     if (H && H.items) PF.H = H;
     else notice($("pf-status"), "warning", "<strong>⚠ Innholdet i fondene mangler:</strong> «Hva eier jeg egentlig?» og tvillinger kan ikke vises før <code>data/innhold.json</code> er laget.");
     const saved = store.get(PLS, null);
-    if (saved) { PF.items = (saved.items || []).filter((x) => product(x.id)); Object.assign(PF.plan, saved.plan || {}); PF.risk = saved.risk ?? "same"; }
+    if (saved) { PF.items = (saved.items || []).filter((x) => product(x.id)); Object.assign(PF.plan, saved.plan || {}); PF.risk = saved.risk ?? "same"; PF.profile = saved.profile ?? null; }
     readPfHash();
-    bindPlan(); bindSearch(); bindButtons();
+    assignColors();
+    bindPlan(); bindSearch(); bindButtons(); bindReco();
+    $("reco").open = !PF.items.length;
     renderPfMethod();
     PF.ready = true;
     renderPfTable();
@@ -269,6 +291,7 @@ function bindPlan() {
       const v = el.value === "" ? null : +el.value;
       PF.plan[key] = key === "ret" ? (ok(v) && v >= 0 ? v : null) : key === "years" ? Math.max(1, Math.min(50, Math.round(v || 1))) : Math.max(0, v || 0);
       updateAmounts(); analyseLater();
+      if (key === "years" && PF.profile == null) renderReco();
     });
   }
 }
@@ -308,27 +331,81 @@ function bindSearch() {
   document.addEventListener("click", (ev) => { if (!ev.target.closest(".pf-search")) close(); });
 }
 
-/** A cheap, widely held global index fund and a low-risk NOK interest fund: the two building blocks of the starters. */
-function starterFunds() {
-  const pick = (list) => {
-    const c = Math.min(...list.map((f) => f.cost));
-    return list.filter((f) => f.cost <= c + 0.07).sort((a, b) => (b.owners || 0) - (a.owners || 0))[0];
+// ---------------------------------------------------------------- recommended portfolio
+const PROFILES = [[20, "Forsiktig"], [40, "Moderat"], [60, "Balansert"], [80, "Offensiv"], [100, "Bare aksjer"]];
+const RECO = { core: 0.8, em: 0.1, small: 0.1, minPiece: 3 };       // split of the share part; pieces under 3 % go to the core
+const ROLES = {
+  core: ["Kjernen", "Rundt 1 500 store selskaper i hele den rike verden, i ett billig fond."],
+  em: ["Fremvoksende markeder", "Kina, India, Taiwan, Brasil med flere – de mangler i det globale fondet."],
+  small: ["Små selskaper", "Tusenvis av mindre selskaper verden over, som de store indeksene hopper over."],
+  safe: ["Bufferen", "Korte, sikre renter i kroner. Demper fallene, og gir ro til å sitte stille når aksjer faller."],
+};
+/** Building blocks, picked from this month's data: index funds in NOK with at least 1 000 owners and a cost within
+ *  0.15 points of the cheapest; among those within half a point of the best five-year return (they track well), the cheapest. */
+function recoBlocks() {
+  if (PF.blocks) return PF.blocks;
+  const pick = (fn) => {
+    const all = FS.list.filter((f) => ok(f.cost) && ok(f.r5) && f.tradable !== false && f.currency === "NOK" && (f.owners || 0) >= 1000 && !f.hedged && fn(f));
+    if (!all.length) return null;
+    const cheap = Math.min(...all.map((f) => f.cost)), c = all.filter((f) => f.cost <= cheap + 0.15);       // only the cheap ones compete
+    const best = Math.max(...c.map((f) => f.r5));
+    return c.filter((f) => f.r5 >= best - 0.005).sort((a, b) => a.cost - b.cost || (b.owners || 0) - (a.owners || 0))[0].isin;
   };
-  const eq = FS.list.filter((f) => f.category === "Global Equity Large Cap" && f.index && f.ask && !f.hedged && !f.esg && f.currency === "NOK" && ok(f.cost) && ok(f.r5) && f.tradable !== false);
-  const ir = FS.list.filter((f) => isRate(f) && f.currency === "NOK" && ok(f.cost) && ok(f.vol5) && f.vol5 < 0.012 && ok(f.r5) && f.owners > 500 && f.tradable !== false);
-  return eq.length && ir.length ? [pick(eq), pick(ir)] : null;
+  const idx = (cat) => (f) => f.index && f.ask && !f.esg && f.category === cat;
+  PF.blocks = { core: pick(idx("Global Equity Large Cap")), em: pick(idx("Global Emerging Markets Equity")), small: pick(idx("Global Equity Mid/Small Cap")),
+    safe: pick((f) => isRate(f) && ok(f.vol5) && f.vol5 < 0.012) };
+  return PF.blocks;
+}
+function defaultProfile() { const y = PF.plan.years; return y <= 2 ? 20 : y <= 5 ? 40 : y <= 9 ? 60 : 80; }
+/** [{id, w (percent), role}] for a share of equities (percent). */
+function recoFor(eq) {
+  const B = recoBlocks();
+  if (!B.core || !B.safe) return null;
+  const raw = { core: eq * RECO.core, em: B.em ? eq * RECO.em : 0, small: B.small ? eq * RECO.small : 0, safe: 100 - eq };
+  raw.core = eq - raw.em - raw.small;
+  for (const k of ["em", "small"]) if (raw[k] < RECO.minPiece) { raw.core += raw[k]; raw[k] = 0; }
+  const out = ["core", "em", "small", "safe"].filter((k) => raw[k] > 0).map((k) => ({ id: B[k], w: Math.round(raw[k]), role: k }));
+  out[0].w += 100 - out.reduce((a, x) => a + x.w, 0);
+  return out;
+}
+const ROLE_COLOR = { core: 1, em: 3, small: 4, safe: 2 };
+function renderReco() {
+  const prof = PF.profile ?? defaultProfile(), rec = recoFor(prof), box = $("reco");
+  if (!rec) { box.hidden = true; return; }
+  $("reco-profile").innerHTML = PROFILES.map(([e, name]) => `<button type="button" role="tab" data-e="${e}" aria-selected="${e === prof}">${name}<span class="muted">${e} % aksjer</span></button>`).join("");
+  const y = PF.plan.years, d = defaultProfile(), dn = PROFILES.find((x) => x[0] === d)[1];
+  $("reco-why").innerHTML = `Med ${y} års sparing er <strong>${dn}</strong> utgangspunktet vårt: ${y <= 2 ? "pengene skal brukes snart, så de bør ikke svinge mye." : y <= 5 ? "noen år er for kort til å tåle et stort aksjefall rett før du trenger pengene." : y <= 9 ? "du har tid til å hente inn et fall, men ikke ubegrenset." : "du har god tid til å hente inn fall, og aksjer gir mest over lang tid. En liten buffer gjør det lettere å sitte stille."}
+    Tåler du dårlig å se pengene falle, gå ett hakk ned – det viktigste er en fordeling du klarer å holde fast ved.`;
+  mixbar("reco-bar", rec.map((x) => ({ label: ROLES[x.role][0], w: x.w / 100, color: css(`--s${ROLE_COLOR[x.role]}`) })));
+  $("reco-list").innerHTML = rec.map((x) => { const p = product(x.id); return `<div class="reco-row"><span class="swatch" style="background:${css(`--s${ROLE_COLOR[x.role]}`)}"></span>
+      <div class="reco-w">${x.w} %</div><div><strong>${esc(ROLES[x.role][0])}</strong> · ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}
+      <span class="tag">${nf(2).format(p.cost)} % per år</span><br><span class="muted">${esc(ROLES[x.role][1])}</span></div></div>`; }).join("");
+  const tot = 100, use = rec.map((x) => ({ item: x, p: product(x.id), w: x.w / tot, ser: seriesOf(x.id) }));
+  const ev = evaluate(use);
+  $("reco-stats").innerHTML = [
+    ["Forventet avkastning", ev.model ? pct(ev.model.now.ret) + " per år" : "–"],
+    ["Verste år", ev.story ? `${pc0(ev.story.worst.ret)} (100 000 → ${krRound(100000 * (1 + ev.story.worst.ret))})` : "–"],
+    ["Kostnad", `${nf(2).format(ev.cost * 100)} % per år`],
+  ].map(([a, b]) => `<div><span class="muted">${a}</span><strong>${b}</strong></div>`).join("");
+  PF.reco = rec;
+}
+function bindReco() {
+  $("reco-profile").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-e]"); if (!b) return;
+    PF.profile = +b.dataset.e; savePF(); renderReco();
+  });
+  $("reco-use").addEventListener("click", () => {
+    if (!PF.reco) return;
+    if (PF.items.length && !confirm("Erstatte porteføljen din med den anbefalte?")) return;
+    PF.items = PF.reco.map((x) => ({ id: x.id, w: x.w, c: ROLE_COLOR[x.role] - 1 }));
+    $("reco").open = false;
+    membersChanged();
+    $("pf-innhold").scrollIntoView();
+  });
+  renderReco();
 }
 
 function bindButtons() {
-  document.querySelector(".starter").addEventListener("click", (ev) => {
-    const b = ev.target.closest("button[data-tpl]"); if (!b) return;
-    const s = starterFunds();
-    if (!s) return;
-    if (PF.items.length && !confirm("Erstatte porteføljen med dette forslaget?")) return;
-    const eq = +b.dataset.tpl;
-    PF.items = [{ id: s[0].isin, w: eq }, { id: s[1].isin, w: 100 - eq }];
-    membersChanged();
-  });
   $("pf-equal").addEventListener("click", () => { PF.items.forEach((x) => { x.w = 100 / PF.items.length; }); roundWeights(); membersChanged(); });
   $("pf-norm").addEventListener("click", () => { scaleTo100(); membersChanged(); });
   $("pf-clear").addEventListener("click", () => { if (PF.items.length && confirm("Fjerne alt fra porteføljen?")) { PF.items = []; membersChanged(); } });
@@ -367,18 +444,18 @@ function bindButtons() {
 function renderPfTable() {
   const el = $("pf-table"), n = PF.items.length;
   const cnt = $("pf-count"); cnt.hidden = !n; cnt.textContent = n;
-  $("pf-body").hidden = !n; $("pf-kpis").hidden = !n;
+  $("pf-body").hidden = !n; $("glance-body").hidden = !n; $("glance-empty").hidden = !!n;
+  assignColors();
   ["pf-equal", "pf-norm", "pf-link", "pf-clear"].forEach((id) => { $(id).disabled = !n; });
   if (!n) {
-    el.innerHTML = `<tbody><tr><td class="empty"><strong>Porteføljen er tom.</strong> Start med Forsiktig, Balansert eller Offensiv (et billig globalt indeksfond + et rentefond),
-      eller søk etter fondene du allerede har. Du kan alltid justere andelene etterpå.</td></tr></tbody>`;
+    el.innerHTML = `<tbody><tr><td class="empty"><strong>Porteføljen er tom.</strong> Bruk den anbefalte porteføljen over, eller søk etter fondene du allerede har. Du kan alltid justere andelene etterpå.</td></tr></tbody>`;
     return;
   }
   const rows = PF.items.map((it, i) => {
     const p = product(it.id), s = seriesOf(it.id);
     const est = p.kind === "fond" ? `<span class="tag est" title="${s?.kind === "proxy" ? "Fond har ikke kurshistorikk hos oss. Månedlige svingninger er lånt fra " + esc(D.by[s.proxy]?.name || "en lignende ETF") + " og justert til fondets egen avkastning og risiko." : "Fond har ikke kurshistorikk hos oss. Svingningene er anslått fra fondets egen avkastning og risiko."}">historikk anslått</span>` : "";
     return `<tr><td><button type="button" class="add-btn" data-rm="${i}" aria-label="Fjern ${esc(p.name)}">×</button></td>
-      <td class="wide">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}<br><span class="tag">${esc(p.kindLabel)}</span> ${est}</td>
+      <td class="wide">${swatch(it)}${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}<br><span class="tag">${esc(p.kindLabel)}</span> ${est}</td>
       <td class="share"><input type="range" min="0" max="100" step="1" value="${Math.round(it.w)}" data-i="${i}" aria-label="Andel ${esc(p.name)}">
         <input type="number" min="0" max="100" step="1" value="${Math.round(it.w)}" data-i="${i}" aria-label="Andel i prosent"> %</td>
       <td class="num" data-kr="${i}"></td><td class="num">${ok(p.cost) ? nf(2).format(p.cost) + " %" : "–"}</td>
@@ -401,49 +478,54 @@ function updateAmounts() {
 }
 
 // ---------------------------------------------------------------- analysis
+/** History, risk story and model for a set of holdings [{item, p, w, ser}] (weights sum to 1). */
+function evaluate(use) {
+  const withSer = use.filter((u) => u.ser && u.ser.from >= 0);
+  const res = { use, missing: use.filter((u) => !withSer.includes(u)) };
+  res.cost = use.reduce((a, u) => a + u.w * (u.p.cost ?? 0), 0) / 100;
+  const hs = withSer.length === use.length ? withSer : [];
+  if (!hs.length) return res;
+  let from = Math.max(...hs.map((u) => u.ser.from));
+  for (let t = D.end; t >= from; t--) if (hs.some((u) => !E.isNum(u.ser.s[t]))) { from = t + 1; break; }
+  res.from = from; res.months = D.end - from + 1;
+  if (res.months < 13) return res;
+  const w = hs.map((u) => u.w);
+  const mix = (ww) => { const r = new Float64Array(D.n).fill(NaN); for (let t = from; t <= D.end; t++) { let x = 0; for (let k = 0; k < hs.length; k++) x += ww[k] * hs[k].ser.s[t]; r[t] = x; } return r; };
+  res.mix = mix; res.r = mix(w); res.story = I.riskStory(res.r, from, D.end);
+  // model: covariance from the last 5 years (or what there is), expected return = equilibrium + a little history, after costs
+  const def = D.summary.defaults, b = benchSeries();
+  const eFrom = Math.max(from, D.end - def.estimation_years * 12 + 1, E.firstIdx(b));
+  if (D.end - eFrom + 1 < 12) return res;
+  const est = estimate(hs.map((u) => u.ser.s), b, eFrom, D.end);
+  const rf = D.summary.rf_now, h = def.history_weight;
+  const mu = Float64Array.from(hs, (u, k) => (1 - h) * (rf + est.beta[k] * def.market_risk_premium - (u.p.cost ?? 0) / 100) + h * est.hist[k]);
+  const perf = (ww) => { let ret = 0, v = 0; for (let i = 0; i < ww.length; i++) { ret += ww[i] * mu[i]; for (let j = 0; j < ww.length; j++) v += ww[i] * ww[j] * est.S[i][j]; } const vol = Math.sqrt(Math.max(v, 0)); return { ret, vol, sharpe: vol > 1e-9 ? (ret - rf) / vol : null }; };
+  res.model = { est, mu, rf, perf, now: perf(w), eMonths: D.end - eFrom + 1 };
+  // share of the swings each holding stands for
+  const tot = w.reduce((a, wi, i) => a + wi * w.reduce((c, wj, j) => c + wj * est.S[i][j], 0), 0);
+  res.model.rc = w.map((wi, i) => (tot > 0 ? wi * w.reduce((c, wj, j) => c + wj * est.S[i][j], 0) / tot : 0));
+  if (hs.length >= 2) {
+    const lo = new Float64Array(hs.length), hi = Float64Array.from(hs, (u) => (isBroad(u.p) ? 1 : NARROW_CAP));
+    res.capped = hs.filter((u, k) => hi[k] < 1).map((u) => u.p.name);
+    if (hi.reduce((a, b2) => a + b2, 0) < 1) { hi.fill(1); res.capped = []; }      // only narrow funds: no cap possible
+    res.model.frontier = E.frontier(mu, est.S, lo, hi, rf, 40).points;
+  }
+  return res;
+}
+
 function analyse() {
   if (!PF.ready) return;
   const total = PF.items.reduce((a, x) => a + (+x.w || 0), 0);
   const use = PF.items.filter((x) => x.w > 0 && total > 0).map((item) => ({ item, p: product(item.id), w: item.w / total, ser: seriesOf(item.id) }));
   if (!use.length) { PF.res = null; return; }
-  const withSer = use.filter((u) => u.ser && u.ser.from >= 0);
-  const res = { use, total, missing: use.filter((u) => !withSer.includes(u)) };
-  res.cost = use.reduce((a, u) => a + u.w * (u.p.cost ?? 0), 0) / 100;
-
-  // common history
-  const hs = withSer.length === use.length ? withSer : [];
-  if (hs.length) {
-    let from = Math.max(...hs.map((u) => u.ser.from));
-    for (let t = D.end; t >= from; t--) if (hs.some((u) => !E.isNum(u.ser.s[t]))) { from = t + 1; break; }
-    res.from = from; res.months = D.end - from + 1;
-    if (res.months >= 13) {
-      const w = hs.map((u) => u.w);
-      const mix = (ww) => { const r = new Float64Array(D.n).fill(NaN); for (let t = from; t <= D.end; t++) { let x = 0; for (let k = 0; k < hs.length; k++) x += ww[k] * hs[k].ser.s[t]; r[t] = x; } return r; };
-      res.mix = mix; res.r = mix(w); res.story = I.riskStory(res.r, from, D.end);
-      // model: covariance from the last 5 years (or what there is), expected return = equilibrium + a little history, after costs
-      const def = D.summary.defaults, b = benchSeries();
-      const eFrom = Math.max(from, D.end - def.estimation_years * 12 + 1, E.firstIdx(b));
-      if (D.end - eFrom + 1 >= 12) {
-        const est = estimate(hs.map((u) => u.ser.s), b, eFrom, D.end);
-        const rf = D.summary.rf_now, h = def.history_weight;
-        const mu = Float64Array.from(hs, (u, k) => (1 - h) * (rf + est.beta[k] * def.market_risk_premium - (u.p.cost ?? 0) / 100) + h * est.hist[k]);
-        const perf = (ww) => { let ret = 0, v = 0; for (let i = 0; i < ww.length; i++) { ret += ww[i] * mu[i]; for (let j = 0; j < ww.length; j++) v += ww[i] * ww[j] * est.S[i][j]; } const vol = Math.sqrt(Math.max(v, 0)); return { ret, vol, sharpe: vol > 1e-9 ? (ret - rf) / vol : null }; };
-        res.model = { est, mu, rf, perf, now: perf(w), eMonths: D.end - eFrom + 1 };
-        if (hs.length >= 2) {
-          const lo = new Float64Array(hs.length), hi = Float64Array.from(hs, (u) => (isBroad(u.p) ? 1 : NARROW_CAP));
-          res.capped = hs.filter((u, k) => hi[k] < 1).map((u) => u.p.name);
-          if (hi.reduce((a, b) => a + b, 0) < 1) { hi.fill(1); res.capped = []; }      // only narrow funds: no cap possible
-          res.model.frontier = E.frontier(mu, est.S, lo, hi, rf, 40).points;
-        }
-      }
-    }
-  }
+  const res = evaluate(use);
+  res.total = total;
   res.look = I.lookThrough(use.map((u) => ({ w: u.w, h: holdingsOf(u.p.id) })));
   res.twins = use.map((u) => twinsOf(u.p.id));
   PF.res = res;
-  renderKpis(); renderOwn(); renderTwins(); renderCost(); renderRisk(); renderSuggestion(); renderMap();
+  renderKpis(); renderOwn(); renderTwins(); renderCost(); renderRisk(); renderOutcomes(); renderSuggestion(); renderMap();
 }
-function renderCharts() { renderCost(); renderRisk(); renderMap(); }
+function renderCharts() { renderKpis(); renderOwn(); renderCost(); renderRisk(); renderOutcomes(); renderSuggestion(); renderMap(); renderReco(); }
 
 function grossReturn() {
   const res = PF.res;
@@ -462,7 +544,13 @@ function renderKpis() {
     kpi("Avkastning for risikoen", ok(sh) ? `<span class="chip" style="background:${sharpeColor(sh)}"></span>${sharpeWord(sh)}` : "–",
       ok(sh) ? `Sharpe ${nf(2).format(sh)}: forventet avkastning utover banken, delt på svingningene` : ""),
   ].join("");
-  $("pl-ret").placeholder = `${nf(1).format(grossReturn() * 100)} (anslag)`;
+  $("pl-ret").placeholder = nf(1).format(grossReturn() * 100);
+  mixbar("pf-mix", res.use.map((u) => ({ label: u.p.name, w: u.w, color: colorOf(u.item) })));
+  $("pf-mix-legend").innerHTML = res.use.map((u) => `<div>${swatch(u.item)}<span class="nm">${esc(u.p.name)}</span><span class="val">${pc0(u.w)}</span></div>`).join("");
+  const vol = m?.vol, pos = ok(vol) ? Math.min(1, vol / 0.25) : null;
+  $("meter-dot").style.left = ok(pos) ? `${(pos * 100).toFixed(1)}%` : "0%";
+  $("meter-dot").hidden = !ok(pos);
+  $("meter-label").textContent = !ok(vol) ? "–" : `${vol < 0.015 ? "Svært lavt" : vol < 0.05 ? "Lavt" : vol < 0.09 ? "Middels" : vol < 0.135 ? "Høyt" : "Svært høyt"} · svinger ${pct(vol, 0)} i året`;
 }
 
 // ---------------------------------------------------------------- 1. what do I own
@@ -527,6 +615,8 @@ function renderOwn() {
   bars("own-comp", top10.map((c) => [c.name, c.w]), { d: 1, empty: "Fant ingen enkeltselskaper (rentefond eier obligasjoner, ikke aksjer)" });
   $("own-comp-note").textContent = top10.length ? "Andel av hele porteføljen. Vi ser de 25–35 største i hvert fond, så tallene er minst så store." : "";
 
+  renderTree(comps, eqShare, bondShare);
+
   // the same thing twice?
   const pairs = [];
   for (let i = 0; i < res.use.length; i++) for (let j = i + 1; j < res.use.length; j++) {
@@ -542,6 +632,23 @@ function renderOwn() {
     : "<p><strong>Nei.</strong> Fondene dine eier nokså forskjellige ting, så de utfyller hverandre.</p>") +
     pairs.slice(0, 8).map((x) => `<div class="bar-row pair"><span class="nm">${esc(x.a.name)} <span class="muted">og</span> ${esc(x.b.name)}</span>
       <span class="track"><span class="fill ${x.s >= 0.7 ? "warn" : ""}" style="width:${(x.s * 100).toFixed(0)}%"></span></span><span class="val">${pc0(x.s)} likt</span></div>`).join("");
+}
+
+/** Tile map of the whole portfolio: the largest companies, the rest of the shares, and interest. */
+function renderTree(comps, eqShare, bondShare) {
+  const top = comps.slice(0, 14), topSum = top.reduce((a, c) => a + c.w, 0);
+  const labels = [], values = [], colors = [], text = [], ink = [];
+  const add = (l, v, c, t, dark) => { if (v > 0.004) { labels.push(l); values.push(v * 100); colors.push(c); text.push(t || ""); ink.push(dark ? "#0b0b0b" : "#ffffff"); } };
+  top.forEach((c) => add(c.name, c.w, css("--s1")));
+  add("Resten av aksjene", Math.max(0, eqShare - topSum), css("--tile-rest"), "spredt på svært mange selskaper", css("--tile-rest") === "#86b6ef");
+  add("Renter og kontanter", bondShare, css("--s2"), "obligasjoner og bankinnskudd");
+  add("Annet", Math.max(0, 1 - eqShare - bondShare), css("--axis"));
+  if (!labels.length || !window.Plotly) return;
+  plot("chart-tree", [{ type: "treemap", labels, parents: labels.map(() => ""), values, text, branchvalues: "total",
+    marker: { colors, line: { color: css("--surface"), width: 2 }, pad: { t: 0, l: 0, r: 0, b: 0 } }, tiling: { pad: 2, packing: "squarify" },
+    texttemplate: "<b>%{label}</b><br>%{value:.1f} %", textfont: { color: ink, size: 13 }, textposition: "top left", sort: false,
+    hovertemplate: "<b>%{label}</b><br>%{value:.1f} % av porteføljen<br>%{text}<extra></extra>" }],
+  layout({ margin: { l: 0, r: 0, t: 0, b: 0 }, uniformtext: { minsize: 10, mode: "hide" } }));
 }
 
 // ---------------------------------------------------------------- 2. cheaper twins + 3. cost in kroner
@@ -594,17 +701,20 @@ function renderCost() {
       med dagens kostnad på ${nf(2).format(res.cost * 100)} % per år. Helt uten kostnader ville det blitt ${krRound(v0)}.
       ${hasTwin ? `Bytter du til de billigste tvillingene (${nf(2).format(cheap * 100)} %), sitter du igjen med <strong>${krRound(v2 - v1)} mer</strong>.` : "Vi finner ingen billigere tvillinger – du betaler allerede lite for dette innholdet."}</p>`;
 
-  const names = ["Uten kostnader", "Porteføljen din", ...(hasTwin ? ["Billigste tvillinger"] : [])], vals0 = [v0, v1, ...(hasTwin ? [v2] : [])];
-  const cats = names.map((n, i) => `${n}<br><b>${krRound(vals0[i])}</b>`).reverse(), vals = vals0.slice().reverse();
-  const seg = (name, x, color) => ({ type: "bar", orientation: "h", name, y: cats, x, marker: { color }, hovertemplate: `${name}: %{x:,.0f} kr<extra></extra>` });
+  const ys = Array.from({ length: pl.years + 1 }, (_, y) => y);
+  const val = (cost) => ys.map((y) => I.savingsValue(pl.start, pl.monthly, y, g, cost));
+  const c0 = val(0), c1 = val(res.cost), paidY = ys.map((y) => pl.start + pl.monthly * 12 * y);
+  const line = (name, y, color, width, extra = {}) => ({ type: "scatter", mode: "lines", name, x: ys, y, line: { color, width }, hovertemplate: `${name}: %{y:,.0f} kr<extra></extra>`, ...extra });
+  const end = (y, text) => ({ x: pl.years, y, text, showarrow: false, xanchor: "left", yanchor: "middle", xshift: 8, align: "left", font: { size: 11, color: css("--ink") } });
   plot("chart-cost", [
-    seg("Det du har satt inn", vals.map(() => paid), css("--axis")),
-    seg("Avkastning til deg", vals.map((v) => Math.max(0, v - paid)), css("--good")),
-    seg("Spist av kostnader", vals.map((v) => v0 - v), css("--bad")),
+    line("Det du har satt inn", paidY, css("--axis"), 1.5),
+    line("Porteføljen din", c1, css("--mine"), 2.5),
+    line("Uten kostnader", c0, css("--bad"), 1.5, { fill: "tonexty", fillcolor: css("--bad-soft") }),
   ], layout({
-    barmode: "stack", margin: { l: 8, r: 24, t: 40, b: 36 }, bargap: 0.4, legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom", traceorder: "normal", font: { color: css("--ink-2") } },
-    xaxis: axis({ tickformat: ",.0f", ticksuffix: " kr", nticks: 5 }),
-    yaxis: axis({ showgrid: false, showline: false, automargin: true, ticklabelstandoff: 8, tickfont: { color: css("--ink"), size: 12 } }),
+    showlegend: false, hovermode: "x unified", margin: { l: 8, r: 128, t: 12, b: 40 },
+    xaxis: axis({ ticksuffix: " år", dtick: pl.years > 12 ? 5 : pl.years > 5 ? 2 : 1, range: [0, pl.years], showgrid: false }),
+    yaxis: axis({ tickformat: ",.0f", ticksuffix: " kr", nticks: 5, rangemode: "tozero" }),
+    annotations: [end(v0, `Uten kostnader<br><b>${krRound(v0)}</b>`), end(v1 - (v0 - v1 < v0 * 0.06 ? v0 * 0.08 : 0), `Porteføljen din<br><b>${krRound(v1)}</b>`), end(paid, `Satt inn<br><b>${krRound(paid)}</b>`)],
   }));
 
   const drag = v0 - v1, wc = res.use.map((u) => u.w * (u.p.cost ?? 0)), sum = wc.reduce((a, b) => a + b, 0) || 1;
@@ -620,7 +730,7 @@ function renderRisk() {
   const res = PF.res, st = res.story, lead = $("risk-lead");
   if (!st) {
     lead.innerHTML = `<p class="muted">${res.missing.length ? `Mangler kursdata for ${listNo(res.missing.map((u) => esc(u.p.name)))}.` : "For kort felles historikk til å fortelle noe om risiko."}</p>`;
-    $("risk-kpis").innerHTML = ""; emptyChart("chart-risk", "Ingen historikk å vise");
+    $("risk-kpis").innerHTML = ""; emptyChart("chart-risk", "Ingen historikk å vise"); emptyChart("chart-years", "Ingen historikk å vise"); $("risk-contrib").innerHTML = "";
     return;
   }
   const f = st.fall, K = 100000;
@@ -669,8 +779,61 @@ function renderRisk() {
     kpi("Et vanlig år", pct(st.median, 0), "midterste tolvmånedersperiode"),
     kpi("Beste år", pct(st.best.ret, 0), `${mName(st.best.from)}–${mName(st.best.to)}`),
   ].join("");
+  renderRiskExtras();
 }
 function st_bench() { return st.bench; }
+
+function renderRiskExtras() {
+  const res = PF.res;
+  // calendar years
+  const yrs = [];
+  let cur = null;
+  for (let t = res.from; t <= D.end; t++) {
+    const { y } = monthYM(t);
+    if (!cur || cur.y !== y) { cur = { y, g: 1, n: 0 }; yrs.push(cur); }
+    cur.g *= 1 + res.r[t]; cur.n++;
+  }
+  const v = yrs.map((x) => (x.g - 1) * 100), lo = Math.min(...v), hi = Math.max(...v);
+  plot("chart-years", [{ type: "bar", x: yrs.map((x) => String(x.y)), y: v, marker: { color: v.map((x) => (x >= 0 ? css("--good") : css("--bad"))), line: { width: 0 } },
+    customdata: yrs.map((x) => (x.n < 12 ? ` (${x.n} måneder)` : "")), hovertemplate: "%{x}%{customdata}: %{y:.1f} %<extra></extra>",
+    text: v.map((x) => (x === lo || x === hi ? `${x >= 0 ? "+" : "−"}${nf(0).format(Math.abs(x))} %` : "")), textposition: "outside", textfont: { size: 11, color: css("--ink") }, constraintext: "none", cliponaxis: false }],
+  layout({ showlegend: false, bargap: 0.25, margin: { l: 44, r: 8, t: 20, b: 32 },
+    xaxis: axis({ type: "category", showgrid: false, tickangle: 0, nticks: 8 }), yaxis: axis({ ticksuffix: " %", zeroline: true, zerolinewidth: 1 }) }));
+  // money vs swings
+  const rc = res.model?.rc, box = $("risk-contrib");
+  if (!rc) { box.innerHTML = '<p class="muted">For kort historikk.</p>'; return; }
+  const mx = Math.max(...rc, ...res.use.map((u) => u.w), 1e-9);
+  const big = res.use.map((u, k) => ({ u, d: rc[k] - u.w })).sort((a, b) => b.d - a.d)[0];
+  box.innerHTML = res.use.map((u, k) => `<div class="contrib-row"><div class="nm">${swatch(u.item)}${esc(u.p.name)}</div>
+      <div class="pair"><span class="lbl">Penger</span><span class="track"><span class="fill money" style="width:${(u.w / mx * 100).toFixed(1)}%"></span></span><span class="val">${pc0(u.w)}</span></div>
+      <div class="pair"><span class="lbl">Risiko</span><span class="track"><span class="fill" style="width:${(Math.max(0, rc[k]) / mx * 100).toFixed(1)}%;background:${colorOf(u.item)}"></span></span><span class="val">${pc0(rc[k])}</span></div></div>`).join("") +
+    (big && big.d > 0.05 ? `<p class="hint">${esc(big.u.p.name)} er ${pc0(big.u.w)} av pengene, men står for ${pc0(rc[res.use.indexOf(big.u)])} av svingningene.</p>` : "");
+}
+
+// ---------------------------------------------------------------- what can it become
+function renderOutcomes() {
+  const res = PF.res, m = res.model, pl = PF.plan, lead = $("fan-lead");
+  if (!m) { lead.innerHTML = '<p class="muted">For kort historikk til å anslå utfall.</p>'; emptyChart("chart-fan", "Ingen anslag å vise"); $("fan-note").textContent = ""; return; }
+  const pr = I.projection(pl.start, pl.monthly, pl.years, m.now.ret, m.now.vol, 4000), n = pl.years, ys = pr.paid.map((_, y) => y);
+  lead.innerHTML = `<p class="big">Om ${n} år er sparingen mest sannsynlig verdt rundt <strong>${krRound(pr.p50[n])}</strong>.</p>
+    <p>Går det dårlig (ett av ti utfall) ender du på ${krRound(pr.p10[n])} eller mindre. Går det bra (ett av ti) blir det ${krRound(pr.p90[n])} eller mer.
+      Du har da satt inn ${krRound(pr.paid[n])}${pr.p10[n] < pr.paid[n] ? " – i de dårlige utfallene sitter du altså igjen med mindre enn du satte inn" : ""}.</p>`;
+  const end = (y, text) => ({ x: n, y, text, showarrow: false, xanchor: "left", yanchor: "middle", xshift: 8, align: "left", font: { size: 11, color: css("--ink") } });
+  const tr = (name, y, color, width, extra = {}) => ({ type: "scatter", mode: "lines", name, x: ys, y, line: { color, width }, hovertemplate: `${name}: %{y:,.0f} kr<extra></extra>`, ...extra });
+  plot("chart-fan", [
+    tr("Går det dårlig (1 av 10)", pr.p10, css("--mine"), 1),
+    tr("Går det bra (1 av 10)", pr.p90, css("--mine"), 1, { fill: "tonexty", fillcolor: css("--band") }),
+    tr("Mest sannsynlig", pr.p50, css("--mine"), 3),
+    tr("Det du har satt inn", pr.paid, css("--axis"), 1.5),
+  ], layout({
+    showlegend: false, hovermode: "x unified", margin: { l: 8, r: 150, t: 12, b: 40 },
+    xaxis: axis({ ticksuffix: " år", dtick: n > 12 ? 5 : n > 5 ? 2 : 1, range: [0, n], showgrid: false }),
+    yaxis: axis({ tickformat: ",.0f", ticksuffix: " kr", nticks: 6, rangemode: "tozero" }),
+    annotations: [end(pr.p90[n], `Går det bra<br><b>${krRound(pr.p90[n])}</b>`), end(pr.p50[n], `Mest sannsynlig<br><b>${krRound(pr.p50[n])}</b>`),
+      end(Math.min(pr.p10[n], pr.p50[n] - (pr.p90[n] - pr.p10[n]) * 0.13), `Går det dårlig<br><b>${krRound(pr.p10[n])}</b>`)],
+  }));
+  $("fan-note").textContent = `Det blå feltet dekker 8 av 10 utfall. Anslag fra forventet avkastning ${pct(m.now.ret)} og svingninger ${pct(m.now.vol)} per år, etter kostnader, i dagens kroneverdi uten justering for prisvekst.`;
+}
 
 // ---------------------------------------------------------------- 5. a better mix
 function suggestion() {
@@ -691,7 +854,7 @@ function suggestion() {
 function renderSuggestion() {
   const res = PF.res, m = res.model, lead = $("sg-lead"), sl = $("sg-risk");
   const sg = res.sg = suggestion();
-  const off = (msg) => { lead.innerHTML = msg; $("sg-table").innerHTML = ""; sl.disabled = true; $("sg-apply").disabled = true; $("sg-same").disabled = true; };
+  const off = (msg) => { lead.innerHTML = msg; $("sg-table").innerHTML = ""; $("sg-bars").innerHTML = ""; sl.disabled = true; $("sg-apply").disabled = true; $("sg-same").disabled = true; };
   if (!sg) return off(res.use.length < 2 ? "Legg til minst to fond eller ETF-er, så foreslår vi hvordan pengene bør fordeles mellom dem."
     : "Vi mangler historikk for å kunne foreslå en fordeling for disse fondene.");
   sl.disabled = false; $("sg-same").disabled = PF.risk === "same"; sl.value = sg.pos;
@@ -706,9 +869,12 @@ function renderSuggestion() {
       (Math.abs(gainKr) >= 1000 ? ` – omtrent <strong>${krRound(Math.abs(gainKr))} ${gainKr >= 0 ? "mer" : "mindre"}</strong> etter ${PF.plan.years} år` : "") +
       `. Verste år i historikken: ${pc0(sg.story?.worst.ret)} (i dag ${pc0(res.story.worst.ret)}).` +
       (res.capped?.length ? ` <span class="muted">Smale fond (${listNo(res.capped.map(esc))}) får aldri mer enn ${pc0(NARROW_CAP)} hver i forslaget – ett fond som har gått bra, skal ikke få dominere.</span>` : "");
+  $("sg-bars").innerHTML = '<div class="ba-row"><span>I dag</span><div class="mixbar" id="sg-bar-now"></div></div><div class="ba-row"><span>Forslag</span><div class="mixbar" id="sg-bar-new"></div></div>';
+  mixbar("sg-bar-now", res.use.map((u) => ({ label: u.p.name, w: u.w, color: colorOf(u.item) })));
+  mixbar("sg-bar-new", res.use.map((u, k) => ({ label: u.p.name, w: sg.w[k], color: colorOf(u.item) })));
   const row = (label, a, b, cls) => ({ _cls: cls || "", cells: [label, a, b, ""] });
   table($("sg-table"), [{ t: "Fond / ETF" }, { t: "I dag", num: true }, { t: "Forslag", num: true }, { t: "Endring", num: true }], [
-    ...res.use.map((u, k) => { const dd = sg.w[k] - u.w; return { cells: [u.p.name, pc0(u.w), { html: `<strong>${pc0(sg.w[k])}</strong>` },
+    ...res.use.map((u, k) => { const dd = sg.w[k] - u.w; return { cells: [{ html: swatch(u.item) + esc(u.p.name) }, pc0(u.w), { html: `<strong>${pc0(sg.w[k])}</strong>` },
       { html: Math.abs(dd) < 0.005 ? '<span class="muted">uendret</span>' : `<span class="${dd > 0 ? "delta-pos" : "delta-neg"}">${dd > 0 ? "+" : "−"}${nf(0).format(Math.abs(dd) * 100)} pp · ${dd > 0 ? "kjøp" : "selg"} ${kr(Math.abs(dd) * PF.plan.start)}</span>` }] }; }),
     row("Forventet avkastning per år", pct(now.ret), pct(sg.perf.ret), "total"),
     row("Svingninger per år", pct(now.vol), pct(sg.perf.vol)),
@@ -773,6 +939,14 @@ function renderPfMethod() {
       skalerer dem til fondets egen risiko og forskyver dem så de siste årene gir nøyaktig fondets egen avkastning (Nordnets tall). Norske rentefond anslås fra styringsrenten pluss fondets egen meravkastning og risiko; rentefond som svinger mer enn ${pct(CREDIT.vol)} i året
       (kreditt- og høyrentefond) antas å følge aksjemarkedet et stykke på vei (korrelasjon ${nf(1).format(CREDIT.corr)}), fordi de faller sammen med aksjer i kriser.
       Slike fond er merket «historikk anslått».</p>
+    <h3>Den anbefalte porteføljen</h3>
+    <p>Oppskriften er fast: aksjedelen deles ${pc0(RECO.core)} i et globalt indeksfond, ${pc0(RECO.em)} i fremvoksende markeder og ${pc0(RECO.small)} i små selskaper globalt; resten i et pengemarkedsfond i kroner.
+      Aksjeandelen følger sparetiden (til og med 2 år: 20 %, 5 år: 40 %, 9 år: 60 %, lenger: 80 %) og kan overstyres. Fondene velges på nytt fra dataene hver måned: indeksfond i kroner med minst 1 000 eiere hos Nordnet
+      og kostnad innenfor 0,15 prosentpoeng av det billigste; blant dem som ligger innenfor et halvt prosentpoeng av beste femårsavkastning (de følger markedet sitt godt), det billigste.
+      Dette er en generell oppskrift, ikke personlig rådgivning – den kjenner ikke gjelden, bufferen eller skatten din.</p>
+    <h3>Hva kan sparingen bli verdt?</h3>
+    <p>4 000 simulerte forløp med månedlig avkastning trukket fra porteføljens forventede avkastning og svingninger (lognormal, uavhengige måneder). Feltet viser 10.–90. persentil, streken medianen.
+      Virkelige markeder har flere ekstreme måneder enn modellen, og tallene er ikke justert for prisvekst.</p>
     <h3>Forventet avkastning og forslaget</h3>
     <p>Forventet avkastning = ${pc0(1 - def.history_weight)} likevekt (risikofri rente ${pct(D.summary.rf_now)} + fondets følsomhet for verdensindeksen × ${pct(def.market_risk_premium)} risikopremie − kostnad)
       + ${pc0(def.history_weight)} historisk snitt de siste ${def.estimation_years} årene. Samvariasjonen mellom fondene er fra samme periode (Ledoit-Wolf-krymping).
