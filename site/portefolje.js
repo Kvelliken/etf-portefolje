@@ -30,35 +30,29 @@ function duration(months) {
 }
 function listNo(a) { return a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} og ${a[a.length - 1]}`; }
 const cleanCompany = (s) => String(s || "").replace(/,?\s+(class|cl\.?|ser\.?|series)\s+[a-c]\b\.?/i, "").replace(/\s+(inc\.?|corp\.?|corporation|plc|ltd\.?|asa|ab|a\/s|oyj|n\.v\.|se|ag)\.?$/i, "").replace(/[,.\s]+$/, "").trim();
-const sharpeWord = (s) => (!ok(s) ? "–" : s < 0.15 ? "svak" : s < 0.35 ? "middels" : s < 0.6 ? "god" : "svært god");
-function sharpeColor(s) {
-  const stops = [[-0.5, [201, 48, 44]], [0, [232, 116, 59]], [0.5, [242, 208, 74]], [1, [143, 202, 92]], [1.5, [46, 158, 79]]];
-  const x = Math.max(-0.5, Math.min(1.5, s));
-  for (let i = 1; i < stops.length; i++) {
-    if (x <= stops[i][0]) {
-      const [a, ca] = stops[i - 1], [b, cb] = stops[i], f = (x - a) / (b - a);
-      return `rgb(${ca.map((v, k) => Math.round(v + f * (cb[k] - v))).join(",")})`;
-    }
-  }
-  return "rgb(46,158,79)";
-}
 
 // ---------------------------------------------------------------- colour per fund (follows the fund, never its rank)
-const SLOTS = 8;
+const SLOTS = 4;                                  // chart-1 … chart-4; more funds share "Øvrige" in the stripes
 function assignColors() {
   const used = new Set(PF.items.map((x) => x.c).filter((c) => Number.isInteger(c) && c < SLOTS));
   for (const it of PF.items) {
-    if (Number.isInteger(it.c)) continue;
+    if (Number.isInteger(it.c) && it.c < SLOTS) continue;
     let k = 0; while (used.has(k) && k < SLOTS) k++;
-    it.c = k; used.add(k);                       // past eight funds: neutral
+    it.c = k; used.add(k);                       // past four funds: neutral
   }
 }
-const colorOf = (it) => (it && Number.isInteger(it.c) && it.c < SLOTS ? css(`--s${it.c + 1}`) : css("--axis"));
+const tokOf = (it) => (it && Number.isInteger(it.c) && it.c < SLOTS ? `--chart-${it.c + 1}` : "--chart-context");
+const colorOf = (it) => css(tokOf(it));
 const swatch = (it) => `<span class="swatch" style="background:${colorOf(it)}"></span>`;
-/** Segmented 100 % bar. parts = [{label, w (0..1), color, title}] */
+/** Segmented 100 % bar. parts = [{label, w (0..1), tok (colour token)}]; parts in the neutral colour are merged into "Øvrige". */
 function mixbar(el, parts) {
-  const p = parts.filter((x) => x.w > 0.002);
-  (typeof el === "string" ? $(el) : el).innerHTML = p.map((x) => `<span class="seg" style="flex:${(x.w * 100).toFixed(2)} 0 0;background:${x.color}" title="${esc(x.title || x.label)}: ${pc0(x.w)}">${x.w >= 0.11 ? `<b>${pc0(x.w)}</b>` : ""}</span>`).join("");
+  const p = parts.filter((x) => x.w > 0.002 && x.tok !== "--chart-context");
+  const rest = parts.filter((x) => x.w > 0.002 && x.tok === "--chart-context");
+  if (rest.length === 1) p.push(rest[0]);
+  else if (rest.length > 1) p.push({ label: `Øvrige (${rest.length})`, w: rest.reduce((a, x) => a + x.w, 0), tok: "--chart-context" });
+  const box = typeof el === "string" ? $(el) : el;
+  box.innerHTML = p.map((x) => `<span class="seg" style="flex:${(x.w * 100).toFixed(2)} 0 0;background:${css(x.tok)};color:${inkOn(x.tok)}" title="${esc(x.label)}: ${pc0(x.w)}">${x.w >= 0.11 ? `<b>${pc0(x.w)}</b>` : ""}</span>`).join("");
+  box.setAttribute("aria-label", p.map((x) => `${x.label} ${pc0(x.w)}`).join(", "));
 }
 
 // ---------------------------------------------------------------- products (funds and ETFs alike)
@@ -376,8 +370,8 @@ function renderReco() {
   const y = PF.plan.years, d = defaultProfile(), dn = PROFILES.find((x) => x[0] === d)[1];
   $("reco-why").innerHTML = `Med ${y} års sparing er <strong>${dn}</strong> utgangspunktet vårt: ${y <= 2 ? "pengene skal brukes snart, så de bør ikke svinge mye." : y <= 5 ? "noen år er for kort til å tåle et stort aksjefall rett før du trenger pengene." : y <= 9 ? "du har tid til å hente inn et fall, men ikke ubegrenset." : "du har god tid til å hente inn fall, og aksjer gir mest over lang tid. En liten buffer gjør det lettere å sitte stille."}
     Tåler du dårlig å se pengene falle, gå ett hakk ned – det viktigste er en fordeling du klarer å holde fast ved.`;
-  mixbar("reco-bar", rec.map((x) => ({ label: ROLES[x.role][0], w: x.w / 100, color: css(`--s${ROLE_COLOR[x.role]}`) })));
-  $("reco-list").innerHTML = rec.map((x) => { const p = product(x.id); return `<div class="reco-row"><span class="swatch" style="background:${css(`--s${ROLE_COLOR[x.role]}`)}"></span>
+  mixbar("reco-bar", rec.map((x) => ({ label: ROLES[x.role][0], w: x.w / 100, tok: `--chart-${ROLE_COLOR[x.role]}` })));
+  $("reco-list").innerHTML = rec.map((x) => { const p = product(x.id); return `<div class="reco-row"><span class="swatch" style="background:${css(`--chart-${ROLE_COLOR[x.role]}`)}"></span>
       <div class="reco-w">${x.w} %</div><div><strong>${esc(ROLES[x.role][0])}</strong> · ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}
       <span class="tag">${nf(2).format(p.cost)} % per år</span><br><span class="muted">${esc(ROLES[x.role][1])}</span></div></div>`; }).join("");
   const tot = 100, use = rec.map((x) => ({ item: x, p: product(x.id), w: x.w / tot, ser: seriesOf(x.id) }));
@@ -541,11 +535,11 @@ function renderKpis() {
     kpi("Forventet avkastning", m ? pct(m.ret) : "–", "per år etter kostnader – et anslag, ikke et løfte"),
     kpi("Det verste året", st ? pc0(st.worst.ret) : "–", st ? `100 000 kr ble til ${krRound(100000 * (1 + st.worst.ret))} (${mName(st.worst.from)}–${mName(st.worst.to)})` : "for kort historikk"),
     kpi("Kostnad", `${nf(2).format(res.cost * 100)} %`, `${kr(PF.plan.start * res.cost)} i år av ${kr(PF.plan.start)}`),
-    kpi("Avkastning for risikoen", ok(sh) ? `<span class="chip" style="background:${sharpeColor(sh)}"></span>${sharpeWord(sh)}` : "–",
+    kpi("Avkastning for risikoen", ok(sh) ? sharpeWord(sh) : "–",
       ok(sh) ? `Sharpe ${nf(2).format(sh)}: forventet avkastning utover banken, delt på svingningene` : ""),
   ].join("");
   $("pl-ret").placeholder = nf(1).format(grossReturn() * 100);
-  mixbar("pf-mix", res.use.map((u) => ({ label: u.p.name, w: u.w, color: colorOf(u.item) })));
+  mixbar("pf-mix", res.use.map((u) => ({ label: u.p.name, w: u.w, tok: tokOf(u.item) })));
   $("pf-mix-legend").innerHTML = res.use.map((u) => `<div>${swatch(u.item)}<span class="nm">${esc(u.p.name)}</span><span class="val">${pc0(u.w)}</span></div>`).join("");
   const vol = m?.vol, pos = ok(vol) ? Math.min(1, vol / 0.25) : null;
   $("meter-dot").style.left = ok(pos) ? `${(pos * 100).toFixed(1)}%` : "0%";
@@ -638,15 +632,15 @@ function renderOwn() {
 function renderTree(comps, eqShare, bondShare) {
   const top = comps.slice(0, 14), topSum = top.reduce((a, c) => a + c.w, 0);
   const labels = [], values = [], colors = [], text = [], ink = [];
-  const add = (l, v, c, t, dark) => { if (v > 0.004) { labels.push(l); values.push(v * 100); colors.push(c); text.push(t || ""); ink.push(dark ? "#0b0b0b" : "#ffffff"); } };
-  top.forEach((c) => add(c.name, c.w, css("--s1")));
-  add("Resten av aksjene", Math.max(0, eqShare - topSum), css("--tile-rest"), "spredt på svært mange selskaper", css("--tile-rest") === "#86b6ef");
-  add("Renter og kontanter", bondShare, css("--s2"), "obligasjoner og bankinnskudd");
-  add("Annet", Math.max(0, 1 - eqShare - bondShare), css("--axis"));
+  const add = (l, v, tok, t) => { if (v > 0.004) { labels.push(l); values.push(v * 100); colors.push(css(tok)); text.push(t || ""); ink.push(inkOn(tok)); } };
+  top.forEach((c) => add(c.name, c.w, "--seq-4"));
+  add("Resten av aksjene", Math.max(0, eqShare - topSum), "--seq-3", "spredt på svært mange selskaper");
+  add("Renter og kontanter", bondShare, "--chart-2", "obligasjoner og bankinnskudd");
+  add("Annet", Math.max(0, 1 - eqShare - bondShare), "--chart-context");
   if (!labels.length || !window.Plotly) return;
   plot("chart-tree", [{ type: "treemap", labels, parents: labels.map(() => ""), values, text, branchvalues: "total",
-    marker: { colors, line: { color: css("--surface"), width: 2 }, pad: { t: 0, l: 0, r: 0, b: 0 } }, tiling: { pad: 2, packing: "squarify" },
-    texttemplate: "<b>%{label}</b><br>%{value:.1f} %", textfont: { color: ink, size: 13 }, textposition: "top left", sort: false,
+    marker: { colors, line: { color: css("--bg-000"), width: 2 }, pad: { t: 0, l: 0, r: 0, b: 0 } }, tiling: { pad: 2, packing: "squarify" },
+    texttemplate: "<b>%{label}</b><br>%{value:.1f} %", textfont: { family: FONT, color: ink, size: 13 }, textposition: "top left", sort: false,
     hovertemplate: "<b>%{label}</b><br>%{value:.1f} % av porteføljen<br>%{text}<extra></extra>" }],
   layout({ margin: { l: 0, r: 0, t: 0, b: 0 }, uniformtext: { minsize: 10, mode: "hide" } }));
 }
@@ -705,16 +699,17 @@ function renderCost() {
   const val = (cost) => ys.map((y) => I.savingsValue(pl.start, pl.monthly, y, g, cost));
   const c0 = val(0), c1 = val(res.cost), paidY = ys.map((y) => pl.start + pl.monthly * 12 * y);
   const line = (name, y, color, width, extra = {}) => ({ type: "scatter", mode: "lines", name, x: ys, y, line: { color, width }, hovertemplate: `${name}: %{y:,.0f} kr<extra></extra>`, ...extra });
-  const end = (y, text) => ({ x: pl.years, y, text, showarrow: false, xanchor: "left", yanchor: "middle", xshift: 8, align: "left", font: { size: 11, color: css("--ink") } });
+  const end = (y, text) => ({ x: pl.years, y, text, showarrow: false, xanchor: "left", yanchor: "middle", xshift: 8, align: "left", font: { family: FONT, size: 12, color: css("--ink-900") } });
   plot("chart-cost", [
-    line("Det du har satt inn", paidY, css("--axis"), 1.5),
-    line("Porteføljen din", c1, css("--mine"), 2.5),
-    line("Uten kostnader", c0, css("--bad"), 1.5, { fill: "tonexty", fillcolor: css("--bad-soft") }),
+    line("Det du har satt inn", paidY, css("--chart-reference"), 1.5),
+    line("Porteføljen din", c1, css("--chart-focus"), 2.5),
+    line("Uten kostnader", c0, css("--chart-context"), 1.5, { fill: "tonexty", fillcolor: css("--chart-context") }),
   ], layout({
     showlegend: false, hovermode: "x unified", margin: { l: 8, r: 128, t: 12, b: 40 },
     xaxis: axis({ ticksuffix: " år", dtick: pl.years > 12 ? 5 : pl.years > 5 ? 2 : 1, range: [0, pl.years], showgrid: false }),
     yaxis: axis({ tickformat: ",.0f", ticksuffix: " kr", nticks: 5, rangemode: "tozero" }),
-    annotations: [end(v0, `Uten kostnader<br><b>${krRound(v0)}</b>`), end(v1 - (v0 - v1 < v0 * 0.06 ? v0 * 0.08 : 0), `Porteføljen din<br><b>${krRound(v1)}</b>`), end(paid, `Satt inn<br><b>${krRound(paid)}</b>`)],
+    annotations: [end(v0, `Uten kostnader<br><b>${krRound(v0)}</b>`), end(v1 - (v0 - v1 < v0 * 0.06 ? v0 * 0.08 : 0), `Porteføljen din<br><b>${krRound(v1)}</b>`), end(paid, `Satt inn<br><b>${krRound(paid)}</b>`),
+      { x: pl.years * 0.97, y: (c0[pl.years] + c1[pl.years]) / 2, text: `Kostnader: <b>${krRound(v0 - v1)}</b>`, showarrow: false, xanchor: "right", yanchor: "middle", font: { family: FONT, size: 12, color: css("--ink-900") } }],
   }));
 
   const drag = v0 - v1, wc = res.use.map((u) => u.w * (u.p.cost ?? 0)), sum = wc.reduce((a, b) => a + b, 0) || 1;
@@ -754,9 +749,9 @@ function renderRisk() {
   const b = benchSeries(), traces = [];
   if (b && E.isNum(b[res.from])) {
     const bv = E.cumulative(b, res.from, D.end, K);
-    traces.push({ x: dates, y: bv, mode: "lines", name: `Verdensindeksen (${D.by[st_bench()]?.ticker || "referanse"})`, line: { color: css("--axis"), width: 1.5 }, hovertemplate: "%{y:,.0f} kr<extra>Verdensindeksen</extra>" });
+    traces.push({ x: dates, y: bv, mode: "lines", name: `Verdensindeksen (${D.by[st_bench()]?.ticker || "referanse"})`, line: { color: css("--chart-context"), width: 1.5 }, hovertemplate: "%{y:,.0f} kr<extra>Verdensindeksen</extra>" });
   }
-  traces.push({ x: dates, y: vals, mode: "lines", name: "Porteføljen din", line: { color: css("--mine"), width: 2.5 }, hovertemplate: "%{y:,.0f} kr<extra>Porteføljen din</extra>" });
+  traces.push({ x: dates, y: vals, mode: "lines", name: "Porteføljen din", line: { color: css("--chart-focus"), width: 2.5 }, hovertemplate: "%{y:,.0f} kr<extra>Porteføljen din</extra>" });
   const d = (i) => monthEnd(i), endX = f.recovered !== null ? d(f.recovered) : dates[dates.length - 1];
   const useLog = Math.max(...vals) / Math.min(...vals) > 5;
   const vAt = (i) => st.values[i - res.from + 1] * K;
@@ -764,13 +759,13 @@ function renderRisk() {
     hovermode: "x unified", margin: { l: 72, r: 16, t: 36, b: 40 },
     xaxis: axis({ type: "date", tickformat: "%Y", range: [dates[0], dates[dates.length - 1]] }),
     yaxis: axis({ tickformat: ",.0f", ticksuffix: " kr", type: useLog ? "log" : "linear" }),
-    shapes: [{ type: "rect", xref: "x", yref: "paper", x0: d(f.peak), x1: endX, y0: 0, y1: 1, fillcolor: css("--bad"), opacity: 0.1, line: { width: 0 } }],
+    shapes: [{ type: "rect", xref: "x", yref: "paper", x0: d(f.peak), x1: endX, y0: 0, y1: 1, fillcolor: css("--band-focus"), line: { width: 0 }, layer: "below" }],
     annotations: [
-      { x: d(f.trough), y: useLog ? Math.log10(vAt(f.trough)) : vAt(f.trough), text: `Bunn ${mName(f.trough)}<br><b>${pct(f.depth, 0)}</b>`, showarrow: true, arrowhead: 0, ax: 0, ay: 34, font: { size: 11, color: css("--ink") } },
-      { x: d(f.peak), y: 1, yref: "paper", text: `Største fall${f.recovered !== null ? ` – tilbake etter ${duration(f.monthsDown + f.monthsBack)}` : " – ikke tilbake ennå"}`, showarrow: false, xanchor: "left", yanchor: "bottom", font: { size: 11, color: css("--ink-2") } },
+      { x: d(f.trough), y: useLog ? Math.log10(vAt(f.trough)) : vAt(f.trough), text: `Bunn ${mName(f.trough)}<br><b>${pct(f.depth, 0)}</b>`, showarrow: true, arrowhead: 0, arrowcolor: css("--ink-500"), ax: 0, ay: 34, font: { family: FONT, size: 12, color: css("--ink-900") } },
+      { x: d(f.peak), y: 1, yref: "paper", text: `Største fall${f.recovered !== null ? ` – tilbake etter ${duration(f.monthsDown + f.monthsBack)}` : " – ikke tilbake ennå"}`, showarrow: false, xanchor: "left", yanchor: "bottom", font: { family: FONT, size: 12, color: css("--ink-700") } },
     ],
   }));
-  $("risk-chart-note").textContent = "Det røde feltet er perioden fra toppen før det største fallet til pengene var tilbake.";
+  $("risk-chart-note").textContent = "Det skyggelagte feltet er perioden fra toppen før det største fallet til pengene var tilbake.";
   $("risk-kpis").innerHTML = [
     kpi("Verste år", pct(st.worst.ret, 0), `${mName(st.worst.from)}–${mName(st.worst.to)}`),
     kpi("Største fall", pct(f.depth, 0), `${mName(f.peak)}–${mName(f.trough)} (${duration(f.monthsDown)})`),
@@ -794,11 +789,12 @@ function renderRiskExtras() {
     cur.g *= 1 + res.r[t]; cur.n++;
   }
   const v = yrs.map((x) => (x.g - 1) * 100), lo = Math.min(...v), hi = Math.max(...v);
-  plot("chart-years", [{ type: "bar", x: yrs.map((x) => String(x.y)), y: v, marker: { color: v.map((x) => (x >= 0 ? css("--good") : css("--bad"))), line: { width: 0 } },
+  plot("chart-years", [{ type: "bar", x: yrs.map((x) => String(x.y)), y: v, marker: { color: v.map((x) => (x >= 0 ? css("--div-pos-2") : css("--div-neg-2"))), line: { width: 0 } },
     customdata: yrs.map((x) => (x.n < 12 ? ` (${x.n} måneder)` : "")), hovertemplate: "%{x}%{customdata}: %{y:.1f} %<extra></extra>",
-    text: v.map((x) => (x === lo || x === hi ? `${x >= 0 ? "+" : "−"}${nf(0).format(Math.abs(x))} %` : "")), textposition: "outside", textfont: { size: 11, color: css("--ink") }, constraintext: "none", cliponaxis: false }],
+    text: v.map((x) => `${x >= 0 ? "+" : "−"}${nf(0).format(Math.abs(x))}`), textposition: "outside", textfont: { family: FONT, size: 11, color: css("--ink-900") }, constraintext: "none", cliponaxis: false }],
   layout({ showlegend: false, bargap: 0.25, margin: { l: 44, r: 8, t: 20, b: 32 },
-    xaxis: axis({ type: "category", showgrid: false, tickangle: 0, nticks: 8 }), yaxis: axis({ ticksuffix: " %", zeroline: true, zerolinewidth: 1 }) }));
+    uniformtext: { minsize: 9, mode: "hide" },
+    xaxis: axis({ type: "category", showgrid: false, tickangle: 0, nticks: 8 }), yaxis: axis({ ticksuffix: " %", zeroline: true, zerolinewidth: 1, zerolinecolor: css("--ink-500") }) }));
   // money vs swings
   const rc = res.model?.rc, box = $("risk-contrib");
   if (!rc) { box.innerHTML = '<p class="muted">For kort historikk.</p>'; return; }
@@ -806,7 +802,7 @@ function renderRiskExtras() {
   const big = res.use.map((u, k) => ({ u, d: rc[k] - u.w })).sort((a, b) => b.d - a.d)[0];
   box.innerHTML = res.use.map((u, k) => `<div class="contrib-row"><div class="nm">${swatch(u.item)}${esc(u.p.name)}</div>
       <div class="pair"><span class="lbl">Penger</span><span class="track"><span class="fill money" style="width:${(u.w / mx * 100).toFixed(1)}%"></span></span><span class="val">${pc0(u.w)}</span></div>
-      <div class="pair"><span class="lbl">Risiko</span><span class="track"><span class="fill" style="width:${(Math.max(0, rc[k]) / mx * 100).toFixed(1)}%;background:${colorOf(u.item)}"></span></span><span class="val">${pc0(rc[k])}</span></div></div>`).join("") +
+      <div class="pair"><span class="lbl">Risiko</span><span class="track"><span class="fill risk" style="width:${(Math.max(0, rc[k]) / mx * 100).toFixed(1)}%"></span></span><span class="val">${pc0(rc[k])}</span></div></div>`).join("") +
     (big && big.d > 0.05 ? `<p class="hint">${esc(big.u.p.name)} er ${pc0(big.u.w)} av pengene, men står for ${pc0(rc[res.use.indexOf(big.u)])} av svingningene.</p>` : "");
 }
 
@@ -818,13 +814,13 @@ function renderOutcomes() {
   lead.innerHTML = `<p class="big">Om ${n} år er sparingen mest sannsynlig verdt rundt <strong>${krRound(pr.p50[n])}</strong>.</p>
     <p>Går det dårlig (ett av ti utfall) ender du på ${krRound(pr.p10[n])} eller mindre. Går det bra (ett av ti) blir det ${krRound(pr.p90[n])} eller mer.
       Du har da satt inn ${krRound(pr.paid[n])}${pr.p10[n] < pr.paid[n] ? " – i de dårlige utfallene sitter du altså igjen med mindre enn du satte inn" : ""}.</p>`;
-  const end = (y, text) => ({ x: n, y, text, showarrow: false, xanchor: "left", yanchor: "middle", xshift: 8, align: "left", font: { size: 11, color: css("--ink") } });
+  const end = (y, text) => ({ x: n, y, text, showarrow: false, xanchor: "left", yanchor: "middle", xshift: 8, align: "left", font: { family: FONT, size: 12, color: css("--ink-900") } });
   const tr = (name, y, color, width, extra = {}) => ({ type: "scatter", mode: "lines", name, x: ys, y, line: { color, width }, hovertemplate: `${name}: %{y:,.0f} kr<extra></extra>`, ...extra });
   plot("chart-fan", [
-    tr("Går det dårlig (1 av 10)", pr.p10, css("--mine"), 1),
-    tr("Går det bra (1 av 10)", pr.p90, css("--mine"), 1, { fill: "tonexty", fillcolor: css("--band") }),
-    tr("Mest sannsynlig", pr.p50, css("--mine"), 3),
-    tr("Det du har satt inn", pr.paid, css("--axis"), 1.5),
+    tr("Går det dårlig (1 av 10)", pr.p10, css("--band-focus"), 0.5),
+    tr("Går det bra (1 av 10)", pr.p90, css("--band-focus"), 0.5, { fill: "tonexty", fillcolor: css("--band-focus") }),
+    tr("Mest sannsynlig", pr.p50, css("--chart-focus"), 2.5),
+    tr("Det du har satt inn", pr.paid, css("--chart-reference"), 1.5),
   ], layout({
     showlegend: false, hovermode: "x unified", margin: { l: 8, r: 150, t: 12, b: 40 },
     xaxis: axis({ ticksuffix: " år", dtick: n > 12 ? 5 : n > 5 ? 2 : 1, range: [0, n], showgrid: false }),
@@ -832,7 +828,7 @@ function renderOutcomes() {
     annotations: [end(pr.p90[n], `Går det bra<br><b>${krRound(pr.p90[n])}</b>`), end(pr.p50[n], `Mest sannsynlig<br><b>${krRound(pr.p50[n])}</b>`),
       end(Math.min(pr.p10[n], pr.p50[n] - (pr.p90[n] - pr.p10[n]) * 0.13), `Går det dårlig<br><b>${krRound(pr.p10[n])}</b>`)],
   }));
-  $("fan-note").textContent = `Det blå feltet dekker 8 av 10 utfall. Anslag fra forventet avkastning ${pct(m.now.ret)} og svingninger ${pct(m.now.vol)} per år, etter kostnader, i dagens kroneverdi uten justering for prisvekst.`;
+  $("fan-note").textContent = `Feltet dekker 8 av 10 utfall. Anslag fra forventet avkastning ${pct(m.now.ret)} og svingninger ${pct(m.now.vol)} per år, etter kostnader, i dagens kroneverdi uten justering for prisvekst.`;
 }
 
 // ---------------------------------------------------------------- 5. a better mix
@@ -870,8 +866,8 @@ function renderSuggestion() {
       `. Verste år i historikken: ${pc0(sg.story?.worst.ret)} (i dag ${pc0(res.story.worst.ret)}).` +
       (res.capped?.length ? ` <span class="muted">Smale fond (${listNo(res.capped.map(esc))}) får aldri mer enn ${pc0(NARROW_CAP)} hver i forslaget – ett fond som har gått bra, skal ikke få dominere.</span>` : "");
   $("sg-bars").innerHTML = '<div class="ba-row"><span>I dag</span><div class="mixbar" id="sg-bar-now"></div></div><div class="ba-row"><span>Forslag</span><div class="mixbar" id="sg-bar-new"></div></div>';
-  mixbar("sg-bar-now", res.use.map((u) => ({ label: u.p.name, w: u.w, color: colorOf(u.item) })));
-  mixbar("sg-bar-new", res.use.map((u, k) => ({ label: u.p.name, w: sg.w[k], color: colorOf(u.item) })));
+  mixbar("sg-bar-now", res.use.map((u) => ({ label: u.p.name, w: u.w, tok: tokOf(u.item) })));
+  mixbar("sg-bar-new", res.use.map((u, k) => ({ label: u.p.name, w: sg.w[k], tok: tokOf(u.item) })));
   const row = (label, a, b, cls) => ({ _cls: cls || "", cells: [label, a, b, ""] });
   table($("sg-table"), [{ t: "Fond / ETF" }, { t: "I dag", num: true }, { t: "Forslag", num: true }, { t: "Endring", num: true }], [
     ...res.use.map((u, k) => { const dd = sg.w[k] - u.w; return { cells: [{ html: swatch(u.item) + esc(u.p.name) }, pc0(u.w), { html: `<strong>${pc0(sg.w[k])}</strong>` },
@@ -893,28 +889,28 @@ function renderMap() {
   const bm = benchSeries(), def = D.summary.defaults;
   const bVol = Math.sqrt(m.est.benchVar) * 100, bRet = ((1 - def.history_weight) * (m.rf + def.market_risk_premium - (D.by[st.bench]?.fee ?? 0) / 100) + def.history_weight * m.est.benchHist) * 100;
   if (bm) { xs.push(bVol); ys.push(bRet); }
-  const bg = sharpeBackdrop(xs, ys, rfP);
+  const bg = sharpeLines(xs, ys, rfP);
   const short = (s) => (s.length > 24 ? s.slice(0, 22) + "…" : s);
   const traces = [...bg.traces];
   if (m.frontier) traces.push({ type: "scatter", mode: "lines", name: "Beste blandinger av fondene dine", x: m.frontier.map((p) => p.vol * 100), y: m.frontier.map((p) => p.ret * 100),
-    line: { color: css("--ink"), width: 2 }, hoverinfo: "skip" });
+    line: { color: css("--chart-reference"), width: 2 }, hoverinfo: "skip" });
   const order = hx.map((x, k) => [x, k]).sort((a, b) => a[0] - b[0]).map((x) => x[1]), pos = [];
   order.forEach((k, i) => { pos[k] = i % 2 ? "bottom center" : "top center"; });
   traces.push({ type: "scatter", mode: "markers+text", name: "Fondene dine", x: hx, y: hy, text: res.use.map((u) => esc(short(u.p.name))), textposition: pos,
-    textfont: { size: 11, color: css("--ink") }, marker: { size: 10, color: css("--ink"), line: { color: css("--surface"), width: 1.5 } },
+    textfont: { family: FONT, size: 12, color: css("--ink-700") }, marker: { size: 11, color: css("--chart-context"), line: { color: css("--line-400"), width: 1 } },
     customdata: res.use.map((u) => u.p.name), hovertemplate: "<b>%{customdata}</b><br>Forventet %{y:.1f} % per år · svingninger %{x:.1f} %<extra></extra>" });
-  if (bm) traces.push({ type: "scatter", mode: "markers+text", name: "Verdensindeksen", x: [bVol], y: [bRet], text: ["Verdensindeksen"], textposition: "middle right", textfont: { size: 11, color: css("--ink-2") },
-    marker: { size: 11, symbol: "circle-open", color: css("--ink"), line: { width: 2 } }, hovertemplate: `<b>${esc(D.by[st.bench]?.name || "Referanse")}</b><br>Forventet %{y:.1f} % · svingninger %{x:.1f} %<extra></extra>` });
+  if (bm) traces.push({ type: "scatter", mode: "markers+text", name: "Verdensindeksen", x: [bVol], y: [bRet], text: ["Verdensindeksen"], textposition: "middle right", textfont: { family: FONT, size: 12, color: css("--chart-reference") },
+    marker: { size: 12, symbol: "diamond-open", color: css("--chart-reference"), line: { width: 2 } }, hovertemplate: `<b>${esc(D.by[st.bench]?.name || "Referanse")}</b><br>Forventet %{y:.1f} % · svingninger %{x:.1f} %<extra></extra>` });
   traces.push({ type: "scatter", mode: "markers+text", name: "Porteføljen i dag", x: [m.now.vol * 100], y: [m.now.ret * 100], text: ["<b>I dag</b>"], textposition: "middle right",
-    textfont: { size: 12, color: css("--ink") }, marker: { size: 20, symbol: "star", color: css("--mine"), line: { color: css("--surface"), width: 2 } },
+    textfont: { family: FONT, size: 13, color: css("--ink-900") }, marker: { size: 16, color: css("--chart-focus"), line: { color: css("--bg-000"), width: 2 } },
     hovertemplate: "<b>Porteføljen i dag</b><br>Forventet %{y:.1f} % per år · svingninger %{x:.1f} %<extra></extra>" });
   if (sg && res.use.some((u, k) => Math.abs(sg.w[k] - u.w) >= 0.015)) traces.push({ type: "scatter", mode: "markers+text", name: "Forslaget", x: [sg.perf.vol * 100], y: [sg.perf.ret * 100],
-    text: ["<b>Forslag</b>"], textposition: "middle left", textfont: { size: 12, color: css("--ink") }, marker: { size: 20, symbol: "star", color: css("--surface"), line: { color: css("--ink"), width: 2 } },
+    text: ["<b>Forslag</b>"], textposition: "middle left", textfont: { family: FONT, size: 13, color: css("--ink-900") }, marker: { size: 16, color: css("--chart-2"), line: { color: css("--bg-000"), width: 2 } },
     hovertemplate: "<b>Forslaget</b><br>Forventet %{y:.1f} % per år · svingninger %{x:.1f} %<extra></extra>" });
   plot("chart-map", traces, layout({
     hovermode: "closest", annotations: bg.annotations, margin: { l: 60, r: 16, t: 40, b: 52 },
-    xaxis: axis({ ticksuffix: " %", titleText: "Svingninger per år (risiko)", range: bg.xr, showgrid: false }),
-    yaxis: axis({ ticksuffix: " %", titleText: "Forventet avkastning per år, etter kostnader", range: bg.yr, showgrid: false }),
+    xaxis: axis({ ticksuffix: " %", titleText: "Svingninger per år (risiko)", range: bg.xr }),
+    yaxis: axis({ ticksuffix: " %", titleText: "Forventet avkastning per år, etter kostnader", range: bg.yr }),
   }));
   $("map-note").textContent = `${SHARPE_HINT} Streken viser det beste du kan få ut av akkurat disse fondene ved å endre andelene. Tallene er anslag fremover, ikke historikk.`;
 }

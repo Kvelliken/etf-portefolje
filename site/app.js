@@ -69,23 +69,27 @@ function notice(el, kind, html) {
   el.hidden = false; el.className = "notice" + (kind ? " " + kind : ""); el.innerHTML = html;
 }
 
-// ---------------------------------------------------------------- Plotly base
+// ---------------------------------------------------------------- Plotly theme (all colours from the tokens)
 const PCONF = { displayModeBar: false, responsive: true };
+const FONT = 'Inter, system-ui, sans-serif';
 function axis(o = {}) {
   return Object.assign({
-    gridcolor: css("--grid"), linecolor: css("--baseline"), zerolinecolor: css("--baseline"), showline: true,
-    tickfont: { color: css("--axis"), size: 11 }, automargin: true,
-    title: { text: o.titleText || "", font: { color: css("--ink-2"), size: 12 } },
+    gridcolor: css("--line-200"), linecolor: css("--line-400"), zerolinecolor: css("--line-400"), showline: true, showgrid: true,
+    tickfont: { family: FONT, color: css("--ink-500"), size: 12 }, automargin: true, ticks: "", fixedrange: true,
+    title: { text: o.titleText || "", font: { family: FONT, color: css("--ink-500"), size: 12 } },
   }, o);
 }
 function layout(o = {}) {
-  return Object.assign({
-    paper_bgcolor: css("--surface"), plot_bgcolor: css("--surface"),
-    font: { family: 'system-ui, -apple-system, "Segoe UI", sans-serif', color: css("--ink-2"), size: 12 },
-    separators: ", ", margin: { l: 56, r: 16, t: 32, b: 48 },
-    hoverlabel: { bgcolor: css("--surface"), bordercolor: css("--baseline"), font: { color: css("--ink"), size: 12 } },
-    legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom", font: { color: css("--ink-2") } },
+  const l = Object.assign({
+    paper_bgcolor: css("--bg-000"), plot_bgcolor: css("--bg-000"),
+    font: { family: FONT, color: css("--ink-700"), size: 12 },
+    separators: ", ", margin: { l: 56, r: 16, t: 24, b: 48 },
+    hoverlabel: { bgcolor: css("--bg-000"), bordercolor: css("--line-200"), font: { family: FONT, color: css("--ink-900"), size: 13 }, align: "left" },
+    legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom", font: { family: FONT, color: css("--ink-700"), size: 12 } },
   }, o);
+  // only horizontal grid lines
+  if (l.xaxis && l.xaxis.showgrid === undefined) l.xaxis.showgrid = false;
+  return l;
 }
 function plot(id, traces, lay) {
   const el = $(id);
@@ -94,41 +98,144 @@ function plot(id, traces, lay) {
 }
 function emptyChart(id, text) {
   plot(id, [], layout({ xaxis: { visible: false }, yaxis: { visible: false },
-    annotations: [{ text, showarrow: false, font: { color: css("--muted"), size: 13 }, xref: "paper", yref: "paper", x: 0.5, y: 0.5 }] }));
+    annotations: [{ text, showarrow: false, font: { family: FONT, color: css("--ink-500"), size: 14 }, xref: "paper", yref: "paper", x: 0.5, y: 0.5 }] }));
 }
+/** Text colour that is readable on a filled token colour. */
+const INK_ON = { "--chart-1": "--bg-000", "--chart-2": "--ink-900", "--chart-3": "--bg-000", "--chart-4": "--ink-900", "--chart-context": "--ink-900",
+  "--chart-focus": "--bg-000", "--seq-3": "--bg-000", "--seq-4": "--bg-000", "--seq-5": "--bg-000", "--div-pos-2": "--bg-000", "--div-neg-2": "--bg-000" };
+const inkOn = (token) => css(INK_ON[token] || "--ink-900");
 
-// ---------------------------------------------------------------- Sharpe backdrop for risk/return charts
-/** Background for a risk/return chart: red (poor return for the risk) to green (good), by Sharpe =
- *  (return - risk-free) / volatility. Axes in percent. Returns {traces, xr, yr, annotations}. */
-function sharpeBackdrop(xs, ys, rfPct) {
+// ---------------------------------------------------------------- return for the risk (Sharpe) in plain words
+/** Five steps from "svært dårlig" to "svært bra", by Sharpe = (return − risk-free) / volatility. */
+const SHARPE_SCALE = [
+  { lo: -Infinity, hi: 0, word: "Svært dårlig", color: "--div-neg-2" },
+  { lo: 0, hi: 0.25, word: "Dårlig", color: "--div-neg-1" },
+  { lo: 0.25, hi: 0.5, word: "Middels", color: "--div-mid" },
+  { lo: 0.5, hi: 1, word: "Bra", color: "--div-pos-1" },
+  { lo: 1, hi: Infinity, word: "Svært bra", color: "--div-pos-2" },
+];
+const sharpeStep = (s) => (ok(s) ? SHARPE_SCALE.find((z) => s < z.hi) || SHARPE_SCALE[4] : null);
+const sharpeWord = (s) => (ok(s) ? sharpeStep(s).word.toLowerCase() : "–");
+const SHARPE_HINT = "De skrå linjene deler kartet etter avkastning for risikoen, fra svært dårlig til svært bra (se «Sharpe» i ordlisten).";
+
+/** Thin lines between the five steps, with the step names written in the chart. Axes in percent.
+ *  Returns {traces, annotations, xr, yr}. No coloured background. */
+function sharpeLines(xs, ys, rfPct) {
   const fx = xs.filter(ok), fy = ys.filter(ok);
   const xMax = Math.max(4, ...fx) * 1.08;
   let yLo = Math.min(0, rfPct, ...fy), yHi = Math.max(rfPct + 2, ...fy);
   const pad = (yHi - yLo) * 0.08; yLo -= pad; yHi += pad;
-  const N = 70, gx = [], gy = [], z = [];
-  for (let i = 0; i < N; i++) { gx.push(xMax * (i + 0.5) / N); gy.push(yLo + (yHi - yLo) * (i + 0.5) / N); }
-  for (const y of gy) z.push(gx.map((x) => Math.max(-0.5, Math.min(1.5, (y - rfPct) / x))));
-  const dark = css("color-scheme") === "dark" || getComputedStyle(document.documentElement).colorScheme === "dark";
-  const heat = {
-    type: "heatmap", x: gx, y: gy, z, zmin: -0.5, zmax: 1.5, zsmooth: "best", hoverinfo: "skip", opacity: dark ? 0.5 : 0.55,
-    colorscale: [[0, "#c9302c"], [0.25, "#e8743b"], [0.5, "#f2d04a"], [0.75, "#8fca5c"], [1, "#2e9e4f"]],
-    colorbar: { title: { text: "Sharpe", font: { size: 11, color: css("--ink-2") } }, thickness: 10, len: 0.7, outlinewidth: 0,
-      tickvals: [-0.5, 0, 0.5, 1, 1.5], ticktext: ["under −0,5", "0", "0,5", "1", "over 1,5"], tickfont: { size: 10, color: css("--axis") } },
-  };
-  // iso-lines so the reading does not depend on colour alone
-  const lines = [0, 0.5, 1].map((sh) => {
-    const xe = sh > 0 ? Math.min(xMax, (yHi - rfPct) / sh) : xMax;
-    return { type: "scatter", mode: "lines", x: [0, xe], y: [rfPct, rfPct + sh * xe], hoverinfo: "skip", showlegend: false,
-      line: { color: css("--ink-2"), width: 1, dash: "dot" }, opacity: 0.55 };
-  });
-  const annotations = [0, 0.5, 1].map((sh) => {
-    const xe = (sh > 0 ? Math.min(xMax, (yHi - rfPct) / sh) : xMax) * 0.97;
-    return { x: xe, y: rfPct + sh * xe, text: `Sharpe ${nf(1).format(sh)}`, showarrow: false, xanchor: "right", yanchor: "bottom",
-      font: { size: 10, color: css("--ink-2") } };
-  });
-  return { traces: [heat, ...lines], xr: [0, xMax], yr: [yLo, yHi], annotations };
+  const ray = (sh) => { const xe = sh > 0 ? Math.min(xMax, (yHi - rfPct) / sh) : sh < 0 ? Math.min(xMax, (yLo - rfPct) / sh) : xMax; return xe; };
+  const traces = [0, 0.25, 0.5, 1].map((sh) => ({ type: "scatter", mode: "lines", x: [0, ray(sh)], y: [rfPct, rfPct + sh * ray(sh)], hoverinfo: "skip",
+    showlegend: false, line: { color: css("--line-400"), width: 1 } }));
+  // names in the middle of each step, as far out as the plot allows
+  const mids = [-0.35, 0.125, 0.375, 0.75, 1.6];
+  const annotations = SHARPE_SCALE.map((z, i) => {
+    const sh = mids[i], xe = ray(sh) * 0.9, y = rfPct + sh * xe;
+    if (!(xe > xMax * 0.08) || y < yLo || y > yHi) return null;
+    return { x: xe, y, text: z.word, showarrow: false, xanchor: "center", yanchor: "middle", font: { family: FONT, size: 12, color: css("--ink-500") } };
+  }).filter(Boolean);
+  return { traces, annotations, xr: [0, xMax], yr: [yLo, yHi] };
 }
-const SHARPE_HINT = "Bakgrunnen viser avkastning i forhold til risiko (Sharpe): grønt er mye avkastning for svingningene, rødt er lite.";
+
+/** Points for the explorers: coloured by step (no background), the portfolio's own as white rings with their names.
+ *  pts = [{x, y, s (Sharpe), id, text (hover), mine, label}] */
+function stepTraces(pts) {
+  const tr = (name, g, marker, extra = {}) => ({ type: "scatter", mode: "markers", name, x: g.map((p) => p.x), y: g.map((p) => p.y),
+    customdata: g.map((p) => p.id), text: g.map((p) => p.text), hovertemplate: "%{text}<extra></extra>", marker, ...extra });
+  const out = [];
+  for (const z of SHARPE_SCALE) {
+    const g = pts.filter((p) => !p.mine && sharpeStep(p.s) === z);
+    if (g.length) out.push(tr(z.word, g, { color: css(z.color), size: 8, line: { color: css("--line-400"), width: 0.75 } }));
+  }
+  const none = pts.filter((p) => !p.mine && !sharpeStep(p.s));
+  if (none.length) out.push(tr("Uten risikotall", none, { color: css("--chart-context"), size: 7, line: { width: 0 } }));
+  const mine = pts.filter((p) => p.mine);
+  if (mine.length) out.push(tr("I porteføljen", mine, { color: css("--bg-000"), size: 14, line: { color: css("--chart-focus"), width: 3 } },
+    { mode: "markers+text", texttemplate: mine.map((p) => esc(p.label || "")), textposition: "top center", textfont: { family: FONT, color: css("--ink-900"), size: 12 } }));
+  return out;
+}
+const stepLegend = () => ({ orientation: "h", x: 0, y: 1.02, yanchor: "bottom", title: { text: "Avkastning for risikoen:", font: { family: FONT, color: css("--ink-500"), size: 12 } } });
+
+// ---------------------------------------------------------------- figure cards (vv-figure)
+const ICON = {
+  table: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"></rect><path d="M3 9h18M3 14.5h18M9 9v11"></path></svg>',
+  chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16V10M12 16V6M17 16v-4"></path></svg>',
+  download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"></path></svg>',
+  info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>',
+  insight: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"></path></svg>',
+};
+const FIG = {};
+/** Build the skeleton of every <figure class="vv-figure" data-chart="…"> once. The chart element keeps its id. */
+function initFigures(root = document) {
+  root.querySelectorAll("figure.vv-figure[data-fig]:not([data-ready])").forEach((f) => {
+    const id = f.id, chart = f.dataset.chart, kind = f.dataset.kind || "chart";
+    const body = chart
+      ? `<div id="${chart}" class="chart ${f.dataset.size ? "chart-" + f.dataset.size : ""}" role="img" aria-label=""></div>`
+      : `<div class="fig-html" role="img" aria-label=""></div>`;
+    f.innerHTML = `<h3 class="vv-figure__title"></h3><p class="vv-figure__subtitle"></p>
+      <div class="vv-figure__body">${body}<div class="fig-table vv-table-wrap" hidden></div></div>
+      <p class="vv-figure__takeaway" hidden></p><p class="vv-figure__source"></p>
+      <div class="vv-figure__footer">
+        <details class="vv-details fig-about"><summary>Om dataene</summary><dl></dl></details>
+        <ul class="vv-downloads"><li><button type="button" class="vv-download fig-btn" data-act="table" aria-pressed="false">${ICON.table}<span>Vis som tabell</span></button></li>
+          <li><button type="button" class="vv-download fig-btn" data-act="csv">${ICON.download}<span>Last ned CSV</span></button></li></ul>
+      </div>`;
+    f.dataset.ready = "1";
+    f.dataset.kind = kind;
+    f.addEventListener("click", (ev) => {
+      const b = ev.target.closest(".fig-btn"); if (!b) return;
+      const d = FIG[id]; if (!d) return;
+      if (b.dataset.act === "csv") return downloadCsv(d);
+      const on = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.innerHTML = on ? `${ICON.chart}<span>Vis som figur</span>` : `${ICON.table}<span>Vis som tabell</span>`;
+      f.querySelector(".fig-table").hidden = !on;
+      const vis = f.querySelector(".vv-figure__body > :first-child"); vis.hidden = on;
+      if (on) renderFigTable(f, d); else window.dispatchEvent(new Event("resize"));
+    });
+  });
+}
+/** Fill a figure card. o = {title, subtitle, takeaway, source, about: [[dt, dd]], aria, data: {name, head: [..], rows: [[..]]}, html} */
+function figure(id, o) {
+  const f = $(id); if (!f) return;
+  FIG[id] = o;
+  const set = (sel, html) => { const el = f.querySelector(sel); el.innerHTML = html || ""; el.hidden = !html; };
+  set(".vv-figure__title", o.title); set(".vv-figure__subtitle", o.subtitle); set(".vv-figure__takeaway", o.takeaway);
+  set(".vv-figure__source", o.source ? `Kilde: ${o.source}` : "");
+  const about = o.about || [];
+  f.querySelector(".fig-about").hidden = !about.length;
+  f.querySelector(".fig-about dl").innerHTML = about.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  const vis = f.querySelector(".vv-figure__body > :first-child");
+  vis.setAttribute("aria-label", o.aria || "");
+  if (o.html !== undefined && f.querySelector(".fig-html")) f.querySelector(".fig-html").innerHTML = o.html;
+  f.querySelector(".vv-downloads").hidden = !o.data;
+  if (f.querySelector('.fig-btn[data-act="table"]').getAttribute("aria-pressed") === "true") renderFigTable(f, o);
+}
+function renderFigTable(f, o) {
+  const d = o.data; if (!d) return;
+  const num = d.num || d.head.map((_, i) => i > 0);
+  f.querySelector(".fig-table").innerHTML = `<table class="vv-table"><caption class="visually-hidden">${esc(stripTags(o.title || ""))}</caption>
+    <thead><tr>${d.head.map((h, i) => `<th scope="col" class="${num[i] ? "vv-num" : ""}">${esc(h)}</th>`).join("")}</tr></thead>
+    <tbody>${d.rows.map((r) => `<tr>${r.map((c, i) => (i === 0 ? `<th scope="row">${esc(cellText(c))}</th>` : `<td class="${num[i] ? "vv-num" : ""}">${esc(cellText(c))}</td>`)).join("")}</tr>`).join("")}</tbody></table>`;
+}
+const stripTags = (s) => String(s).replace(/<[^>]+>/g, "");
+/** Table cells may be numbers (shown with the formatter in d.fmt) or text. */
+function cellText(c) { return c === null || c === undefined || (typeof c === "number" && !Number.isFinite(c)) ? "–" : typeof c === "object" ? c.t : String(c); }
+function downloadCsv(o) {
+  const d = o.data, q = (v) => { const s = String(v ?? ""); return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const raw = (c) => (c && typeof c === "object" ? c.v ?? c.t : c);
+  // semicolon and decimal comma, as Norwegian Excel expects
+  const val = (c) => { const v = raw(c); return typeof v === "number" && Number.isFinite(v) ? String(v).replace(".", ",") : v; };
+  const csv = "﻿" + [d.head, ...d.rows.map((r) => r.map(val))].map((r) => r.map(q).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `${d.name || "data"}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+/** Cell with a number for CSV and formatted text for the table. */
+const cell = (v, t) => ({ v: ok(v) ? Math.round(v * 1e6) / 1e6 : null, t });
 
 // ---------------------------------------------------------------- months
 function monthYM(i) {           // month index -> {y, m}
@@ -378,7 +485,7 @@ function explorerColumns() {
     return a - b;
   };
   const pctCol = (title, field, d = 1, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
-    formatter: (c) => { const v = c.getValue(); return ok(v) && v < 0 ? `<span class="neg">${pct(v, d)}</span>` : pct(v, d); } });
+    formatter: (c) => pct(c.getValue(), d) });
   const numCol = (title, field, d = 2, tip, mult = 1) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
     formatter: (c) => num(ok(c.getValue()) ? c.getValue() * mult : null, d) });
   const txt = (title, field, width) => ({ title, field, width, formatter: (c) => esc(c.getValue() ?? "–"), tooltip: true });
@@ -470,28 +577,23 @@ function renderExplorerChart() {
   const bm = D.by[st.bench]?.m?.[P];
   $("exp-chart-note").textContent = `${num(pts.length)} ETF-er med ${P} års historikk. Klikk på en prikk for å legge den i porteføljen. ${SHARPE_HINT}`;
   if (!pts.length) return emptyChart("chart-explorer", "Ingen ETF-er med nok historikk for perioden");
-  const mk = (arr) => ({
-    x: arr.map((e) => e.m[P].vol * 100), y: arr.map((e) => e.m[P].ret * 100), customdata: arr.map((e) => e.isin),
-    text: arr.map((e) => `<b>${esc(e.ticker)}</b> ${esc(e.name)}<br>${esc(e.sector)}${e.theme ? " · " + esc(e.theme) : ""} · ${esc(e.region)}<br>` +
-      `Avkastning ${pct(e.m[P].ret)} · vol. ${pct(e.m[P].vol)} · Sharpe ${num(e.m[P].sharpe, 2)}<br>Alfa ${pct(e.m[P].alpha)} · beta ${num(e.m[P].beta, 2)} · R² ${num(ok(e.m[P].r2) ? e.m[P].r2 * 100 : null, 0)}`),
-    hovertemplate: "%{text}<extra></extra>",
-  });
-  const others = pts.filter((e) => !mine.has(e.isin) && e.isin !== st.bench), mineP = pts.filter((e) => mine.has(e.isin));
   const rfP = (bm?.rf ?? pts[0].m[P].rf ?? D.summary.rf_now) * 100;
-  const bg = sharpeBackdrop(pts.map((e) => e.m[P].vol * 100), pts.map((e) => e.m[P].ret * 100), rfP);
-  const traces = [...bg.traces,
-    { ...mk(others), type: "scatter", mode: "markers", name: "ETF-er i filteret", marker: { color: css("--ink"), opacity: 0.55, size: 7, line: { color: css("--surface"), width: 1 } } },
-    { ...mk(mineP), type: "scatter", mode: "markers+text", name: "I porteføljen", textposition: "top center", texttemplate: mineP.map((e) => esc(e.ticker)),
-      textfont: { color: css("--ink"), size: 11 }, marker: { color: css("--mine"), size: 12, symbol: "diamond", line: { color: css("--surface"), width: 2 } } },
-  ];
+  const bg = sharpeLines(pts.map((e) => e.m[P].vol * 100), pts.map((e) => e.m[P].ret * 100), rfP);
+  const pt = pts.filter((e) => e.isin !== st.bench).map((e) => {
+    const x = e.m[P].vol * 100, y = e.m[P].ret * 100;
+    return { x, y, s: (y - rfP) / x, id: e.isin, mine: mine.has(e.isin), label: e.ticker,
+      text: `<b>${esc(e.ticker)}</b> ${esc(e.name)}<br>${esc(e.sector)}${e.theme ? " · " + esc(e.theme) : ""} · ${esc(e.region)}<br>` +
+        `Avkastning ${pct(e.m[P].ret)} per år · svingninger ${pct(e.m[P].vol)}<br>Avkastning for risikoen: ${sharpeWord((y - rfP) / x)} (Sharpe ${num(e.m[P].sharpe, 2)})` };
+  });
+  const traces = [...bg.traces, ...stepTraces(pt)];
   if (bm) traces.push({ type: "scatter", mode: "markers+text", name: "Referanse", x: [bm.vol * 100], y: [bm.ret * 100], customdata: [st.bench],
-    text: [`<b>Referanse</b> ${esc(D.by[st.bench].name)}<br>Avkastning ${pct(bm.ret)} · vol. ${pct(bm.vol)} · Sharpe ${num(bm.sharpe, 2)}`],
-    texttemplate: ["Referanse"], textposition: "bottom right", textfont: { color: css("--ink"), size: 11 }, hovertemplate: "%{text}<extra></extra>",
-    marker: { color: css("--surface"), size: 13, symbol: "circle", line: { color: css("--ink"), width: 2.5 } } });
+    text: [`<b>Referanse</b> ${esc(D.by[st.bench].name)}<br>Avkastning ${pct(bm.ret)} · svingninger ${pct(bm.vol)}`],
+    texttemplate: ["Referanse"], textposition: "bottom right", textfont: { family: FONT, color: css("--chart-reference"), size: 12 }, hovertemplate: "%{text}<extra></extra>",
+    marker: { color: css("--bg-000"), size: 13, symbol: "diamond", line: { color: css("--chart-reference"), width: 2.5 } } });
   plot("chart-explorer", traces, layout({
-    hovermode: "closest", annotations: bg.annotations,
-    xaxis: axis({ ticksuffix: " %", titleText: `Svingninger (volatilitet) per år, ${P} år`, range: bg.xr, showgrid: false }),
-    yaxis: axis({ ticksuffix: " %", titleText: `Avkastning per år, ${P} år`, range: bg.yr, showgrid: false }),
+    hovermode: "closest", annotations: bg.annotations, legend: stepLegend(),
+    xaxis: axis({ ticksuffix: " %", titleText: `Svingninger per år (volatilitet), ${P} år`, range: bg.xr }),
+    yaxis: axis({ ticksuffix: " %", titleText: `Avkastning per år, ${P} år`, range: bg.yr }),
   }));
   const el = $("chart-explorer");
   if (!el._clickBound && el.on) {
@@ -512,7 +614,7 @@ function renderGrowthChart() {
   if (b && E.isNum(b[start])) series.push({ isin: st.bench, label: "Referanse", name: D.by[st.bench].name, ref: true, v: E.cumulative(b, start, D.end, 100) });
   const traces = series.map((s) => ({
     x: dates, y: s.v, mode: "lines", name: s.label, showlegend: false,
-    line: { color: s.ref ? css("--ref") : s.mine ? css("--mine") : css("--axis"), width: s.ref || s.mine ? 2.5 : 1.5 },
+    line: { color: s.ref ? css("--chart-reference") : s.mine ? css("--chart-focus") : css("--chart-context"), width: s.ref || s.mine ? 2.5 : 1.5 },
     hovertemplate: `%{y:.0f}<extra>${esc(s.label)}</extra>`,
   }));
   // direct labels at the line ends, nudged apart
@@ -523,7 +625,7 @@ function renderGrowthChart() {
   let last = -Infinity;
   for (const e of ends) { e.p = Math.max(tr(e.y), last + gap); last = e.p; }
   const ann = ends.map((e) => ({ x: dates[dates.length - 1], y: useLog ? e.p : e.p, xanchor: "left", yanchor: "middle", showarrow: false, xshift: 6,
-    text: esc(series[e.k].label), font: { size: 11, color: series[e.k].ref ? css("--ink") : css("--ink-2") } }));
+    text: esc(series[e.k].label), font: { family: FONT, size: 12, color: series[e.k].ref || series[e.k].mine ? css("--ink-900") : css("--ink-700") } }));
   plot("chart-explorer", traces, layout({
     hovermode: "x unified", margin: { l: 56, r: 90, t: 16, b: 40 }, annotations: ann,
     xaxis: axis({ type: "date", tickformat: P <= 1 ? "%m.%Y" : "%Y", dtick: P <= 1 ? "M2" : P <= 5 ? "M12" : "M24", range: [dates[0], dates[dates.length - 1]] }),

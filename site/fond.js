@@ -230,31 +230,24 @@ function renderFundChart() {
     (byVol ? `Volatilitet = årlig standardavvik ${RP} år i NOK${RP !== P ? " (Nordnet har ikke 10 år)" : ""}. ` : "") +
     `${num(pts.length)} fond${noRisk ? ` (${num(noRisk)} mangler volatilitet)` : ""}. Klikk på en prikk for å legge fondet i porteføljen. ${byVol ? SHARPE_HINT : ""}`;
   if (!pts.length) { emptyChart("chart-fond", "Ingen fond med tall for perioden – løsne på filtrene"); return; }
-  const mine = mineSet();
-  const groups = [["Aktive fond", (f) => !f.index && !mine.has(f.isin), css("--ink"), "circle", 7, 0.6],
-    ["Indeksfond", (f) => f.index && !mine.has(f.isin), css("--surface"), "diamond", 9, 1],
-    ["I porteføljen", (f) => mine.has(f.isin), css("--mine"), "star", 15, 1]];
-  const bg = byVol ? sharpeBackdrop(pts.map(xOf), pts.map((f) => f[k] * 100), D.summary.rf_now * 100) : null;
-  const traces = groups.map(([name, fn, col, sym, size, op]) => {
-    const g = pts.filter(fn);
-    return {
-      type: "scatter", mode: "markers", name, x: g.map(xOf), y: g.map((f) => f[k] * 100), ids: g.map((f) => f.isin),
-      marker: { size, color: col, symbol: sym, opacity: op, line: { color: sym === "diamond" ? css("--ink") : css("--surface"), width: sym === "diamond" ? 1.5 : 1 } },
-      customdata: g.map((f) => [f.name, f.company || "", f.isin, "", pctPP(f.cost), pct(f[vk]), num(f[rk("sharpe", P)], 2), pct(f[rk("alpha", P)]),
-        num(f[rk("beta", P)], 2), ok(f[rk("r2", P)]) ? num(f[rk("r2", P)] * 100, 0) : "–"]),
-      hovertemplate: "<b>%{customdata[0]}</b><br>%{customdata[1]}<br>Avkastning %{y:.1f} % per år · kostnad %{customdata[4]}" +
-        `<br>${RP} år: vol. %{customdata[5]} · Sharpe %{customdata[6]}<br>Alfa %{customdata[7]} · beta %{customdata[8]} · R² %{customdata[9]}<extra></extra>`,
-    };
-  }).filter((t) => t.x.length);
+  const mine = mineSet(), rfP = D.summary.rf_now * 100;
+  const bg = byVol ? sharpeLines(pts.map(xOf), pts.map((f) => f[k] * 100), rfP) : null;
+  const shortName = (n) => (n.length > 26 ? n.slice(0, 24) + "…" : n);
+  const traces = stepTraces(pts.map((f) => {
+    const x = xOf(f), y = f[k] * 100, s = byVol ? (y - rfP) / x : f[rk("sharpe", P)];
+    return { x, y, s, id: f.isin, mine: mine.has(f.isin), label: shortName(f.name),
+      text: `<b>${esc(f.name)}</b><br>${esc(f.company || "")} · ${f.index ? "indeksfond" : "aktivt fond"}<br>Avkastning ${pct(f[k])} per år · kostnad ${pctPP(f.cost)}` +
+        `<br>Svingninger ${pct(f[vk])} (${RP} år) · avkastning for risikoen: ${sharpeWord(s)}${ok(f[rk("sharpe", P)]) ? ` (Sharpe ${num(f[rk("sharpe", P)], 2)})` : ""}` };
+  }));
   plot("chart-fond", [...(bg ? bg.traces : []), ...traces], layout({
-    xaxis: byVol ? axis({ titleText: `Svingninger (volatilitet) ${RP} år (NOK, % per år)`, ticksuffix: " %", range: bg.xr, showgrid: false })
-      : axis({ titleText: "Kostnad hos Nordnet (% per år)", ticksuffix: " %", rangemode: "tozero" }),
-    yaxis: axis({ titleText: `Avkastning per år, ${P} år (NOK)`, ticksuffix: " %", ...(bg ? { range: bg.yr, showgrid: false } : {}) }),
-    hovermode: "closest", margin: { l: 64, r: 16, t: 32, b: 52 }, annotations: bg ? bg.annotations : [],
+    xaxis: byVol ? axis({ titleText: `Svingninger per år (volatilitet), ${RP} år`, ticksuffix: " %", range: bg.xr })
+      : axis({ titleText: "Kostnad hos Nordnet per år", ticksuffix: " %", rangemode: "tozero" }),
+    yaxis: axis({ titleText: `Avkastning per år, ${P} år`, ticksuffix: " %", ...(bg ? { range: bg.yr } : {}) }),
+    hovermode: "closest", margin: { l: 64, r: 16, t: 48, b: 52 }, annotations: bg ? bg.annotations : [], legend: stepLegend(),
   }));
   const el = $("chart-fond");
   if (!el._clickBound && el.on) {
-    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata?.[2]; if (i) toggleSelect(i); });
+    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata; if (typeof i === "string") toggleSelect(i); });
     el._clickBound = true;
   }
 }
@@ -272,13 +265,13 @@ function fundColumns() {
     return a - b;
   };
   const retCol = (title, field, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
-    formatter: (c) => { const v = c.getValue(); return ok(v) && v < 0 ? `<span class="neg">${pct(v)}</span>` : pct(v); } });
+    formatter: (c) => pct(c.getValue()) });
   const costCol = (title, field, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
     formatter: (c) => pctPP(c.getValue()) });
   const txt = (title, field, width) => ({ title, field, width, formatter: (c) => esc(c.getValue() ?? "–"), tooltip: true });
   const P = FS.period, RP = riskP(P);
   const numCol = (title, field, d, tip, mult = 1) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
-    formatter: (c) => { const v = c.getValue(); return ok(v) ? (v < 0 ? `<span class="neg">${num(v * mult, d)}</span>` : num(v * mult, d)) : "–"; } });
+    formatter: (c) => { const v = c.getValue(); return ok(v) ? num(v * mult, d) : "–"; } });
   return [
     { title: "", field: "mine", frozen: true, headerSort: false, hozAlign: "center", width: 44,
       formatter: (c) => `<button type="button" class="add-btn ${c.getValue() ? "on" : ""}" aria-label="${c.getValue() ? "Fjern fra" : "Legg til i"} porteføljen">${c.getValue() ? "✓" : "+"}</button>`,

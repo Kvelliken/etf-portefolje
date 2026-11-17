@@ -1,15 +1,6 @@
 /* Fond- og ETF-portefølje. Bygger på tokens.css og components.css (klasser med prefikset vv-).
    Bare tokennavn her, aldri hex-verdier. Nye komponenter følger samme stil og navngiving. */
 
-/* Overgang: navnene grafene i JS fortsatt leser. Fjernes når figurene bruker tokenene direkte. */
-:root {
-  --surface: var(--bg-000); --surface-2: var(--bg-200); --ink: var(--ink-900); --ink-2: var(--ink-700); --muted: var(--ink-500);
-  --axis: var(--ink-500); --grid: var(--line-200); --baseline: var(--line-400); --mine: var(--chart-focus); --ref: var(--chart-reference);
-  --good: var(--div-pos-2); --bad: var(--div-neg-2); --bad-soft: var(--band-focus); --band: var(--band-focus); --tile-rest: var(--seq-2);
-  --s1: var(--chart-1); --s2: var(--chart-2); --s3: var(--chart-3); --s4: var(--chart-4);
-  --s5: var(--chart-context); --s6: var(--chart-context); --s7: var(--chart-context); --s8: var(--chart-context);
-}
-
 /* ---------------------------------------------------------------- base */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: var(--space-4); }
@@ -23,6 +14,7 @@ h3 { font-size: 18px; line-height: 26px; font-weight: 600; margin: 0 0 var(--spa
 p { margin: 0 0 var(--space-3); }
 a { color: var(--brand-600); text-underline-offset: 2px; }
 a:hover { color: var(--ink-900); }
+.vv-header a:hover, .vv-footer a:hover { color: var(--ink-on-dark); }
 strong { color: var(--ink-900); font-weight: 600; }
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 [hidden] { display: none !important; }
@@ -182,6 +174,22 @@ details.card > summary h3 { margin: 0; }
 .delta-pos, .delta-neg { font-weight: 600; color: var(--ink-900); }
 .stars { letter-spacing: 1px; white-space: nowrap; color: var(--ink-900); }
 
+/* ---------------------------------------------------------------- figure cards (vv-figure + helpers in app.js) */
+.vv-figure { min-width: 0; }
+.vv-figure + .vv-figure, .vv-figure + .grid-2, .grid-2 + .vv-figure { margin-top: var(--space-4); }
+.vv-figure__title:empty, .vv-figure__subtitle:empty { display: none; }
+.vv-figure__footer { align-items: flex-start; }
+.vv-figure__footer .vv-details { margin-top: 0; border-top: 0; flex: 1 1 260px; }
+.vv-figure__footer .vv-details summary { min-height: 32px; font-weight: 500; color: var(--brand-600); text-decoration: underline; text-underline-offset: 2px; }
+.vv-figure__footer .vv-details summary::before { border-color: var(--brand-600); }
+.vv-figure__footer .vv-details dl { margin-top: var(--space-2); }
+.vv-figure__footer .vv-downloads { margin-left: auto; }
+.fig-btn { min-height: 32px; padding: 0; border: 0; background: none; cursor: pointer; }
+.fig-btn:hover { color: var(--ink-900); }
+.fig-table { max-height: 520px; overflow: auto; }
+.fig-table .vv-table thead th { position: sticky; top: 0; }
+.fig-html { min-width: 0; }
+
 /* ---------------------------------------------------------------- Tabulator: vv-table look */
 :is(#explorer, #fund-explorer).tabulator { background: var(--bg-000); border: 1px solid var(--line-200); border-radius: var(--radius-lg); font: 400 14px/22px var(--font-sans); color: var(--ink-900); max-width: 100%; }
 :is(#explorer, #fund-explorer).tabulator .tabulator-header { background: var(--bg-200); border-bottom: 1px solid var(--line-400); color: var(--ink-700); }
@@ -296,6 +304,7 @@ details.step:not([open]) > summary .step-head { margin-bottom: 0; }
 .contrib-row .track { height: 10px; background: var(--bg-100); border-radius: var(--radius-sm); overflow: hidden; }
 .contrib-row .fill { display: block; height: 100%; }
 .contrib-row .fill.money { background: var(--chart-context); }
+.contrib-row .fill.risk { background: var(--chart-focus); }
 .contrib-row .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-900); }
 .ba { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
 .ba-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-3); align-items: center; font-size: 14px; font-weight: 600; color: var(--ink-900); }
