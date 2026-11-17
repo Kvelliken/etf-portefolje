@@ -653,6 +653,7 @@ function renderGrowthChart() {
     title: `${esc(best.label)} har vokst mest av de 10 første i tabellen, ${P} år`,
     subtitle: `Verdien av 100 kr investert for ${P} år siden, i kroner med utbytte reinvestert. De 10 første radene i tabellen etter sorteringen din, og referansen.`,
     source: "Yahoo Finance (kurser og utbytte), Norges Bank (valuta), egne beregninger",
+    about: [["Utvalg", "De 10 første radene i tabellen med historikk for hele perioden, og referansen."], ["Metode", '<a href="#metode-etf">Slik er tallene regnet</a>']],
     aria: `Linjediagram: utviklingen for de 10 første ETF-ene i tabellen. ${best.label} endte på ${num(best.v[best.v.length - 1], 0)}\u00a0kr.`,
     data: { name: `etf-utvikling-${P}-ar`, head: ["Måned", ...series.map((x) => x.label)], rows: dates.map((d, i) => [d.slice(0, 7), ...series.map((x) => cell(Math.round(x.v[i] * 10) / 10, num(x.v[i], 1)))]) },
   });

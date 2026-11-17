@@ -720,7 +720,8 @@ function renderTree(comps, eqShare, bondShare, src) {
   add("Annet", Math.max(0, 1 - eqShare - bondShare), "--chart-context");
   figure("fig-tree", {
     title: "Slik er pengene plassert", subtitle: "Hver rute er en del av porteføljen, i prosent. Mørk blå: de 14 største selskapene. Blå: resten av aksjene. Turkis: renter og kontanter.",
-    source: src, aria: `Rutekart: ${labels.map((l, i) => `${l} ${nf(1).format(values[i])}\u00a0%`).slice(-3).join(", ")}.`,
+    source: src, about: [["Utvalg", "De 25–35 største beholdningene i hvert fond, vektet med andelene dine. Selskaper utenfor dem ligger i «Resten av aksjene»."], ["Metode", '<a href="#metode-innhold">Slik er tallene regnet</a>']],
+    aria: `Rutekart: ${labels.map((l, i) => `${l} ${nf(1).format(values[i])}\u00a0%`).slice(-3).join(", ")}.`,
     data: { name: "rutekart", head: ["Del av porteføljen", "Andel (%)"], rows: labels.map((l, i) => [l, cell(Math.round(values[i] * 10) / 10, `${nf(1).format(values[i])}\u00a0%`)]) },
   });
   if (!labels.length || !window.Plotly) return;
@@ -745,7 +746,7 @@ function renderTwins() {
     if (!tw.length) {
       const any = twinsOf(p.id, { all: true }).length;
       const why = any ? "Dette er allerede den billigste av tvillingene vi finner." : holdingsOf(p.id) || isRate(p) ? "Vi finner ingen billigere fond eller ETF-er med nesten samme innhold." : "Vi har ikke innholdet i dette fondet, så vi kan ikke lete etter tvillinger.";
-      return `<tr>${own}<td colspan="4" class="tw-none">${any ? `<span class="vv-badge vv-badge--positive">${ICON.check}Billigst allerede</span> ` : ""}<span class="small-text">${why}</span></td></tr>`;
+      return `<tr>${own}<td colspan="4" class="tw-none">${any ? `<span class="vv-badge">${ICON.check}Billigst allerede</span> ` : ""}<span class="small-text">${why}</span></td></tr>`;
     }
     nTw++;
     // the cheapest, and as alternatives the next two and always the cheapest ordinary fund (no brokerage fee) if there is one
@@ -928,6 +929,7 @@ function renderRiskExtras() {
     title: `${pos} av ${full.length} hele kalenderår ga pluss`,
     subtitle: "Avkastning per kalenderår i prosent, i kroner etter kostnader. Første og siste år kan være delvise. Blått over null, oransje under.",
     source: "Yahoo Finance, Nordnet, egne beregninger",
+    about: [["Periode", `${mName(res.from)} til ${mName(D.end)}, med fast fordeling.`], ["Metode", '<a href="#metode-risiko">Slik er tallene regnet</a>']],
     aria: `Søylediagram: avkastning per kalenderår. ${pos} av ${full.length} år ga pluss. Verste ${lbl(Math.min(...v))}, beste ${lbl(Math.max(...v))}.`,
     data: { name: "ar-for-ar", head: ["År", "Avkastning (%)", "Måneder"], rows: yrs.map((x, i) => [String(x.y), cell(Math.round(v[i] * 10) / 10, lbl(v[i])), String(x.n)]) },
   });
@@ -952,6 +954,7 @@ function renderRiskExtras() {
     subtitle: `Andel av pengene og andel av svingningene per fond, beregnet fra de siste ${nf(0).format(res.model.eMonths / 12)} årene.`,
     takeaway: loud ? `Fondet er ${pc0(big.u.w)} av pengene, men står for mer av uroen. Et lite fond kan svinge mye.` : "",
     source: "Egne beregninger fra månedsavkastning", html,
+    about: [["Metode", "Hvert fonds bidrag til porteføljens varians: andelen ganger fondets samvariasjon med hele porteføljen, delt på porteføljens varians. Samvariasjonen er krympet med Ledoit-Wolf."], ["Mer", '<a href="#metode-forslag">Slik er tallene regnet</a>']],
     aria: `Søyler per fond: andel av pengene og andel av svingningene. ${res.use.map((u, k) => `${u.p.name}: ${pc0(u.w)} av pengene, ${pc0(rc[k])} av svingningene`).join(". ")}.`,
     data: { name: "svingninger-per-fond", head: ["Fond / ETF", "Andel av pengene (%)", "Andel av svingningene (%)"],
       rows: res.use.map((u, k) => [u.p.name, cell(Math.round(u.w * 1000) / 10, pc0(u.w)), cell(Math.round(rc[k] * 1000) / 10, pc0(rc[k]))]) },
