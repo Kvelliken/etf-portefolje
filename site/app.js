@@ -22,17 +22,19 @@ const redraw = [];
 const nfCache = {};
 const nf = (d) => (nfCache[d] ||= new Intl.NumberFormat("nb-NO", { minimumFractionDigits: d, maximumFractionDigits: d }));
 const ok = (x) => x !== null && x !== undefined && Number.isFinite(+x);
-const pct = (x, d = 1) => (ok(x) ? nf(d).format(x * 100) + " %" : "–");
+const pct = (x, d = 1) => (ok(x) ? nf(d).format(x * 100) + "\u00a0%" : "–");
 const pp = (x, d = 1) => {
   if (!ok(x)) return "–";
   const v = Math.round(x * 100 * 10 ** d) / 10 ** d;
-  return (v > 0 ? "+" : "") + nf(d).format(v === 0 ? 0 : v) + " p.p.";
+  return (v > 0 ? "+" : "") + nf(d).format(v === 0 ? 0 : v) + "\u00a0p.p.";
 };
 const num = (x, d = 0) => (ok(x) ? nf(d).format(x) : "–");
-const kr = (x) => (ok(x) ? nf(0).format(Math.round(x)) + " kr" : "–");
+const kr = (x) => (ok(x) ? nf(0).format(Math.round(x)) + "\u00a0kr" : "–");
 const MONTH_NAMES = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
 /** "2026-11-02" -> "2. november 2026" */
 const dateNo = (s) => { if (!s) return "–"; const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return `${d}. ${MONTH_NAMES[m - 1]} ${y}`; };
+/** Write out ISO dates inside a text from the data files ("… (til 2026-10-30)" -> "… (til 30. oktober 2026)"). */
+const datesInText = (t) => String(t ?? "").replace(/\b(\d{4}-\d{2}-\d{2})\b/g, (d) => dateNo(d));
 const isoDate = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 /** First working day of the month after `iso` (same rule as monthly.yml: the 1st if Mon–Fri, else the Monday after),
  *  moved on a month at a time until it is not in the past. */
@@ -57,7 +59,7 @@ const store = {
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
 function kpi(lbl, value, sub) {
-  return `<div class="kpi"><div class="label">${esc(lbl)}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+  return `<div class="vv-kpi"><span class="vv-kpi__label">${esc(lbl)}</span><span class="vv-kpi__value">${value}</span>${sub ? `<span class="vv-kpi__meta">${sub}</span>` : ""}</div>`;
 }
 function table(el, head, rows, opts = {}) {
   const th = head.map((h) => `<th scope="col" class="${h.num ? "vv-num" : ""} ${h.cls || ""}"${h.title ? ` title="${esc(h.title)}"` : ""}>${esc(h.t)}</th>`).join("");
@@ -119,7 +121,7 @@ const SHARPE_SCALE = [
 ];
 const sharpeStep = (s) => (ok(s) ? SHARPE_SCALE.find((z) => s < z.hi) || SHARPE_SCALE[4] : null);
 const sharpeWord = (s) => (ok(s) ? sharpeStep(s).word.toLowerCase() : "–");
-const SHARPE_HINT = "De skrå linjene deler kartet etter avkastning for risikoen, fra svært dårlig til svært bra (se «Sharpe» i ordlisten).";
+const SHARPE_HINT = 'De skrå linjene deler kartet etter avkastning for risikoen, fra svært dårlig til svært bra (se <a href="#ord-sharpe">Sharpe i ordlisten</a>).';
 
 /** Thin lines between the five steps, with the step names written in the chart. Axes in percent.
  *  Returns {traces, annotations, xr, yr}. No coloured background. */
@@ -376,7 +378,7 @@ function benchmarkCandidates() {
 
 function setupBenchmark() {
   const sel = $("benchmark");
-  sel.innerHTML = benchmarkCandidates().map((e) => `<option value="${e.isin}">${esc(e.ticker)} – ${esc(e.name)} (${num(e.history_years, 0)} år, ${nf(2).format(e.fee)} %)</option>`).join("");
+  sel.innerHTML = benchmarkCandidates().map((e) => `<option value="${e.isin}">${esc(e.ticker)} – ${esc(e.name)} (${num(e.history_years, 0)} år, ${nf(2).format(e.fee)}\u00a0%)</option>`).join("");
   sel.value = st.bench;
   sel.addEventListener("change", () => {
     st.bench = sel.value; store.set(LS.bench, st.bench);
@@ -387,7 +389,7 @@ function setupBenchmark() {
 function renderSettingsNote() {
   const s = D.summary;
   $("settings-note").innerHTML = `Alfa, beta, R², TE og informasjonsrate måles mot referansen. Månedlig totalavkastning i NOK.
-    Risikofri rente: ${esc(s.rf_source)}, nå ${pct(s.rf_now, 2)}.`;
+    Risikofri rente: ${esc(datesInText(s.rf_source))}, nå ${pct(s.rf_now, 2)}.`;
 }
 
 function benchSeries() { return D.ret[st.bench]; }
@@ -508,7 +510,7 @@ function explorerColumns() {
     formatter: (c) => addBtn(!!c.getValue(), c.getRow().getData().name),
     cellClick: (ev, c) => { if (!ev.target.closest("button")) return; ev.stopPropagation(); toggleSelect(c.getRow().getData().isin); } };
   const fee = { title: "Kostnad per år", field: "fee", hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: "Årlig kostnad (TER), i prosent",
-    formatter: (c) => (ok(c.getValue()) ? nf(2).format(c.getValue()) + " %" : "–") };
+    formatter: (c) => (ok(c.getValue()) ? nf(2).format(c.getValue()) + "\u00a0%" : "–") };
   if ((st.f?.cols || "simple") === "simple") return [
     add,
     { title: "ETF", field: "name", frozen: wide, width: wide ? 300 : 200, tooltip: true,
@@ -568,7 +570,7 @@ function setupExplorer() {
          <table class="vv-table"><thead><tr><th><span class="visually-hidden">Legg til</span></th><th>Ticker</th><th>Navn</th><th class="vv-num">Kostnad</th><th>Utbytte</th><th class="vv-num">Historikk</th><th class="vv-num">Avkastning ${st.period} år</th><th>ASK</th></tr></thead><tbody>
          ${alts.sort((a, b) => (a.fee ?? 9) - (b.fee ?? 9)).map((x) => `<tr><td>${addBtn(mineSet().has(x.isin), x.name).replace("<button ", `<button data-isin="${x.isin}" `)}</td>
            <td>${esc(x.ticker)}${x.pick ? ' <span class="vv-badge">vist</span>' : ""}</td><td>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</td>
-           <td class="vv-num">${ok(x.fee) ? nf(2).format(x.fee) + " %" : "–"}</td><td>${accLabel(x.acc)}</td><td class="vv-num">${num(x.history_years, 1)} år</td>
+           <td class="vv-num">${ok(x.fee) ? nf(2).format(x.fee) + "\u00a0%" : "–"}</td><td>${accLabel(x.acc)}</td><td class="vv-num">${num(x.history_years, 1)} år</td>
            <td class="vv-num">${pct(x.m?.[st.period]?.ret)}</td><td>${x.ask ? "ja" : "nei"}</td></tr>`).join("")}
          </tbody></table>`
       : `<span class="muted">Ingen andre ETF-er hos Nordnet følger samme indeks.</span> ${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Åpne hos Nordnet</a>` : ""}`;
@@ -651,7 +653,7 @@ function renderGrowthChart() {
     title: `${esc(best.label)} har vokst mest av de 10 første i tabellen, ${P} år`,
     subtitle: `Verdien av 100 kr investert for ${P} år siden, i kroner med utbytte reinvestert. De 10 første radene i tabellen etter sorteringen din, og referansen.`,
     source: "Yahoo Finance (kurser og utbytte), Norges Bank (valuta), egne beregninger",
-    aria: `Linjediagram: utviklingen for de 10 første ETF-ene i tabellen. ${best.label} endte på ${num(best.v[best.v.length - 1], 0)} kr.`,
+    aria: `Linjediagram: utviklingen for de 10 første ETF-ene i tabellen. ${best.label} endte på ${num(best.v[best.v.length - 1], 0)}\u00a0kr.`,
     data: { name: `etf-utvikling-${P}-ar`, head: ["Måned", ...series.map((x) => x.label)], rows: dates.map((d, i) => [d.slice(0, 7), ...series.map((x) => cell(Math.round(x.v[i] * 10) / 10, num(x.v[i], 1)))]) },
   });
   const traces = series.map((s) => ({
@@ -720,26 +722,50 @@ function estimate(series, bench, from, to) {
 
 // ---------------------------------------------------------------- tips, quality, method, changes
 function renderTips() {
-  $("tips-body").innerHTML = `
-    <ul>
-      <li><strong>Avkastning (1/3/5/10 år):</strong> ett år er mest tilfeldigheter. Se etter ETF-er som har gjort det godt over både 3, 5 og 10 år.</li>
-      <li><strong>Volatilitet:</strong> hvor mye verdien svinger. Verdensindeksen ligger typisk på 12–15 % i kroner, sektor-ETF-er på 18–30 %.</li>
-      <li><strong>Sharpe:</strong> avkastning per svingning – det bakgrunnsfargen i grafen viser. Over 0,5 på 5–10 år er godt, under 0,2 er svakt.</li>
-      <li><strong>Beta og R²:</strong> hvor tett ETF-en følger verdensindeksen. Høy R² (over 85) betyr at den tilfører lite nytt i en portefølje som allerede har et globalt indeksfond.</li>
-      <li><strong>Alfa:</strong> avkastning utover det beta tilsier. Bare meningsfull når R² er rimelig høy.</li>
-      <li><strong>Maks fall:</strong> det største fallet fra en topp. Spør deg selv om du hadde holdt fast.</li>
-    </ul>
-    <p>Legg kandidatene i porteføljen med +, og se under <a href="#pf-bygg">Min portefølje</a> hva de gjør med innhold, kostnad og risiko.</p>`;
+  const steps = SHARPE_SCALE.map((z) => `<tr><th scope="row"><span class="swatch" style="background:${css(z.color)}"></span>${z.word}</th>
+    <td class="vv-num">${z.lo === -Infinity ? "under 0" : z.hi === Infinity ? `${nf(z.lo === 1 ? 0 : 2).format(z.lo)} eller mer` : `${nf(2).format(z.lo)} til ${nf(2).format(z.hi)}`}</td></tr>`).join("");
+  const W = [
+    ["ord-avkastning", "Avkastning per år", "Hvor mye verdien har vokst i gjennomsnitt per år over perioden, med utbytte regnet med og etter fondets egne kostnader, i kroner. Ett år er mest tilfeldigheter; se etter fond som har gjort det godt over både 3, 5 og 10 år."],
+    ["ord-volatilitet", "Svingninger (volatilitet)", "Hvor mye verdien svinger i løpet av et år, målt som standardavvik. En verdensindeks ligger typisk på 12–15 % i kroner, bransjefond på 18–30 %, pengemarkedsfond under 1 %. Høye svingninger betyr at du må tåle store fall underveis."],
+    ["ord-sharpe", "Avkastning for risikoen (Sharpe)", `Avkastning utover risikofri rente (styringsrenten), delt på svingningene. Høyere er bedre: mer avkastning for hver prosent svingning. Siden bruker fem trinn:
+      <table class="vv-table sharpe-steps"><caption class="visually-hidden">Trinnene for avkastning for risikoen</caption><thead><tr><th scope="col">Trinn</th><th scope="col" class="vv-num">Sharpe</th></tr></thead><tbody>${steps}</tbody></table>
+      I risiko/avkastning-kartene skiller skrå linjer trinnene, og punktene er farget etter trinnet.`],
+    ["ord-fall", "Største fall", "Det største fallet fra en topp til bunnen etter, med månedlige tall. Spør deg selv om du hadde holdt fast."],
+    ["ord-alfa", "Alfa", "Avkastning utover det fondets følsomhet for markedet (beta) tilsier. Bare meningsfull når R² er rimelig høy."],
+    ["ord-beta", "Beta", "Hvor mye fondet svinger med referansen. 1 betyr like mye, 1,2 betyr 20 % mer."],
+    ["ord-r2", "R²", "Hvor stor del av svingningene referansen forklarer, fra 0 til 100. Over 85 betyr at fondet tilfører lite nytt til en portefølje som allerede har et globalt indeksfond."],
+    ["ord-te", "Tracking error (TE) og informasjonsrate (IR)", "TE er hvor mye avkastningen avviker fra referansen per år. IR er meravkastningen mot referansen delt på TE."],
+    ["ord-kostnad", "Kostnad per år", "Fond: Nordnets totalkostnad, det vil si forvaltningshonorar minus returprovisjon pluss plattformavgift. ETF-er: årlig kostnad (TER). Kostnaden er allerede trukket fra avkastningen. Kurtasje og valutapåslag ved kjøp av ETF-er kommer i tillegg."],
+    ["ord-returprovisjon", "Returprovisjon", "Den delen av forvaltningshonoraret Nordnet betaler tilbake til deg."],
+    ["ord-pp", "Prosentpoeng (p.p.)", "Forskjellen mellom to prosenttall. Går avkastningen fra 8 % til 9 %, er økningen 1 p.p."],
+    ["ord-median", "Typisk (median)", "Den midterste verdien: halvparten ligger over, halvparten under. Påvirkes mindre av noen få ekstreme fond enn et gjennomsnitt."],
+    ["ord-indeksfond", "Indeksfond, aktivt fond og ETF", "Et indeksfond kjøper alle selskapene i en indeks og er som regel billig. Et aktivt fond velger selskaper selv og koster mer. En ETF er et fond som handles på børs som en aksje."],
+    ["ord-tvilling", "Tvilling", "Et annet fond eller en ETF som eier nesten det samme, målt på land, bransjer og de største selskapene. Billigere tvillinger gir i praksis samme utvikling for lavere kostnad."],
+    ["ord-anslatt", "Historikk anslått", "Fond har ikke kurshistorikk hos oss. Siden låner da svingningene måned for måned fra den ETF-en som eier mest det samme, og justerer dem til fondets egen avkastning og risiko."],
+    ["ord-ask", "Aksjesparekonto (ASK)", "Konto der du kan bytte fond uten å betale skatt før du tar ut gevinst. Bare fond og ETF-er fra EØS kan ligge der."],
+    ["ord-akk", "Akkumulerende og utdelende", "Et akkumulerende fond legger utbyttet inn i fondet igjen. Et utdelende fond betaler det ut."],
+    ["ord-sfdr", "Bærekraft (SFDR)", "EUs klassifisering: artikkel 6 har ingen bærekraftsmål, artikkel 8 fremmer bærekraft, artikkel 9 har bærekraftig investering som mål."],
+  ];
+  $("tips-body").innerHTML = `<dl class="glossary">${W.map(([id, t, d]) => `<div id="${id}"><dt>${t}</dt><dd>${d}</dd></div>`).join("")}</dl>
+    <p>Legg kandidatene i porteføljen med «Legg til», og se under <a href="#portefolje">Min portefølje</a> hva de gjør med innhold, kostnad og risiko.</p>`;
 }
 
 function renderQuality() {
-  const Q = D.quality, c = Q.coverage || {}, u = Q.universe || {}, h = c.history || {};
+  const Q = D.quality, c = Q.coverage || {}, u = Q.universe || {}, h = c.history || {}, S = D.summary;
   $("quality").innerHTML = [
-    kpi("ETF-er hos Nordnet", num(D.summary.nordnet_n), `${num(c.active_isins)} unike ISIN`),
-    kpi("Med kursdata", num(Q.n_with_returns), `månedsavkastning til ${dateNo(D.summary.returns_until)}`),
-    kpi("Minst 5 års historikk", num(h.min_5y), `≥ 10 år: ${num(h.min_10y)}`),
-    kpi("Indekser (klynger)", num(u.n_clusters), `${num(u.n_multi_member_clusters)} med flere ETF-er · TE ${pct(u.te_threshold, 2)}`),
+    kpi("ETF-er hos Nordnet", num(S.nordnet_n), `${num(c.active_isins)} unike ISIN`),
+    kpi("Med kursdata", num(Q.n_with_returns), `månedsavkastning til ${dateNo(S.returns_until)}`),
+    kpi("Minst 5 års historikk", num(h.min_5y), `minst 10 år: ${num(h.min_10y)}`),
+    kpi("Indekser", num(u.n_clusters), `${num(u.n_multi_member_clusters)} med flere ETF-er`),
   ].join("");
+  $("sources").innerHTML = `<dl class="glossary">
+    <div><dt>Nordnet</dt><dd>Hele ETF-listen og fondslisten med kostnad, avkastning og risikotall, hentet ${dateNo(S.nordnet_run_at)}. Hva fondene og ETF-ene eier (land, bransjer, aktivaklasser og de største beholdningene) kommer fra Nordnets fond-API.</dd></div>
+    <div><dt>Morningstar via Nordnet</dt><dd>Innholdet i fondene, kategoriene og R² for fond.</dd></div>
+    <div><dt>Yahoo Finance</dt><dd>Daglige kurser og utbytte for ETF-ene, til ${dateNo(S.data_until)}.</dd></div>
+    <div><dt>OpenFIGI</dt><dd>Oppslag fra ISIN til ticker når Nordnet og Yahoo ikke gir svar.</dd></div>
+    <div><dt>Norges Bank</dt><dd>Valutakurser til kroner og styringsrenten, som brukes som risikofri rente (${esc(datesInText(S.rf_source))}, nå ${pct(S.rf_now, 2)}).</dd></div>
+  </dl>
+  <p>Alt hentes på nytt første virkedag i hver måned. Neste oppdatering: ${dateNo(nextUpdate(S.data_until))}.</p>`;
 }
 
 function renderMethod() {
@@ -751,30 +777,24 @@ function renderMethod() {
     <h3>Nøkkeltall</h3>
     <p>Annualisert avkastning er geometrisk. Volatilitet = standardavvik av månedsavkastning × √12. Sharpe = (annualisert avkastning − risikofri rente) / volatilitet.
     Beta, alfa og R² fra regresjon av meravkastning (over risikofri) mot referansens meravkastning; alfa er annualisert som (1 + månedlig alfa)<sup>12</sup> − 1.
-    Tracking error = standardavvik av månedlig differanse × √12, informasjonsrate = (avkastning − referansens) / TE. Risikofri rente: ${esc(D.summary.rf_source)}.</p>
+    Tracking error = standardavvik av månedlig differanse × √12, informasjonsrate = (avkastning − referansens) / TE. Risikofri rente: ${esc(datesInText(D.summary.rf_source))}.</p>
     <h3>Sektor, tema, region og stil</h3>
     <p>Utledet fra Morningstar-kategorien hos Nordnet og fondets navn med enkle, faste regler (for eksempel «Biotech» i navnet gir tema Biotek). Det kan bli feil for enkelte fond.
     «Én per indeks» bruker klyngingen av ETF-er med tracking error under ${pct(D.summary.te_threshold, 2)} mot hverandre, og viser den billigste (eller den med lengst historikk).</p>
-    <h3>Forbehold</h3>
-    <ul>
-      <li>Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.</li>
-      <li>Bare ETF-er som finnes i dag er med (survivorship bias): nedlagte sektorfond fra tidligere år mangler, så historikken ser bedre ut enn den var.</li>
-      <li>Kursdata fra Yahoo Finance er uoffisielle og kan inneholde feil.</li>
-      <li>Kontotype: ${esc(D.summary.account?.type || "ASK")}. ${D.summary.account?.tax_warning ? "Utenfor ASK utløser salg gevinstskatt." : "På ASK utløser bytte av fond ikke skatt før uttak."}</li>
-    </ul>`;
+    <p>Kontotype: ${esc(D.summary.account?.type || "ASK")}. ${D.summary.account?.tax_warning ? "Utenfor ASK utløser salg gevinstskatt." : "På ASK utløser bytte av fond ikke skatt før uttak."}</p>`;
 }
 
 function renderChanges() {
   const C = D.changes;
   $("changes-runs").innerHTML = C.runs.map((r, idx) => {
-    const counts = Object.entries(r.counts).map(([k, n]) => `<span class="tag">${esc(CHANGE[k] || k)}: ${num(n)}</span>`).join(" ");
+    const counts = Object.entries(r.counts).map(([k, n]) => `<span class="vv-badge">${esc(CHANGE[k] || k)}: ${num(n)}</span>`).join(" ");
     const first = idx === C.runs.length - 1 && !r.items.length;
-    const items = r.items.slice(0, 200).map((x) => `<tr><td><span class="tag">${esc(CHANGE[x.change] || x.change)}</span></td><td>${esc(x.symbol || "")}</td>
+    const items = r.items.slice(0, 200).map((x) => `<tr><td><span class="vv-badge">${esc(CHANGE[x.change] || x.change)}</span></td><td>${esc(x.symbol || "")}</td>
       <td>${esc(x.name || "")}</td><td>${esc(x.field || "")}</td><td>${esc(x.old ?? "")}</td><td>${esc(x.new ?? "")}</td></tr>`).join("");
-    return `<div style="margin-bottom:12px"><strong>${dateNo(r.run_at)}</strong> ${counts}
-      ${first ? '<p class="muted">Første kjøring: alle ETF-er registrert som nye.</p>' : items
-    ? `<div class="table-scroll"><table class="data"><thead><tr><th>Endring</th><th>Ticker</th><th>Navn</th><th>Felt</th><th>Før</th><th>Etter</th></tr></thead><tbody>${items}</tbody></table></div>`
-    : '<p class="muted">Ingen endringer.</p>'}</div>`;
+    return `<div class="card change-run"><h3>${dateNo(r.run_at)}</h3><p class="change-counts">${counts || '<span class="muted">Ingen endringer.</span>'}</p>
+      ${first ? '<p class="small-text muted">Første kjøring: alle ETF-er er registrert som nye.</p>' : items
+    ? `<details class="vv-details"><summary>Vis ${num(Math.min(200, r.items.length))} endringer</summary><div class="vv-table-wrap"><table class="vv-table"><thead><tr><th scope="col">Endring</th><th scope="col">Ticker</th><th scope="col">Navn</th><th scope="col">Felt</th><th scope="col">Før</th><th scope="col">Etter</th></tr></thead><tbody>${items}</tbody></table></div></details>`
+    : ""}</div>`;
   }).join("") || '<p class="muted">Ingen kjøringer.</p>';
 }
 

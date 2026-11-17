@@ -354,26 +354,72 @@
       <p class="vv-lede">Hvor tallene kommer fra, hvordan de er regnet, hva fagordene betyr og hva du bør være forsiktig med.</p>
       <dl class="vv-meta" data-meta></dl>
     </header>
-    <section id="metode-portefolje" aria-labelledby="h-pfm">
-      <h2 class="vv-heading-lg" id="h-pfm">Slik er tallene regnet</h2>
+    <nav class="card toc" aria-labelledby="h-toc">
+      <h2 class="vv-overline" id="h-toc">På denne siden</h2>
+      <ol>
+        <li><a href="#metode-portefolje">Slik er tallene for porteføljen regnet</a></li>
+        <li><a href="#metode-etf">Slik er tallene for ETF-ene regnet</a></li>
+        <li><a href="#fond-data">Slik er tallene for fondene regnet</a></li>
+        <li><a href="#ordliste">Ordliste: slik bruker du nøkkeltallene</a></li>
+        <li><a href="#kilder">Datakilder og dekning</a></li>
+        <li><a href="#begrensninger">Kjente begrensninger</a></li>
+        <li><a href="#endringer">Endringslogg</a></li>
+        <li><a href="#forbehold">Forbehold</a></li>
+      </ol>
+    </nav>
+
+    <section id="metode-portefolje" class="doc-section" aria-labelledby="h-pfm">
+      <h2 id="h-pfm">Slik er tallene for porteføljen regnet</h2>
       <div class="card prose" id="pf-method"></div>
     </section>
-  <section id="ordliste" aria-labelledby="h-tips">
-    <div class="section-head"><h2 id="h-tips">Slik bruker du nøkkeltallene</h2></div>
-    <div class="card prose" id="tips-body"></div>
-  </section>
-  <section id="data" aria-labelledby="h-data">
-    <div class="section-head"><h2 id="h-data">Data og metode</h2></div>
-    <div class="kpis small" id="quality"></div>
-    <div class="card prose" id="method"></div>
-    <details class="card" id="endringer">
-      <summary><h3>Endringer i Nordnet-listen</h3></summary>
-      <div id="changes-runs"></div>
-    </details>
-  </section>
-    <section id="fond-data" aria-labelledby="h-fdata">
-      <div class="section-head"><h2 id="h-fdata">Data og metode for fond</h2></div>
+
+    <section id="metode-etf" class="doc-section" aria-labelledby="h-metf">
+      <h2 id="h-metf">Slik er tallene for ETF-ene regnet</h2>
+      <div class="card prose" id="method"></div>
+    </section>
+
+    <section id="fond-data" class="doc-section" aria-labelledby="h-fdata">
+      <h2 id="h-fdata">Slik er tallene for fondene regnet</h2>
       <div class="card prose" id="fond-method"></div>
+    </section>
+
+    <section id="ordliste" class="doc-section" aria-labelledby="h-tips">
+      <h2 id="h-tips">Ordliste: slik bruker du nøkkeltallene</h2>
+      <div class="card prose" id="tips-body"></div>
+    </section>
+
+    <section id="kilder" class="doc-section" aria-labelledby="h-data">
+      <h2 id="h-data">Datakilder og dekning</h2>
+      <div class="kpi-row" id="quality"></div>
+      <div class="card prose" id="sources"></div>
+    </section>
+
+    <section id="begrensninger" class="doc-section" aria-labelledby="h-lim">
+      <h2 id="h-lim">Kjente begrensninger</h2>
+      <div class="card prose">
+        <ul>
+          <li><strong>Kursdata:</strong> Yahoo Finance er en uoffisiell kilde og kan endre seg eller svikte. Feilkurser (valuta- og enhetsforveksling, falske nivåer) renses med faste regler, og noen ETF-er får kuttet gammel historikk. Gårsdagens kurs mangler ofte tidlig om morgenen og fylles inn ved neste oppdatering.</li>
+          <li><strong>Nye ETF-er</strong> kan mangle kurser i en måned. ETF-er uten data vises, men har ingen nøkkeltall.</li>
+          <li><strong>Bare dagens fond er med</strong> (survivorship bias). Nedlagte fond mangler, så historikken ser bedre ut enn den var.</li>
+          <li><strong>Usikre anslag:</strong> forventet avkastning og samvariasjon er usikre, og en optimering forsterker feilene. Siden demper dette med likevektsprior og Ledoit-Wolf-krymping, men forslagene er et utgangspunkt, ikke en fasit.</li>
+          <li><strong>Klassifisering:</strong> sektor og tema er utledet fra Morningstar-kategori og navn med enkle regler og kan være feil for enkelte fond.</li>
+          <li><strong>Fond uten kurshistorikk:</strong> risikohistorien for fond er et anslag. For indeksfond er det treffsikkert, for aktive fond og rentefond grovere.</li>
+          <li><strong>Kostnader:</strong> kurtasje, kursforskjell og valutapåslag for ETF-er er ikke med i kroneregnestykkene. Sjekk Nordnets prisliste.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="endringer" class="doc-section" aria-labelledby="h-chg">
+      <h2 id="h-chg">Endringslogg</h2>
+      <p class="section-lede">Hva som er nytt, utgått eller endret i Nordnets ETF-liste ved hver månedlige oppdatering.</p>
+      <div id="changes-runs"></div>
+    </section>
+
+    <section id="forbehold" class="doc-section" aria-labelledby="h-disc">
+      <h2 id="h-disc">Forbehold</h2>
+      <div class="vv-callout"><svg class="vv-callout__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9.5 17h-19z"></path><path d="M12 10v4.5M12 17.5v.5"></path></svg>
+        <div class="vv-callout__body"><p>Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.</p>
+          <p>Siden kjenner ikke økonomien din: gjeld, buffer, skatt og når du trenger pengene. Den anbefalte porteføljen er en generell oppskrift, ikke personlig rådgivning.</p></div></div>
     </section>
   </div>
 </main>

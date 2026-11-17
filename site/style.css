@@ -255,6 +255,24 @@ details.card > summary h3 { margin: 0; }
   .filter-main .dd-row, .filter-main .dd, .filter-main .dd > summary { width: 100%; max-width: none; }
 }
 
+/* ---------------------------------------------------------------- Data og metode */
+.toc { margin-top: var(--space-8); }
+.toc h2 { margin: 0 0 var(--space-2); }
+.toc ol { margin: 0; padding-left: var(--space-6); columns: 2 280px; column-gap: var(--space-8); }
+.toc li { padding: var(--space-1) 0; break-inside: avoid; }
+.doc-section > h2 { margin-bottom: var(--space-4); }
+.section-lede { max-width: var(--measure); }
+.glossary { margin: 0 0 var(--space-4); display: grid; gap: var(--space-4); }
+.glossary > div { scroll-margin-top: var(--space-6); }
+.glossary > div:target { background: var(--brand-100); margin: calc(-1 * var(--space-2)); padding: var(--space-2); border-radius: var(--radius-md); }
+.glossary dt { font-weight: 600; color: var(--ink-900); }
+.glossary dd { margin: var(--space-1) 0 0; max-width: var(--measure); }
+.sharpe-steps { width: auto; margin: var(--space-3) 0; }
+.sharpe-steps th .swatch { border: 1px solid var(--line-400); }
+.change-run h3 { margin-bottom: var(--space-1); }
+.change-counts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; }
+.change-run .vv-details { margin-top: var(--space-3); }
+
 /* ---------------------------------------------------------------- icons in text */
 .vv-badge svg, .vv-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 

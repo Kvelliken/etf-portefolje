@@ -174,7 +174,7 @@ function renderFundKpis(list) {
   const P = FS.period;
   const act = list.filter((f) => !f.index), idx = list.filter((f) => f.index);
   const med = (a, k) => median(a.map((f) => f[k]));
-  const c = (v) => (ok(v) ? nf(2).format(v) + " %" : "–");
+  const c = (v) => (ok(v) ? nf(2).format(v) + "\u00a0%" : "–");
   const ci = med(idx, "cost"), ca = med(act, "cost"), ri = med(idx, rKey(P)), ra = med(act, rKey(P));
   const parts = [];
   if (idx.length && act.length) {
@@ -207,7 +207,7 @@ function renderFundChart() {
     about: [["Utvalg", "Fondene som passer filtrene og har tall for perioden."], ["Metode", '<a href="#fond-data">Slik er fondstallene regnet</a>']],
     aria: `Spredningsdiagram: ${num(pts.length)} fond etter ${byVol ? "svingninger" : "kostnad"} og avkastning, ${P} år.`,
     data: { name: `fond-${byVol ? "risiko" : "kostnad"}-avkastning-${P}-ar`, head: ["Fond", byVol ? "Svingninger per år (%)" : "Kostnad per år (%)", "Avkastning per år (%)", "Avkastning for risikoen"], num: [false, true, true, false],
-      rows: pts.map((f) => [f.name, cell(Math.round(xOf(f) * 100) / 100, `${nf(2).format(xOf(f))} %`), cell(Math.round(f[k] * 1000) / 10, pct(f[k])), sharpeWord(sOf(f))]) },
+      rows: pts.map((f) => [f.name, cell(Math.round(xOf(f) * 100) / 100, `${nf(2).format(xOf(f))}\u00a0%`), cell(Math.round(f[k] * 1000) / 10, pct(f[k])), sharpeWord(sOf(f))]) },
   });
   const traces = stepTraces(pts.map((f) => {
     const x = xOf(f), y = f[k] * 100, s = byVol ? (y - rfP) / x : f[rk("sharpe", P)];
@@ -229,7 +229,7 @@ function renderFundChart() {
 }
 
 // ---------------------------------------------------------------- table
-const pctPP = (v) => (ok(v) ? nf(2).format(v) + " %" : "–");
+const pctPP = (v) => (ok(v) ? nf(2).format(v) + "\u00a0%" : "–");
 const stars = (r) => (ok(r) && r > 0 ? `<span class="stars" title="Morningstar-rating ${r} av 5">${"★".repeat(r)}${"☆".repeat(5 - r)}</span>` : "–");
 
 function fundColumns() {
@@ -400,8 +400,8 @@ function renderFundMethod() {
     <p><strong>Kostnad hos Nordnet</strong> = forvaltningshonorar − returprovisjon (det Nordnet betaler tilbake) + Nordnets plattformavgift.
       Det er Nordnets eget totaltall. Fond har ingen kurtasje.</p>
     <p><strong>Tvillinger</strong> (klikk en rad) er fond og ETF-er som eier nesten det samme, målt på land, bransjer og de største
-      selskapene i fondene (Nordnets tall fra Morningstar). Se «Slik er tallene regnet» under Min portefølje.</p>
-    <p class="muted">Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.</p>`;
+      selskapene i fondene (Nordnets tall fra Morningstar). Se <a href="#metode-tvilling">tvillinger</a> under porteføljen over.</p>
+    <p><a href="#forbehold">Forbehold</a> og <a href="#begrensninger">kjente begrensninger</a> står lenger ned.</p>`;
 }
 
 document.addEventListener("DOMContentLoaded", setupTabs);
