@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fond- og ETF-portefølje</title>
   <meta name="description" content="Sett sammen en portefølje av rentefond, indeksfond, ETF-er og spesialfond hos Nordnet. Se hva du egentlig eier, hva det koster i kroner, hvor ille det kan gå, og om fordelingen kan bli bedre.">
-  <script>
-    // Theme before first paint: stored choice wins, otherwise the OS setting.
-    try { const t = localStorage.getItem("etfpf.theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-  </script>
+  <link rel="icon" href="vargvind/logo/vargvind-symbol.svg" type="image/svg+xml">
+  <link rel="preload" href="vargvind/fonts/Inter-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vargvind/fonts/Inter-600.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/css/tabulator.min.css">
+  <link rel="stylesheet" href="vargvind/tokens.css?v=__V__">
+  <link rel="stylesheet" href="vargvind/components.css?v=__V__">
   <link rel="stylesheet" href="style.css?v=__V__">
   <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js" defer></script>
@@ -20,42 +21,36 @@
   <script src="portefolje.js?v=__V__" defer></script>
 </head>
 <body>
-<header class="topbar">
-  <div class="wrap topbar-inner">
-    <div class="brand">
-      <h1>Fond- og ETF-portefølje</h1>
-      <p class="muted" id="updated">Laster data …</p>
-    </div>
-    <div class="segmented main-tabs" role="tablist" aria-label="Hovedfane">
-      <button type="button" role="tab" id="tabbtn-pf" data-tab="pf" aria-controls="tab-pf" aria-selected="true">Min portefølje <span class="count" id="pf-count" hidden></span></button>
-      <button type="button" role="tab" id="tabbtn-fond" data-tab="fond" aria-controls="tab-fond" aria-selected="false">Finn fond</button>
-      <button type="button" role="tab" id="tabbtn-etf" data-tab="etf" aria-controls="tab-etf" aria-selected="false">Finn ETF-er</button>
-    </div>
-    <nav class="nav" data-for="pf" aria-label="Seksjoner, portefølje">
-      <a href="#pf-bygg">Bygg</a><a href="#pf-innhold">Hva eier jeg?</a><a href="#pf-tvilling">Billigere tvilling</a>
-      <a href="#pf-kostnad">Kostnad</a><a href="#pf-risiko">Risiko og utfall</a><a href="#pf-bedre">Bedre fordeling</a>
+<a class="skip-link" href="#main">Hopp til innholdet</a>
+<header class="vv-header site-header">
+  <div class="vv-header__inner">
+    <a class="brand" href="#portefolje">
+      <span class="brand-mark" aria-hidden="true"><img src="vargvind/logo/vargvind-logo-negativ.svg" alt="" width="167" height="48"></span>
+      <span class="brand-name">Fond- og ETF-portefølje</span>
+    </a>
+    <nav aria-label="Hovedmeny">
+      <ul class="vv-nav main-nav" id="main-nav">
+        <li><a href="#portefolje" data-tab="pf">Min portefølje <span class="vv-badge vv-badge--info nav-count" id="pf-count" hidden></span></a></li>
+        <li><a href="#fond" data-tab="fond">Finn fond</a></li>
+        <li><a href="#etf" data-tab="etf">Finn ETF-er</a></li>
+        <li><a href="#metode" data-tab="metode">Data og metode</a></li>
+      </ul>
     </nav>
-    <nav class="nav" data-for="etf" aria-label="Seksjoner, ETF" hidden>
-      <a href="#utforsker">ETF-utforsker</a><a href="#tips">Nøkkeltallene forklart</a><a href="#data">Data og metode</a>
-    </nav>
-    <nav class="nav" data-for="fond" aria-label="Seksjoner, fond" hidden>
-      <a href="#fond-utforsker">Fondsutforsker</a><a href="#fond-data">Data og metode</a>
-    </nav>
-    <button class="btn ghost" id="theme-toggle" type="button" aria-label="Bytt mellom lys og mørk modus">Mørk modus</button>
   </div>
 </header>
 
-<main class="wrap">
+<main class="wrap" id="main" tabindex="-1">
   <div id="load-error" class="notice critical" hidden></div>
   <div id="tax-warning" class="notice warning" hidden></div>
 
   <!-- Min portefølje -->
-  <div id="tab-pf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-pf">
-    <section id="pf-bygg" class="hero" aria-labelledby="h-pf">
-      <p class="eyebrow">Fond og ETF-er hos Nordnet</p>
-      <h2 id="h-pf">Bygg en portefølje du faktisk forstår</h2>
-      <p class="hero-lead">Velg fond, sett andelene, og se med en gang hva du egentlig eier, hva det koster i kroner,
-        hvor ille det kan gå – og om fordelingen kan bli bedre.</p>
+  <div id="tab-pf" class="tab-pane" aria-labelledby="h-pf">
+    <header class="page-head">
+      <h1 class="vv-page-title" id="h-pf">Portefølje</h1>
+      <p class="vv-lede">Sett sammen fond og ETF-er fra Nordnet, og se hva du egentlig eier, hva det koster i kroner, hvor mye det kan svinge og om fordelingen kan bli bedre. Start med sparingen din under.</p>
+      <dl class="vv-meta" data-meta></dl>
+    </header>
+    <section id="pf-bygg" class="build" aria-label="Bygg porteføljen">
       <div id="pf-status" class="notice" hidden></div>
 
       <div class="builder">
@@ -188,13 +183,15 @@
         <div id="chart-map" class="chart chart-tall" role="img" aria-label="Risiko og forventet avkastning for fondene, porteføljen og forslaget"></div></div>
     </section>
 
-    <section id="pf-metode" aria-labelledby="h-pfm">
-      <details class="card"><summary><h3 id="h-pfm">Slik er tallene regnet</h3></summary><div class="prose" id="pf-method"></div></details>
-    </section>
     </div>
   </div>
 
-  <div id="tab-etf" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-etf" hidden>
+  <div id="tab-etf" class="tab-pane" aria-labelledby="h-etf" hidden>
+    <header class="page-head">
+      <h1 class="vv-page-title" id="h-etf">ETF-er</h1>
+      <p class="vv-lede">Børshandlede fond hos Nordnet med nøkkeltall i kroner. Som standard vises én ETF per indeks, den billigste. Trykk «Legg til» for å ta en ETF med i porteføljen din.</p>
+      <dl class="vv-meta" data-meta></dl>
+    </header>
 
   <section class="intro" aria-label="Innstillinger">
     <div class="card settings-bar">
@@ -265,26 +262,16 @@
     <div id="explorer"></div>
   </section>
 
-  <!-- 5. Tips -->
-  <section id="tips" aria-labelledby="h-tips">
-    <div class="section-head"><h2 id="h-tips">Slik bruker du nøkkeltallene</h2></div>
-    <div class="card prose" id="tips-body"></div>
-  </section>
 
-  <!-- 6. Data og metode -->
-  <section id="data" aria-labelledby="h-data">
-    <div class="section-head"><h2 id="h-data">Data og metode</h2></div>
-    <div class="kpis small" id="quality"></div>
-    <div class="card prose" id="method"></div>
-    <details class="card">
-      <summary><h3>Endringer i Nordnet-listen</h3></summary>
-      <div id="changes-runs"></div>
-    </details>
-  </section>
   </div>
 
   <!-- Fond -->
-  <div id="tab-fond" class="tab-pane" role="tabpanel" aria-labelledby="tabbtn-fond" hidden>
+  <div id="tab-fond" class="tab-pane" aria-labelledby="h-fond" hidden>
+    <header class="page-head">
+      <h1 class="vv-page-title" id="h-fond">Fond</h1>
+      <p class="vv-lede">Alle verdipapirfond i Nordnets fondsliste med kostnad, avkastning og svingninger i kroner. Trykk «Legg til» for å ta et fond med i porteføljen din.</p>
+      <dl class="vv-meta" data-meta></dl>
+    </header>
     <section id="fond-utforsker" aria-labelledby="h-fexp">
       <div class="section-head">
         <h2 id="h-fexp">Finn fond</h2>
@@ -333,15 +320,68 @@
       <div id="fund-explorer"></div>
     </section>
 
+  </div>
+
+  <!-- Data og metode -->
+  <div id="tab-metode" class="tab-pane" aria-labelledby="h-metode" hidden>
+    <header class="page-head">
+      <h1 class="vv-page-title" id="h-metode">Data og metode</h1>
+      <p class="vv-lede">Hvor tallene kommer fra, hvordan de er regnet, hva fagordene betyr og hva du bør være forsiktig med.</p>
+      <dl class="vv-meta" data-meta></dl>
+    </header>
+    <section id="metode-portefolje" aria-labelledby="h-pfm">
+      <h2 class="vv-heading-lg" id="h-pfm">Slik er tallene regnet</h2>
+      <div class="card prose" id="pf-method"></div>
+    </section>
+  <section id="ordliste" aria-labelledby="h-tips">
+    <div class="section-head"><h2 id="h-tips">Slik bruker du nøkkeltallene</h2></div>
+    <div class="card prose" id="tips-body"></div>
+  </section>
+  <section id="data" aria-labelledby="h-data">
+    <div class="section-head"><h2 id="h-data">Data og metode</h2></div>
+    <div class="kpis small" id="quality"></div>
+    <div class="card prose" id="method"></div>
+    <details class="card" id="endringer">
+      <summary><h3>Endringer i Nordnet-listen</h3></summary>
+      <div id="changes-runs"></div>
+    </details>
+  </section>
     <section id="fond-data" aria-labelledby="h-fdata">
       <div class="section-head"><h2 id="h-fdata">Data og metode for fond</h2></div>
       <div class="card prose" id="fond-method"></div>
     </section>
   </div>
 </main>
-<footer class="wrap muted small-text">
-  Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.
-  Kilder: Nordnet (ETF- og fondsliste, fondenes innhold), Yahoo Finance (kurser), OpenFIGI (tickere), Norges Bank (valuta og styringsrente).
+<footer class="vv-footer">
+  <div class="vv-footer__inner">
+    <div>
+      <h2>Forbehold</h2>
+      <p>Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.</p>
+    </div>
+    <div>
+      <h2>Kilder</h2>
+      <ul>
+        <li>Nordnet: fond, ETF-er og hva de eier</li>
+        <li>Morningstar via Nordnet: innhold og R²</li>
+        <li>Yahoo Finance: kurser for ETF-er</li>
+        <li>OpenFIGI: tickere</li>
+        <li>Norges Bank: valuta og styringsrente</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Metode og endringer</h2>
+      <ul>
+        <li><a href="#metode-portefolje">Slik er tallene regnet</a></li>
+        <li><a href="#ordliste">Ordliste</a></li>
+        <li><a href="#endringer">Endringslogg</a></li>
+      </ul>
+      <p class="footer-note" id="footer-updated"></p>
+    </div>
+    <div>
+      <h2>Personvern</h2>
+      <p>Porteføljen, sparingen og filtrene dine lagres bare i nettleseren din på denne enheten. De sendes ikke noe sted. «Kopier lenke» tar bare med fondene og andelene, ikke beløp.</p>
+    </div>
+  </div>
 </footer>
 </body>
 </html>

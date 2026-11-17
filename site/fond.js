@@ -8,17 +8,18 @@ const FLS = { tab: "etfpf.tab", filters: "etfpf.fond.filters.v1" };
 const FDD = [["asset_class", "Aktivaklasse"], ["sector", "Sektor"], ["region", "Region"], ["theme", "Tema"],
   ["style", "Stil"], ["company", "Forvalter"]];
 const FS = { f: null, period: 5, xaxis: "vol", table: null, data: null, loading: null, list: [], by: {} };
-const TABS = ["pf", "fond", "etf"];
+const TABS = ["pf", "fond", "etf", "metode"];
+const TAB_HASH = { pf: "portefolje", fond: "fond", etf: "etf", metode: "metode" };
 // Nordnet har risikotall for 1, 3 og 5 år. For 10 år brukes 5 år.
 const riskP = (P) => (P >= 5 ? 5 : P);
 const rk = (k, P) => `${k}${riskP(P)}`;
 
-// ---------------------------------------------------------------- main tabs
-function showTab(tab, { scroll = false } = {}) {
+// ---------------------------------------------------------------- main tabs (the menu in the header; the tab lives in the URL)
+function showTab(tab, { scroll = false, focus = false } = {}) {
   for (const t of TABS) {
     $(`tab-${t}`).hidden = t !== tab;
-    $(`tabbtn-${t}`).setAttribute("aria-selected", t === tab ? "true" : "false");
-    document.querySelector(`.nav[data-for="${t}"]`).hidden = t !== tab;
+    const a = document.querySelector(`#main-nav a[data-tab="${t}"]`);
+    if (t === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   }
   store.set(FLS.tab, tab);
   // Charts and tables drawn while hidden have no width: let them measure again.
@@ -28,27 +29,37 @@ function showTab(tab, { scroll = false } = {}) {
     if (tab === "fond" && FS.table) FS.table.redraw(true);
   });
   if (scroll) window.scrollTo({ top: 0 });
+  if (focus) $(`h-${tab}`)?.focus({ preventScroll: true });
 }
 
+/** Tab for the current hash: a tab name (#fond) or any element inside a tab (#pf-risiko, #ordliste). */
 function tabFromHash() {
-  const h = location.hash;
-  if (!h || h.length < 2 || h.includes("=")) return null;
-  for (const t of TABS) if (document.querySelector(`#tab-${t} ${CSS.escape(h)}`)) return t;
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (!h || h.includes("=")) return null;
+  for (const t of TABS) if (TAB_HASH[t] === h) return t;
+  for (const t of TABS) if (document.querySelector(`#tab-${t} #${CSS.escape(h)}`)) return t;
   return null;
 }
 
 function setupTabs() {
-  document.querySelector(".main-tabs").addEventListener("click", (ev) => {
-    const b = ev.target.closest("button[data-tab]"); if (!b) return;
-    showTab(b.dataset.tab, { scroll: true });
-  });
-  window.addEventListener("hashchange", () => {
+  const go = (focus) => {
     const t = tabFromHash(); if (!t) return;
-    showTab(t);
-    requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView());
+    const id = decodeURIComponent(location.hash.slice(1)), isTab = TAB_HASH[t] === id;
+    showTab(t, { scroll: isTab, focus: focus && isTab });
+    if (!isTab) requestAnimationFrame(() => { const el = $(id); if (!el) return; if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView(); });
+  };
+  window.addEventListener("hashchange", () => go(true));
+  // A click on the tab that is already open scrolls back to the top.
+  $("main-nav").addEventListener("click", (ev) => {
+    const a = ev.target.closest("a[data-tab]");
+    if (a && a.getAttribute("href") === location.hash) { ev.preventDefault(); showTab(a.dataset.tab, { scroll: true, focus: true }); }
   });
+  for (const h of document.querySelectorAll(".page-head h1")) h.tabIndex = -1;
+  if (tabFromHash()) return go(false);
+  // No tab in the address: an empty portfolio always starts on Min portefølje, otherwise the last tab used.
+  const empty = !(store.get("etfpf.portfolio.v1", null)?.items?.length) || location.hash.startsWith("#pf=");
   const saved = store.get(FLS.tab, "pf");
-  showTab(tabFromHash() || (TABS.includes(saved) ? saved : "pf"));
+  showTab(empty || !TABS.includes(saved) ? "pf" : saved);
 }
 
 // ---------------------------------------------------------------- data

@@ -279,7 +279,7 @@ function readPfHash() {
   if (!m) return;
   const items = m[1].split(",").map((s) => { const [id, w] = s.split(":"); return { id, w: Math.max(0, +w || 0) }; }).filter((x) => product(x.id));
   if (items.length) { PF.items = items; PF.risk = "same"; savePF(); }
-  history.replaceState(null, "", location.pathname + location.search);
+  history.replaceState(null, "", location.pathname + location.search + "#portefolje");
 }
 
 function bindPlan() {

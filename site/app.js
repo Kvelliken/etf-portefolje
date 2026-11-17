@@ -6,7 +6,7 @@
 const E = window.Engine;
 const FILES = ["summary", "etfs", "returns", "changes", "quality"];
 const PERIODS = [1, 3, 5, 10];
-const LS = { theme: "etfpf.theme", filters: "etfpf.filters.v2", bench: "etfpf.benchmark.v2" };
+const LS = { filters: "etfpf.filters.v2", bench: "etfpf.benchmark.v2" };
 const DD = [["asset_class", "Aktivaklasse"], ["sector", "Sektor"], ["theme", "Tema"], ["region", "Region"], ["style", "Stil"], ["issuer", "Utsteder"]];
 const NONE = "(ingen)";
 const CHANGE = { new: "Ny", gone: "Utgått", reappeared: "Tilbake", changed: "Endret" };
@@ -26,11 +26,26 @@ const pct = (x, d = 1) => (ok(x) ? nf(d).format(x * 100) + " %" : "–");
 const pp = (x, d = 1) => {
   if (!ok(x)) return "–";
   const v = Math.round(x * 100 * 10 ** d) / 10 ** d;
-  return (v > 0 ? "+" : "") + nf(d).format(v === 0 ? 0 : v) + " pp";
+  return (v > 0 ? "+" : "") + nf(d).format(v === 0 ? 0 : v) + " p.p.";
 };
 const num = (x, d = 0) => (ok(x) ? nf(d).format(x) : "–");
 const kr = (x) => (ok(x) ? nf(0).format(Math.round(x)) + " kr" : "–");
-const dateNo = (s) => { if (!s) return "–"; const [y, m, d] = String(s).slice(0, 10).split("-"); return `${d}.${m}.${y}`; };
+const MONTH_NAMES = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+/** "2026-11-02" -> "2. november 2026" */
+const dateNo = (s) => { if (!s) return "–"; const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return `${d}. ${MONTH_NAMES[m - 1]} ${y}`; };
+const isoDate = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+/** First working day of the month after `iso` (same rule as monthly.yml: the 1st if Mon–Fri, else the Monday after),
+ *  moved on a month at a time until it is not in the past. */
+function nextUpdate(iso) {
+  const today = isoDate(new Date());
+  let [y, m] = String(iso).slice(0, 10).split("-").map(Number);
+  for (;;) {
+    if (++m > 12) { m = 1; y++; }
+    const d = new Date(y, m - 1, 1), wd = d.getDay();         // 0 = Sunday
+    if (wd === 6) d.setDate(3); else if (wd === 0) d.setDate(2);
+    if (isoDate(d) >= today) return isoDate(d);
+  }
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const $ = (id) => document.getElementById(id);
@@ -149,7 +164,6 @@ async function load() {
 }
 
 function init() {
-  setupTheme();
   load().then(() => {
     const def = D.summary.defaults;
     st.bench = store.get(LS.bench, def.benchmark);
@@ -179,27 +193,14 @@ function refreshAll() {
   if (typeof PF !== "undefined" && PF.ready) PF.refresh();
 }
 
-// ---------------------------------------------------------------- theme
-function setupTheme() {
-  const btn = $("theme-toggle");
-  const isDark = () => document.documentElement.dataset.theme === "dark" ||
-    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
-  const sync = () => { btn.textContent = isDark() ? "Lys modus" : "Mørk modus"; };
-  btn.addEventListener("click", () => {
-    const next = isDark() ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem(LS.theme, next); } catch (e) { /* private mode */ }
-    sync();
-    redraw.forEach((f) => f());
-  });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { sync(); redraw.forEach((f) => f()); });
-  sync();
-}
-
 // ---------------------------------------------------------------- header + benchmark
 function renderHeader() {
   const s = D.summary;
-  $("updated").textContent = `Kurser til ${dateNo(s.data_until)} · nøkkeltall per ${dateNo(s.returns_until)} · Nordnet hentet ${dateNo(s.nordnet_run_at)}`;
+  const meta = [["Kurser til", s.data_until], ["Nøkkeltall per", s.returns_until], ["Nordnet hentet", s.nordnet_run_at], ["Neste oppdatering", nextUpdate(s.data_until)]];
+  const html = meta.map(([k, v]) => `<div><dt>${k}</dt><dd>${dateNo(v)}</dd></div>`).join("");
+  document.querySelectorAll("[data-meta]").forEach((el) => { el.innerHTML = html; });
+  const last = D.changes?.runs?.[0];
+  $("footer-updated").textContent = `Sist oppdatert ${dateNo(s.data_until)}${last ? `. Siste endring i Nordnet-listen ${dateNo(last.run_at)}` : ""}. Neste oppdatering ${dateNo(nextUpdate(s.data_until))}.`;
   if (s.account?.tax_warning) notice($("tax-warning"), "warning", "<strong>⚠ Skatt:</strong> Kontoen er ikke en aksjesparekonto (ASK). Salg og bytte av fond utløser gevinstskatt, som ikke er regnet med her.");
 }
 
