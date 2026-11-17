@@ -60,9 +60,12 @@ function kpi(lbl, value, sub) {
   return `<div class="kpi"><div class="label">${esc(lbl)}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
 }
 function table(el, head, rows, opts = {}) {
-  const th = head.map((h) => `<th class="${h.num ? "num" : ""} ${h.cls || ""}" scope="col"${h.title ? ` title="${esc(h.title)}"` : ""}>${esc(h.t)}</th>`).join("");
-  const body = rows.map((r) => `<tr class="${r._cls || ""}">${r.cells.map((c, i) => `<td class="${head[i].num ? "num" : ""} ${head[i].cls || ""} ${c?.cls || ""}">${c?.html ?? esc(c)}</td>`).join("")}</tr>`).join("");
-  el.innerHTML = `<thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="${head.length}" class="muted">${opts.empty || "Ingen rader"}</td></tr>`}</tbody>`;
+  const th = head.map((h) => `<th scope="col" class="${h.num ? "vv-num" : ""} ${h.cls || ""}"${h.title ? ` title="${esc(h.title)}"` : ""}>${esc(h.t)}</th>`).join("");
+  const body = rows.map((r) => `<tr class="${r._cls || ""}">${r.cells.map((c, i) => {
+    const v = c?.html ?? esc(c);
+    return i === 0 && !opts.plain ? `<th scope="row">${v}</th>` : `<td class="${head[i].num ? "vv-num" : ""} ${head[i].cls || ""} ${c?.cls || ""}" data-label="${esc(head[i].t)}">${v}</td>`;
+  }).join("")}</tr>`).join("");
+  el.innerHTML = `${opts.caption ? `<caption class="visually-hidden">${esc(opts.caption)}</caption>` : ""}<thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="${head.length}" class="muted">${opts.empty || "Ingen rader"}</td></tr>`}</tbody>`;
 }
 function notice(el, kind, html) {
   if (!html) { el.hidden = true; return; }
@@ -162,6 +165,7 @@ const ICON = {
   table: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"></rect><path d="M3 9h18M3 14.5h18M9 9v11"></path></svg>',
   chart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16V10M12 16V6M17 16v-4"></path></svg>',
   download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"></path></svg>',
+  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l3 3 5-6"></path></svg>',
   info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg>',
   insight: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3z"></path></svg>',
 };
@@ -271,6 +275,7 @@ async function load() {
 }
 
 function init() {
+  initFigures();
   load().then(() => {
     const def = D.summary.defaults;
     st.bench = store.get(LS.bench, def.benchmark);
