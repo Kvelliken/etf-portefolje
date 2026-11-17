@@ -229,72 +229,64 @@
       <dl class="vv-meta" data-meta></dl>
     </header>
 
-  <section class="intro" aria-label="Innstillinger">
-    <div class="card settings-bar">
-      <div class="form-row">
-        <label class="grow">Referanse (verdens-ETF)
-          <select id="benchmark"></select>
-        </label>
-        <p class="muted small-text settings-note" id="settings-note"></p>
+  <section id="utforsker" class="explorer" aria-label="Finn ETF-er">
+    <form class="card filters" id="filters" role="search" aria-label="Filtrer ETF-er" onsubmit="return false">
+      <div class="filter-main">
+        <label class="grow" for="f-search">Søk <input id="f-search" type="search" placeholder="Navn, ticker eller ISIN"></label>
+        <div class="dd-row" id="dd-row-main"></div>
+        <label for="f-fee">Maks kostnad <span class="unit"><input id="f-fee" type="number" inputmode="decimal" min="0" step="0.05" placeholder="ingen"><i>%</i></span></label>
+        <button class="vv-btn vv-btn--secondary" id="f-reset" type="button">Nullstill</button>
       </div>
-    </div>
-  </section>
-
-  <!-- 1. Utforsker -->
-  <section id="utforsker" aria-labelledby="h-exp">
-    <div class="section-head">
-      <h2 id="h-exp">Finn ETF-er</h2>
-      <p class="muted">Filtrer på sektor, tema, region og mer, og sorter på nøkkeltallene. Trykk <strong>+</strong> for å legge en ETF i porteføljen din.
-        Klikk på en rad for å se andre ETF-er som følger samme indeks.</p>
-    </div>
-    <div class="card filters" id="filters">
-      <div class="form-row">
-        <label class="grow">Søk <input id="f-search" type="search" placeholder="Navn, ticker eller ISIN"></label>
+      <details class="vv-details filter-more">
+        <summary>Flere filtre og innstillinger</summary>
         <div class="dd-row" id="dd-row"></div>
-      </div>
-      <div class="form-row">
-        <label>Historikk <select id="f-hist">
-          <option value="0">Alle</option><option value="1">Minst 1 år</option><option value="3">Minst 3 år</option>
-          <option value="5">Minst 5 år</option><option value="10">Minst 10 år</option></select></label>
-        <label>Maks avgift (%) <input id="f-fee" type="number" inputmode="decimal" min="0" step="0.05" placeholder="ingen"></label>
-        <label>Min. størrelse (mill.) <input id="f-size" type="number" inputmode="decimal" min="0" step="50" placeholder="ingen"></label>
-        <label>Valutasikring <select id="f-hedged"><option value="all">Alle</option><option value="no">Usikret</option><option value="yes">Valutasikret</option></select></label>
-        <label>Utbytte <select id="f-acc"><option value="all">Alle</option><option value="acc">Akkumulerende</option><option value="dist">Utdelende</option></select></label>
-        <label>ESG <select id="f-esg"><option value="all">Alle</option><option value="yes">Bare ESG/klima</option><option value="no">Uten ESG-filter</option></select></label>
-      </div>
-      <div class="form-row">
-        <label class="check"><input id="f-pick" type="checkbox" checked> Én per indeks (billigste)</label>
-        <label class="check"><input id="f-ask" type="checkbox" checked> Bare ASK-tillatt</label>
-        <label class="check"><input id="f-lev" type="checkbox" checked> Uten giret/invers</label>
-        <label class="check"><input id="f-mine" type="checkbox"> Bare det som er i porteføljen</label>
-        <button class="btn ghost" id="f-reset" type="button">Nullstill filtre</button>
-      </div>
-      <div class="form-row toolbar">
-        <div><span class="muted small-text">Periode for risikotall</span><div class="segmented" id="f-period" role="tablist" aria-label="Periode"></div></div>
-        <label>Vis <select id="f-top">
-          <option value="0">Alle treff</option><option value="1">Beste i hver gruppe</option>
-          <option value="3">Topp 3 i hver gruppe</option><option value="5">Topp 5 i hver gruppe</option></select></label>
-        <label>Gruppe <select id="f-group">
-          <option value="sector">Sektor</option><option value="theme">Tema</option><option value="region">Region</option>
-          <option value="style">Stil</option><option value="asset_class">Aktivaklasse</option><option value="category">Kategori (Morningstar)</option></select></label>
-        <label>Ranger etter <select id="f-rank">
-          <option value="sharpe">Sharpe</option><option value="alpha">Alfa</option><option value="ir">Informasjonsrate</option>
-          <option value="ret">Avkastning</option><option value="vol_low">Lavest volatilitet</option><option value="mdd_low">Minst fall</option>
-          <option value="fee_low">Lavest avgift</option></select></label>
-        <span class="muted" id="f-count" aria-live="polite"></span>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <div class="segmented" id="exp-chart-tabs" role="tablist" aria-label="Graf">
-          <button type="button" data-v="scatter" aria-selected="true">Risiko og avkastning</button>
-          <button type="button" data-v="growth" aria-selected="false">Utvikling, topp 10</button>
+        <div class="form-row">
+          <label>Historikk <select id="f-hist">
+            <option value="0">Alle</option><option value="1">Minst 1 år</option><option value="3">Minst 3 år</option>
+            <option value="5">Minst 5 år</option><option value="10">Minst 10 år</option></select></label>
+          <label>Minste størrelse <span class="unit"><input id="f-size" type="number" inputmode="decimal" min="0" step="50" placeholder="ingen"><i>mill.</i></span></label>
+          <label>Valutasikring <select id="f-hedged"><option value="all">Alle</option><option value="no">Usikret</option><option value="yes">Valutasikret</option></select></label>
+          <label>Utbytte <select id="f-acc"><option value="all">Alle</option><option value="acc">Akkumulerende</option><option value="dist">Utdelende</option></select></label>
+          <label>ESG <select id="f-esg"><option value="all">Alle</option><option value="yes">Bare ESG/klima</option><option value="no">Uten ESG-filter</option></select></label>
         </div>
-        <p class="muted small-text" id="exp-chart-note"></p>
+        <div class="form-row checks">
+          <label class="check"><input id="f-pick" type="checkbox" checked> Én per indeks (den billigste)</label>
+          <label class="check"><input id="f-ask" type="checkbox" checked> Bare de som kan ligge på aksjesparekonto</label>
+          <label class="check"><input id="f-lev" type="checkbox" checked> Uten giret og invers</label>
+          <label class="check"><input id="f-mine" type="checkbox"> Bare det som er i porteføljen</label>
+        </div>
+        <div class="form-row">
+          <label>Vis <select id="f-top">
+            <option value="0">Alle treff</option><option value="1">Beste i hver gruppe</option>
+            <option value="3">Topp 3 i hver gruppe</option><option value="5">Topp 5 i hver gruppe</option></select></label>
+          <label>Gruppe <select id="f-group">
+            <option value="sector">Sektor</option><option value="theme">Tema</option><option value="region">Region</option>
+            <option value="style">Stil</option><option value="asset_class">Aktivaklasse</option><option value="category">Kategori (Morningstar)</option></select></label>
+          <label>Ranger etter <select id="f-rank">
+            <option value="sharpe">Avkastning for risikoen (Sharpe)</option><option value="alpha">Alfa</option><option value="ir">Informasjonsrate</option>
+            <option value="ret">Avkastning</option><option value="vol_low">Lavest svingninger</option><option value="mdd_low">Minst fall</option>
+            <option value="fee_low">Lavest kostnad</option></select></label>
+        </div>
+        <div class="form-row">
+          <label class="grow">Referanse for alfa, beta og R² <select id="benchmark"></select></label>
+          <p class="small-text muted settings-note" id="settings-note"></p>
+        </div>
+      </details>
+      <div class="filter-foot">
+        <div class="period"><span id="f-period-lbl">Periode</span><div class="vv-toggle" id="f-period" role="group" aria-labelledby="f-period-lbl"></div></div>
+        <p class="filter-count" id="f-count" aria-live="polite"></p>
       </div>
-      <div id="chart-explorer" class="chart chart-tall" role="img" aria-label="Graf over filtrerte ETF-er"></div>
+    </form>
+    <figure class="vv-figure" id="fig-explorer" data-fig data-chart="chart-explorer" data-size="tall">
+      <div class="fig-tools"><div class="vv-toggle" id="exp-chart-tabs" role="group" aria-label="Velg graf">
+        <button type="button" data-v="scatter" aria-pressed="true">Risiko og avkastning</button>
+        <button type="button" data-v="growth" aria-pressed="false">Utvikling, de 10 første</button></div></div>
+    </figure>
+    <div class="table-head">
+      <h2 class="vv-heading-lg" id="h-etf-table">ETF-ene i utvalget</h2>
+      <div class="vv-toggle" id="f-cols" role="group" aria-label="Kolonner"><button type="button" data-c="simple" aria-pressed="true">Enkel</button><button type="button" data-c="all" aria-pressed="false">Alle nøkkeltall</button></div>
     </div>
-    <p class="muted small-text" id="exp-cols-note"></p>
+    <p class="small-text muted table-note" id="exp-cols-note"></p>
     <div id="explorer"></div>
   </section>
 
@@ -308,51 +300,48 @@
       <p class="vv-lede">Alle verdipapirfond i Nordnets fondsliste med kostnad, avkastning og svingninger i kroner. Trykk «Legg til» for å ta et fond med i porteføljen din.</p>
       <dl class="vv-meta" data-meta></dl>
     </header>
-    <section id="fond-utforsker" aria-labelledby="h-fexp">
-      <div class="section-head">
-        <h2 id="h-fexp">Finn fond</h2>
-        <p class="muted">Alle verdipapirfond i Nordnets fondsliste med kostnad hos Nordnet, avkastning og risikotall
-          (volatilitet, Sharpe, alfa, beta, R²) i NOK. Trykk <strong>+</strong> for å legge et fond i porteføljen din.
-          Klikk på en rad for å se tvillinger: fond og ETF-er som eier nesten det samme, billigst først.</p>
-      </div>
+    <section id="fond-utforsker" class="explorer" aria-label="Finn fond">
       <div id="fond-status" class="notice" hidden></div>
-      <div class="kpis small" id="fond-kpis"></div>
-      <div class="card filters">
-        <div class="form-row">
-          <label class="grow">Søk <input id="ff-search" type="search" placeholder="Navn, forvalter eller ISIN"></label>
+      <form class="card filters" role="search" aria-label="Filtrer fond" onsubmit="return false">
+        <div class="filter-main">
+          <label class="grow" for="ff-search">Søk <input id="ff-search" type="search" placeholder="Navn, forvalter eller ISIN"></label>
+          <label for="ff-kind">Type <select id="ff-kind"><option value="all">Alle</option><option value="index">Indeksfond</option><option value="active">Aktive fond</option></select></label>
+          <div class="dd-row" id="ff-dd-row-main"></div>
+          <label for="ff-cost">Maks kostnad <span class="unit"><input id="ff-cost" type="number" inputmode="decimal" min="0" step="0.1" placeholder="ingen"><i>%</i></span></label>
+          <button class="vv-btn vv-btn--secondary" id="ff-reset" type="button">Nullstill</button>
+        </div>
+        <details class="vv-details filter-more">
+          <summary>Flere filtre</summary>
           <div class="dd-row" id="ff-dd-row"></div>
-        </div>
-        <div class="form-row">
-          <label>Type <select id="ff-kind"><option value="all">Alle</option><option value="active">Aktive fond</option><option value="index">Indeksfond</option></select></label>
-          <label>Maks kostnad (%) <input id="ff-cost" type="number" inputmode="decimal" min="0" step="0.1" placeholder="ingen"></label>
-          <label>Historikk <select id="ff-hist">
-            <option value="0">Alle</option><option value="3">Minst 3 år</option><option value="5">Minst 5 år</option><option value="10">Minst 10 år</option></select></label>
-          <label>Bærekraft (SFDR) <select id="ff-sfdr"><option value="all">Alle</option><option value="8">Artikkel 8 eller 9</option><option value="9">Bare artikkel 9</option></select></label>
-          <label>Utbytte <select id="ff-acc"><option value="all">Alle</option><option value="acc">Akkumulerende</option><option value="dist">Utdelende</option></select></label>
-        </div>
-        <div class="form-row">
-          <label class="check"><input id="ff-ask" type="checkbox" checked> Bare ASK-tillatt</label>
-          <label class="check"><input id="ff-selection" type="checkbox"> Bare Nordnets utvalg</label>
-          <label class="check"><input id="ff-hedged" type="checkbox"> Uten valutasikring</label>
-          <label class="check"><input id="ff-mine" type="checkbox"> Bare det som er i porteføljen</label>
-          <button class="btn ghost" id="ff-reset" type="button">Nullstill filtre</button>
-        </div>
-        <div class="form-row toolbar">
-          <div><span class="muted small-text">Periode</span><div class="segmented" id="ff-period" role="tablist" aria-label="Periode"></div></div>
-          <span class="muted" id="ff-count" aria-live="polite"></span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="segmented" id="ff-xaxis" role="tablist" aria-label="Vannrett akse">
-            <button type="button" data-x="vol" aria-selected="true">Risiko og avkastning</button>
-            <button type="button" data-x="cost" aria-selected="false">Kostnad og avkastning</button>
+          <div class="form-row">
+            <label>Historikk <select id="ff-hist">
+              <option value="0">Alle</option><option value="3">Minst 3 år</option><option value="5">Minst 5 år</option><option value="10">Minst 10 år</option></select></label>
+            <label>Bærekraft (SFDR) <select id="ff-sfdr"><option value="all">Alle</option><option value="8">Artikkel 8 eller 9</option><option value="9">Bare artikkel 9</option></select></label>
+            <label>Utbytte <select id="ff-acc"><option value="all">Alle</option><option value="acc">Akkumulerende</option><option value="dist">Utdelende</option></select></label>
           </div>
-          <p class="muted small-text" id="fond-chart-note"></p>
+          <div class="form-row checks">
+            <label class="check"><input id="ff-ask" type="checkbox" checked> Bare de som kan ligge på aksjesparekonto</label>
+            <label class="check"><input id="ff-selection" type="checkbox"> Bare Nordnets utvalg</label>
+            <label class="check"><input id="ff-hedged" type="checkbox"> Uten valutasikring</label>
+            <label class="check"><input id="ff-mine" type="checkbox"> Bare det som er i porteføljen</label>
+          </div>
+        </details>
+        <div class="filter-foot">
+          <div class="period"><span id="ff-period-lbl">Periode</span><div class="vv-toggle" id="ff-period" role="group" aria-labelledby="ff-period-lbl"></div></div>
+          <p class="filter-count" id="ff-count" aria-live="polite"></p>
         </div>
-        <div id="chart-fond" class="chart chart-tall" role="img" aria-label="Volatilitet eller kostnad mot avkastning for filtrerte fond"></div>
+      </form>
+      <div class="vv-callout vv-callout--insight" id="fond-lead"></div>
+      <figure class="vv-figure" id="fig-fond" data-fig data-chart="chart-fond" data-size="tall">
+        <div class="fig-tools"><div class="vv-toggle" id="ff-xaxis" role="group" aria-label="Vannrett akse">
+          <button type="button" data-x="vol" aria-pressed="true">Risiko og avkastning</button>
+          <button type="button" data-x="cost" aria-pressed="false">Kostnad og avkastning</button></div></div>
+      </figure>
+      <div class="table-head">
+        <h2 class="vv-heading-lg" id="h-fond-table">Fondene i utvalget</h2>
+        <div class="vv-toggle" id="ff-cols" role="group" aria-label="Kolonner"><button type="button" data-c="simple" aria-pressed="true">Enkel</button><button type="button" data-c="all" aria-pressed="false">Alle nøkkeltall</button></div>
       </div>
-      <p class="muted small-text" id="ff-cols-note"></p>
+      <p class="small-text muted table-note" id="ff-cols-note"></p>
       <div id="fund-explorer"></div>
     </section>
 
@@ -419,5 +408,6 @@
     </div>
   </div>
 </footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

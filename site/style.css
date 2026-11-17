@@ -143,11 +143,22 @@ input:disabled { background: var(--bg-200); color: var(--ink-500); }
 .dd-panel label .n { margin-left: auto; color: var(--ink-500); font-size: 12px; font-variant-numeric: tabular-nums; }
 @media (max-width: 600px) { .dd-panel { position: fixed; left: var(--space-4); right: var(--space-4); top: 20vh; max-width: none; } }
 
-/* add to portfolio */
-.add-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 var(--space-2); border-radius: var(--radius-md);
-  border: 1px solid var(--line-400); background: var(--bg-000); color: var(--ink-900); font: 600 16px/1 var(--font-sans); cursor: pointer; }
+/* add to portfolio (explorers) */
+.add-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); min-height: 36px; padding: 0 var(--space-3); border-radius: var(--radius-md);
+  border: 1px solid var(--line-400); background: var(--bg-000); color: var(--ink-900); font: 600 13px/1 var(--font-sans); cursor: pointer; white-space: nowrap; }
 .add-btn:hover { background: var(--bg-200); }
-.add-btn.on { background: var(--brand-900); border-color: var(--brand-900); color: var(--bg-000); }
+.add-btn.on { background: var(--brand-100); border-color: var(--brand-900); }
+.add-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* receipt */
+.toast { position: fixed; z-index: 60; left: 50%; bottom: var(--space-6); transform: translate(-50%, 20px); display: flex; align-items: center; gap: var(--space-2);
+  max-width: min(560px, calc(100vw - 32px)); padding: var(--space-3) var(--space-4); background: var(--brand-900); color: var(--ink-on-dark); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md); font-size: 14px; line-height: 22px; opacity: 0; visibility: hidden; transition: opacity .15s, transform .15s; }
+.toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.toast strong { color: var(--ink-on-dark); }
+.toast a { color: var(--ink-on-dark); }
+.toast a:focus-visible { outline: 2px solid var(--ink-on-dark); }
+.toast svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------------------------------------------------------------- tables, tags, notices */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -210,11 +221,39 @@ details.card > summary h3 { margin: 0; }
 #fund-explorer .alt-box { position: sticky; left: 0; }
 :is(#explorer, #fund-explorer) .alt-box table.data { font-size: 13px; }
 
-/* ---------------------------------------------------------------- Finn ETF-er / Finn fond (filters) */
-.settings-bar .form-row { margin-bottom: 0; align-items: center; }
-.settings-note { margin: 0; flex: 2; min-width: 240px; }
-.filters .form-row:last-child { margin-bottom: 0; }
-.toolbar { padding-top: var(--space-3); border-top: 1px solid var(--line-200); }
+/* ---------------------------------------------------------------- Finn ETF-er / Finn fond */
+.explorer { padding-top: var(--space-8); }
+.filters { padding: var(--space-4) var(--space-6); }
+.filter-main { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-4); align-items: flex-end; }
+.filter-main label { display: flex; flex-direction: column; gap: var(--space-1); font-size: 14px; line-height: 22px; font-weight: 500; color: var(--ink-900); }
+.filter-main label.grow { flex: 1 1 240px; }
+.filter-main .unit input[type="number"] { width: 120px; }
+.filter-main .dd-row { align-items: flex-end; }
+.filter-more { margin-top: var(--space-3); }
+.filter-more > .dd-row, .filter-more > .form-row { margin-top: var(--space-3); }
+.filter-more .form-row { margin-bottom: 0; }
+.filter-more .checks { gap: 0 var(--space-6); }
+.filter-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-6); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--line-200); }
+.period { display: flex; align-items: center; gap: var(--space-3); font-size: 14px; color: var(--ink-700); }
+.filter-count { margin: 0; font-size: 14px; color: var(--ink-700); }
+.settings-note { margin: 0; flex: 2 1 240px; align-self: center; }
+.explorer > .vv-callout { margin-top: var(--space-4); }
+.explorer > .vv-figure { margin-top: var(--space-4); }
+.fig-tools { margin-top: var(--space-4); }
+.table-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-12); }
+.table-head h2 { font-size: 22px; line-height: 30px; }
+.table-note { margin: var(--space-2) 0 var(--space-3); max-width: none; }
+.vv-toggle button { min-height: 40px; }
+.cell-sub { display: block; font-size: 12px; line-height: 16px; color: var(--ink-500); }
+.cell-sub-inline { font-size: 12px; color: var(--ink-500); margin-left: var(--space-1); }
+:is(#explorer, #fund-explorer) .tabulator-cell .cell-sub { margin-top: 2px; }
+:is(#explorer, #fund-explorer) .tabulator-row .tabulator-cell[tabulator-field="name"] { flex-direction: column; align-items: flex-start; justify-content: center; white-space: normal; }
+@media (max-width: 640px) {
+  .filters { padding: var(--space-4); }
+  .filter-main > * { flex: 1 1 100%; }
+  .filter-main .unit, .filter-main .unit input[type="number"] { width: 100%; }
+  .filter-main .dd-row, .filter-main .dd, .filter-main .dd > summary { width: 100%; max-width: none; }
+}
 
 /* ---------------------------------------------------------------- icons in text */
 .vv-badge svg, .vv-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }

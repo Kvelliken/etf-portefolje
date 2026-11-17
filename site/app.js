@@ -155,10 +155,11 @@ function stepTraces(pts) {
   if (none.length) out.push(tr("Uten risikotall", none, { color: css("--chart-context"), size: 7, line: { width: 0 } }));
   const mine = pts.filter((p) => p.mine);
   if (mine.length) out.push(tr("I porteføljen", mine, { color: css("--bg-000"), size: 14, line: { color: css("--chart-focus"), width: 3 } },
-    { mode: "markers+text", texttemplate: mine.map((p) => esc(p.label || "")), textposition: "top center", textfont: { family: FONT, color: css("--ink-900"), size: 12 } }));
+    { mode: window.innerWidth < 640 ? "markers" : "markers+text", texttemplate: mine.map((p) => esc(p.label || "")), textposition: "top center", textfont: { family: FONT, color: css("--ink-900"), size: 12 } }));
   return out;
 }
-const stepLegend = () => ({ orientation: "h", x: 0, y: 1.02, yanchor: "bottom", title: { text: "Avkastning for risikoen:", font: { family: FONT, color: css("--ink-500"), size: 12 } } });
+const stepLegend = () => ({ orientation: "h", x: 0, y: 1.02, yanchor: "bottom",
+  title: { text: "Avkastning for risikoen:", side: window.innerWidth < 760 ? "top left" : "left", font: { family: FONT, color: css("--ink-500"), size: 12 } } });
 
 // ---------------------------------------------------------------- figure cards (vv-figure)
 const ICON = {
@@ -173,7 +174,7 @@ const FIG = {};
 /** Build the skeleton of every <figure class="vv-figure" data-chart="…"> once. The chart element keeps its id. */
 function initFigures(root = document) {
   root.querySelectorAll("figure.vv-figure[data-fig]:not([data-ready])").forEach((f) => {
-    const id = f.id, chart = f.dataset.chart, kind = f.dataset.kind || "chart";
+    const id = f.id, chart = f.dataset.chart, kind = f.dataset.kind || "chart", tools = f.querySelector(".fig-tools");
     const body = chart
       ? `<div id="${chart}" class="chart ${f.dataset.size ? "chart-" + f.dataset.size : ""}" role="img" aria-label=""></div>`
       : `<div class="fig-html" role="img" aria-label=""></div>`;
@@ -185,6 +186,7 @@ function initFigures(root = document) {
         <ul class="vv-downloads"><li><button type="button" class="vv-download fig-btn" data-act="table" aria-pressed="false">${ICON.table}<span>Vis som tabell</span></button></li>
           <li><button type="button" class="vv-download fig-btn" data-act="csv">${ICON.download}<span>Last ned CSV</span></button></li></ul>
       </div>`;
+    if (tools) f.querySelector(".vv-figure__subtitle").after(tools);
     f.dataset.ready = "1";
     f.dataset.kind = kind;
     f.addEventListener("click", (ev) => {
@@ -240,6 +242,55 @@ function downloadCsv(o) {
 }
 /** Cell with a number for CSV and formatted text for the table. */
 const cell = (v, t) => ({ v: ok(v) ? Math.round(v * 1e6) / 1e6 : null, t });
+
+// ---------------------------------------------------------------- filter dropdowns (shared by Finn fond and Finn ETF-er)
+/** Multi-select dropdowns built on <details class="dd">. defs = [[key, label]]; keys in `mainKeys` go in mainEl, the rest in moreEl.
+ *  Returns sync(), which writes the current choice into each summary. */
+function setupDropdowns(card, list, defs, mainKeys, mainEl, moreEl, F, onChange) {
+  for (const [k, label] of defs) (mainKeys.includes(k) ? mainEl : moreEl).insertAdjacentHTML("beforeend",
+    `<details class="dd" data-k="${k}"><summary><span class="dd-label">${esc(label)}:</span> <span class="dd-val">alle</span></summary><div class="dd-panel" role="group" aria-label="${esc(label)}"></div></details>`);
+  const all = () => card.querySelectorAll(".dd");
+  const sync = () => all().forEach((dd) => {
+    const v = F.dd[dd.dataset.k] || [];
+    dd.querySelector(".dd-val").textContent = !v.length ? "alle" : v.length === 1 ? v[0] : `${v.length} valgt`;
+    dd.classList.toggle("active", v.length > 0);
+  });
+  all().forEach((dd) => {
+    const k = dd.dataset.k, counts = {};
+    for (const e of list) { const v = e[k] ?? NONE; counts[v] = (counts[v] || 0) + 1; }
+    const opts = Object.entries(counts).sort((a, b) => (a[0] === NONE) - (b[0] === NONE) || b[1] - a[1] || a[0].localeCompare(b[0], "nb"));
+    const panel = dd.querySelector(".dd-panel");
+    panel.innerHTML = `<div class="dd-actions"><button type="button" data-a="all">Vis alle (fjern valg)</button></div>` +
+      opts.map(([v, n]) => `<label><input type="checkbox" value="${esc(v)}" ${F.dd[k]?.includes(v) ? "checked" : ""}> ${esc(v)} <span class="n">${num(n)}</span></label>`).join("");
+    dd.addEventListener("toggle", () => { if (dd.open) all().forEach((o) => { if (o !== dd) o.open = false; }); });
+    panel.addEventListener("change", () => { F.dd[k] = [...panel.querySelectorAll("input:checked")].map((i) => i.value); sync(); onChange(); });
+    panel.querySelector(".dd-actions").addEventListener("click", (ev) => {
+      if (!ev.target.dataset.a) return;
+      panel.querySelectorAll("input").forEach((i) => { i.checked = false; });
+      F.dd[k] = []; sync(); onChange();
+    });
+    dd.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && dd.open) { dd.open = false; dd.querySelector("summary").focus(); } });
+  });
+  document.addEventListener("click", (ev) => { if (!ev.target.closest(".dd")) all().forEach((o) => { o.open = false; }); });
+  sync();
+  return sync;
+}
+/** A vv-toggle (buttons with aria-pressed): marks the pressed one and calls fn(button). */
+function bindToggle(el, fn) {
+  el.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b || !el.contains(b)) return;
+    el.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    fn(b);
+  });
+}
+/** Short receipt at the bottom of the screen (also read by screen readers). */
+function toast(html) {
+  const t = $("toast"); if (!t) return;
+  t.innerHTML = html; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 4500);
+}
+/** The add button in the explorers' tables. */
+const addBtn = (on, name) => `<button type="button" class="add-btn ${on ? "on" : ""}" aria-pressed="${on}" aria-label="${on ? "Fjern" : "Legg til"} ${esc(name)} ${on ? "fra" : "i"} porteføljen">${on ? ICON.check + "<span>I porteføljen</span>" : "<span>+ Legg til</span>"}</button>`;
 
 // ---------------------------------------------------------------- months
 function monthYM(i) {           // month index -> {y, m}
@@ -354,36 +405,13 @@ function computeMetrics() {
 // ---------------------------------------------------------------- filters
 function defaultFilters() {
   return { q: "", dd: Object.fromEntries(DD.map(([k]) => [k, []])), hist: 0, fee: "", size: "", hedged: "all", acc: "all", esg: "all",
-    pick: true, ask: true, lev: true, mine: false, top: 0, group: "sector", rank: "sharpe", period: 5 };
+    pick: true, ask: true, lev: true, mine: false, top: 0, group: "sector", rank: "sharpe", period: 5, cols: "simple" };
 }
 function saveFilters() { store.set(LS.filters, { ...st.f, period: st.period }); }
 
 function setupFilters() {
   const F = st.f;
-  // dropdowns
-  const row = $("dd-row");
-  row.innerHTML = DD.map(([k, label]) => `<details class="dd" data-k="${k}"><summary><span class="dd-label">${esc(label)}:</span><span class="dd-val">alle</span></summary><div class="dd-panel"></div></details>`).join("");
-  row.querySelectorAll(".dd").forEach((dd) => {
-    const k = dd.dataset.k;
-    const counts = {};
-    for (const e of D.list) { const v = e[k] ?? NONE; counts[v] = (counts[v] || 0) + 1; }
-    const opts = Object.entries(counts).sort((a, b) => (a[0] === NONE) - (b[0] === NONE) || b[1] - a[1] || a[0].localeCompare(b[0], "nb"));
-    dd.querySelector(".dd-panel").innerHTML = `<div class="dd-actions"><button type="button" data-a="all">Vis alle (fjern valg)</button></div>` +
-      opts.map(([v, n]) => `<label><input type="checkbox" value="${esc(v)}" ${F.dd[k]?.includes(v) ? "checked" : ""}> ${esc(v)} <span class="n">${num(n)}</span></label>`).join("");
-    dd.addEventListener("toggle", () => { if (dd.open) row.querySelectorAll(".dd[open]").forEach((o) => { if (o !== dd) o.open = false; }); });
-    dd.querySelector(".dd-panel").addEventListener("change", () => {
-      F.dd[k] = [...dd.querySelectorAll("input:checked")].map((i) => i.value);
-      syncDD(); onFilter();
-    });
-    dd.querySelector(".dd-actions").addEventListener("click", (ev) => {
-      const a = ev.target.dataset.a; if (!a) return;
-      dd.querySelectorAll("input").forEach((i) => { i.checked = false; });
-      F.dd[k] = []; syncDD(); onFilter();
-    });
-  });
-  document.addEventListener("click", (ev) => { if (!ev.target.closest(".dd")) row.querySelectorAll(".dd[open]").forEach((o) => { o.open = false; }); });
-  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") row.querySelectorAll(".dd[open]").forEach((o) => { o.open = false; }); });
-
+  st.syncDD = setupDropdowns($("filters"), D.list, DD, ["sector", "region"], $("dd-row-main"), $("dd-row"), F, () => onFilter());
   const bind = (id, key, kind = "value", ev = "change") => {
     const el = $(id);
     if (kind === "checked") el.checked = !!F[key]; else el.value = F[key];
@@ -394,36 +422,18 @@ function setupFilters() {
   bind("f-hedged", "hedged"); bind("f-acc", "acc"); bind("f-esg", "esg");
   bind("f-pick", "pick", "checked"); bind("f-ask", "ask", "checked"); bind("f-lev", "lev", "checked"); bind("f-mine", "mine", "checked");
   bind("f-top", "top"); bind("f-group", "group"); bind("f-rank", "rank");
-  $("f-reset").addEventListener("click", () => { store.set(LS.filters, defaultFilters()); location.reload(); });
+  $("f-reset").addEventListener("click", () => { store.set(LS.filters, { ...defaultFilters(), cols: F.cols }); location.hash = "#etf"; location.reload(); });
   renderPeriodTabs();
-  syncDD();
-  const tabs = $("exp-chart-tabs");
-  tabs.addEventListener("click", (ev) => {
-    const b = ev.target.closest("button"); if (!b) return;
-    st.chartTab = b.dataset.v;
-    tabs.querySelectorAll("button").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-    renderExplorerChart();
-  });
-}
-
-function syncDD() {
-  document.querySelectorAll("#dd-row .dd").forEach((dd) => {
-    const v = st.f.dd[dd.dataset.k] || [];
-    dd.querySelector(".dd-val").textContent = !v.length ? "alle" : v.length === 1 ? v[0] : `${v.length} valgt`;
-    dd.classList.toggle("active", v.length > 0);
-  });
+  bindToggle($("exp-chart-tabs"), (b) => { st.chartTab = b.dataset.v; renderExplorerChart(); });
+  const cols = $("f-cols");
+  cols.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.c === (F.cols || "simple") ? "true" : "false"));
+  bindToggle(cols, (b) => { F.cols = b.dataset.c; saveFilters(); st.table && st.table.setColumns(explorerColumns()); });
 }
 
 function renderPeriodTabs() {
   const el = $("f-period");
-  el.innerHTML = PERIODS.map((P) => `<button type="button" role="tab" data-p="${P}" aria-selected="${P === st.period}">${P} år</button>`).join("");
-  el.onclick = (ev) => {
-    const b = ev.target.closest("button"); if (!b) return;
-    st.period = +b.dataset.p;
-    el.querySelectorAll("button").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-    st.table && st.table.setColumns(explorerColumns());
-    onFilter();
-  };
+  el.innerHTML = PERIODS.map((P) => `<button type="button" data-p="${P}" aria-pressed="${P === st.period}">${P} år</button>`).join("");
+  bindToggle(el, (b) => { st.period = +b.dataset.p; st.table && st.table.setColumns(explorerColumns()); onFilter(); });
 }
 
 const onFilter = debounce(() => { saveFilters(); refreshExplorer(); }, 60);
@@ -489,37 +499,47 @@ function explorerColumns() {
     if (nb) return dir === "asc" ? -1 : 1;
     return a - b;
   };
-  const pctCol = (title, field, d = 1, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
-    formatter: (c) => pct(c.getValue(), d) });
+  const pctCol = (title, field, d = 1, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip, formatter: (c) => pct(c.getValue(), d) });
   const numCol = (title, field, d = 2, tip, mult = 1) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
     formatter: (c) => num(ok(c.getValue()) ? c.getValue() * mult : null, d) });
   const txt = (title, field, width) => ({ title, field, width, formatter: (c) => esc(c.getValue() ?? "–"), tooltip: true });
-  const P = st.period;
+  const P = st.period, wide = window.innerWidth >= 700;
+  const add = { title: "", field: "mine", frozen: wide, headerSort: false, width: 136, cssClass: "add-cell",
+    formatter: (c) => addBtn(!!c.getValue(), c.getRow().getData().name),
+    cellClick: (ev, c) => { if (!ev.target.closest("button")) return; ev.stopPropagation(); toggleSelect(c.getRow().getData().isin); } };
+  const fee = { title: "Kostnad per år", field: "fee", hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: "Årlig kostnad (TER), i prosent",
+    formatter: (c) => (ok(c.getValue()) ? nf(2).format(c.getValue()) + " %" : "–") };
+  if ((st.f?.cols || "simple") === "simple") return [
+    add,
+    { title: "ETF", field: "name", frozen: wide, width: wide ? 300 : 200, tooltip: true,
+      formatter: (c) => `<span class="cell-name">${esc(c.getValue())}</span><span class="cell-sub">${esc(c.getRow().getData().ticker)}</span>` },
+    txt("Sektor", "sector", 130), txt("Region", "region", 110), fee,
+    pctCol(`Avkastning per år, ${P} år`, P === 1 ? "r1" : P === 3 ? "r3" : P === 5 ? "r5" : "r10", 1, "Annualisert totalavkastning i kroner"),
+    pctCol(`Svingninger, ${P} år`, "vol", 1, "Volatilitet: hvor mye verdien svinger i løpet av et år"),
+    { title: "Avkastning for risikoen", field: "sharpe", sorter: sorterNull, headerTooltip: "Sharpe: avkastning utover risikofri rente delt på svingningene",
+      formatter: (c) => (ok(c.getValue()) ? `${sharpeWord(c.getValue())} <span class="cell-sub-inline">(${num(c.getValue(), 2)})</span>` : "–") },
+  ];
   return [
-    { title: "", field: "mine", frozen: true, headerSort: false, hozAlign: "center", width: 44,
-      formatter: (c) => `<button type="button" class="add-btn ${c.getValue() ? "on" : ""}" aria-label="${c.getValue() ? "Fjern fra" : "Legg til i"} porteføljen">${c.getValue() ? "✓" : "+"}</button>`,
-      cellClick: (ev, c) => { ev.stopPropagation(); toggleSelect(c.getRow().getData().isin); } },
-    { title: "Ticker", field: "ticker", frozen: true, formatter: (c) => `<strong>${esc(c.getValue())}</strong>` },
-    txt("Navn", "name", 250), txt("Sektor", "sector", 130), txt("Tema", "theme", 130), txt("Region", "region", 100),
-    { title: "Avgift", field: "fee", hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: "Årlig kostnad (TER), %",
-      formatter: (c) => (ok(c.getValue()) ? nf(2).format(c.getValue()) + " %" : "–") },
-    numCol("Str. (mill.)", "size", 0, "Fondsstørrelse i millioner (fondets valuta, fra Nordnet)"),
-    numCol("Hist. (år)", "history_years", 1, "Lengde på renset kurshistorikk"),
-    { title: "Annualisert avkastning", columns: [pctCol("1 år", "r1"), pctCol("3 år", "r3"), pctCol("5 år", "r5"), pctCol("10 år", "r10")] },
+    add,
+    { title: "Ticker", field: "ticker", frozen: wide, formatter: (c) => `<strong>${esc(c.getValue())}</strong>` },
+    txt("Navn", "name", 250), txt("Sektor", "sector", 130), txt("Tema", "theme", 130), txt("Region", "region", 100), fee,
+    numCol("Størrelse (mill.)", "size", 0, "Fondsstørrelse i millioner (fondets valuta, fra Nordnet)"),
+    numCol("Historikk (år)", "history_years", 1, "Lengde på renset kurshistorikk"),
+    { title: "Avkastning per år", columns: [pctCol("1 år", "r1"), pctCol("3 år", "r3"), pctCol("5 år", "r5"), pctCol("10 år", "r10")] },
     { title: `Risiko og mot referansen, ${P} år`, columns: [
-      pctCol("Vol.", "vol", 1, "Volatilitet: årlig standardavvik av månedsavkastningen"),
+      pctCol("Svingninger", "vol", 1, "Volatilitet: årlig standardavvik av månedsavkastningen"),
       numCol("Sharpe", "sharpe", 2, "(Avkastning − risikofri rente) / volatilitet"),
       pctCol("Alfa", "alpha", 1, "Jensens alfa mot referansen, annualisert: avkastning utover det beta forklarer"),
       numCol("Beta", "beta", 2, "Følsomhet for referansen: 1,2 = svinger 20 % mer enn verdensindeksen"),
-      numCol("R²", "r2", 0, "Andel av svingningene som forklares av referansen (0–100). Lav R² = diversifiserer", 100),
+      numCol("R²", "r2", 0, "Andel av svingningene som forklares av referansen (0–100). Lav R² = sprer risikoen", 100),
       pctCol("TE", "te", 1, "Tracking error: årlig standardavvik av differansen mot referansen"),
       numCol("IR", "ir", 2, "Informasjonsrate: meravkastning mot referansen / tracking error"),
-      pctCol("Maks fall", "mdd", 0, "Største fall fra topp (månedsdata)"),
+      pctCol("Største fall", "mdd", 0, "Største fall fra topp (månedsdata)"),
     ] },
     txt("Stil", "style", 120), txt("Aktivaklasse", "asset_class", 110), txt("Utsteder", "issuer", 140), txt("Kategori", "category", 190),
-    { title: "Akk./utd.", field: "acc", formatter: (c) => accLabel(c.getValue()) },
-    { title: "Sikret", field: "hedged", hozAlign: "center", formatter: (c) => (c.getValue() ? "ja" : "") },
-    { title: "Lik indeks", field: "cluster_size", hozAlign: "right", cssClass: "num", headerTooltip: "Antall ETF-er hos Nordnet som følger samme indeks (klikk raden)",
+    { title: "Utbytte", field: "acc", formatter: (c) => accLabel(c.getValue()) },
+    { title: "Valutasikret", field: "hedged", hozAlign: "center", formatter: (c) => (c.getValue() ? "ja" : "") },
+    { title: "Samme indeks", field: "cluster_size", hozAlign: "right", cssClass: "num", headerTooltip: "Antall ETF-er hos Nordnet som følger samme indeks (klikk raden)",
       formatter: (c) => (c.getValue() > 1 ? `${c.getValue()}` : "") },
   ];
 }
@@ -527,7 +547,7 @@ function explorerColumns() {
 function setupExplorer() {
   if (!window.Tabulator) { $("explorer").innerHTML = '<p class="muted">Tabellbiblioteket kunne ikke lastes.</p>'; return; }
   st.table = new Tabulator("#explorer", {
-    data: [], index: "isin", layout: "fitDataFill", maxHeight: "640px", placeholder: "Ingen treff – løsne på filtrene",
+    data: [], index: "isin", layout: "fitDataFill", maxHeight: "640px", placeholder: "Ingen treff. Løsne på filtrene.",
     columns: explorerColumns(), initialSort: [{ column: "sharpe", dir: "desc" }], columnHeaderVertAlign: "bottom",
     groupHeader: (value, count) => `${esc(value)}<span>(${count})</span>`,
     rowFormatter: (row) => row.getElement().classList.toggle("is-mine", !!row.getData().mine),
@@ -545,14 +565,14 @@ function setupExplorer() {
     box.className = "alt-box";
     box.innerHTML = alts.length
       ? `<strong>${alts.length} andre ETF-er følger samme indeks</strong> (største parvise tracking error ${pct(d.max_te, 2)})
-         <table class="data"><thead><tr><th></th><th>Ticker</th><th>Navn</th><th class="num">Avgift</th><th>Akk./utd.</th><th class="num">Historikk</th><th class="num">${st.period} år avk.</th><th>ASK</th></tr></thead><tbody>
-         ${alts.sort((a, b) => (a.fee ?? 9) - (b.fee ?? 9)).map((x) => `<tr><td><button type="button" class="add-btn ${mineSet().has(x.isin) ? "on" : ""}" data-isin="${x.isin}" aria-label="Legg til">${mineSet().has(x.isin) ? "✓" : "+"}</button></td>
-           <td>${esc(x.ticker)}${x.pick ? ' <span class="tag">vist</span>' : ""}</td><td>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</td>
-           <td class="num">${ok(x.fee) ? nf(2).format(x.fee) + " %" : "–"}</td><td>${accLabel(x.acc)}</td><td class="num">${num(x.history_years, 1)} år</td>
-           <td class="num">${pct(x.m?.[st.period]?.ret)}</td><td>${x.ask ? "ja" : "nei"}</td></tr>`).join("")}
+         <table class="vv-table"><thead><tr><th><span class="visually-hidden">Legg til</span></th><th>Ticker</th><th>Navn</th><th class="vv-num">Kostnad</th><th>Utbytte</th><th class="vv-num">Historikk</th><th class="vv-num">Avkastning ${st.period} år</th><th>ASK</th></tr></thead><tbody>
+         ${alts.sort((a, b) => (a.fee ?? 9) - (b.fee ?? 9)).map((x) => `<tr><td>${addBtn(mineSet().has(x.isin), x.name).replace("<button ", `<button data-isin="${x.isin}" `)}</td>
+           <td>${esc(x.ticker)}${x.pick ? ' <span class="vv-badge">vist</span>' : ""}</td><td>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</td>
+           <td class="vv-num">${ok(x.fee) ? nf(2).format(x.fee) + " %" : "–"}</td><td>${accLabel(x.acc)}</td><td class="vv-num">${num(x.history_years, 1)} år</td>
+           <td class="vv-num">${pct(x.m?.[st.period]?.ret)}</td><td>${x.ask ? "ja" : "nei"}</td></tr>`).join("")}
          </tbody></table>`
       : `<span class="muted">Ingen andre ETF-er hos Nordnet følger samme indeks.</span> ${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Åpne hos Nordnet</a>` : ""}`;
-    box.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-isin]"); if (b) { ev.stopPropagation(); toggleSelect(b.dataset.isin); b.classList.toggle("on"); b.textContent = b.classList.contains("on") ? "✓" : "+"; } });
+    box.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-isin]"); if (b) { ev.stopPropagation(); toggleSelect(b.dataset.isin); b.outerHTML = addBtn(mineSet().has(b.dataset.isin), D.by[b.dataset.isin]?.name || "").replace("<button ", `<button data-isin="${b.dataset.isin}" `); } });
     el.appendChild(box);
     row.normalizeHeight();
   });
@@ -563,9 +583,9 @@ async function refreshExplorer() {
   st.filtered = list;
   const mine = mineSet();
   const rows = list.map((e) => rowOf(e, mine));
-  $("f-count").textContent = `${num(rows.length)} ETF-er`;
-  $("exp-cols-note").textContent = `Annualisert avkastning per ${dateNo(D.summary.returns_until)}. Risikotall gjelder ${st.period} år; tomme felt betyr for kort historikk. ` +
-    "Hold musen over en kolonneoverskrift for forklaring.";
+  $("f-count").innerHTML = `<strong>${num(rows.length)}</strong> ETF-er i utvalget`;
+  $("exp-cols-note").innerHTML = `Avkastning per år i kroner til ${dateNo(D.summary.returns_until)}. Risikotallene gjelder ${st.period} år; tomt felt betyr for kort historikk. ` +
+    'Trykk på en rad for å se andre ETF-er på samme indeks. Fagordene er forklart i <a href="#ordliste">ordlisten</a>.';
   if (st.table) {
     await st.tableReady;
     st.table.setGroupBy(+st.f.top > 0 ? "_group" : false);
@@ -580,8 +600,7 @@ function renderExplorerChart() {
   const P = st.period, mine = mineSet();
   const pts = st.filtered.filter((e) => ok(e.m?.[P]?.vol) && ok(e.m?.[P]?.ret));
   const bm = D.by[st.bench]?.m?.[P];
-  $("exp-chart-note").textContent = `${num(pts.length)} ETF-er med ${P} års historikk. Klikk på en prikk for å legge den i porteføljen. ${SHARPE_HINT}`;
-  if (!pts.length) return emptyChart("chart-explorer", "Ingen ETF-er med nok historikk for perioden");
+  if (!pts.length) { figure("fig-explorer", { title: "Ingen ETF-er med nok historikk for perioden" }); return emptyChart("chart-explorer", "Ingen ETF-er med nok historikk for perioden"); }
   const rfP = (bm?.rf ?? pts[0].m[P].rf ?? D.summary.rf_now) * 100;
   const bg = sharpeLines(pts.map((e) => e.m[P].vol * 100), pts.map((e) => e.m[P].ret * 100), rfP);
   const pt = pts.filter((e) => e.isin !== st.bench).map((e) => {
@@ -591,6 +610,17 @@ function renderExplorerChart() {
         `Avkastning ${pct(e.m[P].ret)} per år · svingninger ${pct(e.m[P].vol)}<br>Avkastning for risikoen: ${sharpeWord((y - rfP) / x)} (Sharpe ${num(e.m[P].sharpe, 2)})` };
   });
   const traces = [...bg.traces, ...stepTraces(pt)];
+  const good = pt.filter((x) => x.s >= 0.5).length;
+  figure("fig-explorer", {
+    title: `Avkastning og svingninger for ${num(pt.length)} ETF-er, ${P} år`,
+    subtitle: `Avkastning og svingninger per år i kroner, ${P} år til ${dateNo(D.summary.returns_until)}. Hver prikk er en ETF, farget etter avkastning for risikoen. Trykk på en prikk for å legge den i porteføljen.`,
+    takeaway: `${num(good)} av ${num(pt.length)} har gitt bra eller svært bra avkastning for risikoen. ${SHARPE_HINT}`,
+    source: "Yahoo Finance (kurser og utbytte), Norges Bank (valuta og rente), egne beregninger",
+    about: [["Utvalg", "ETF-ene som passer filtrene og har nok historikk for perioden."], ["Metode", '<a href="#metode-etf">Slik er tallene regnet</a>']],
+    aria: `Spredningsdiagram: ${num(pt.length)} ETF-er etter svingninger og avkastning, ${P} år. ${num(good)} har gitt bra eller svært bra avkastning for risikoen.`,
+    data: { name: `etf-risiko-avkastning-${P}-ar`, head: ["ETF", "Ticker", "Svingninger per år (%)", "Avkastning per år (%)", "Avkastning for risikoen"], num: [false, false, true, true, false],
+      rows: pts.map((e) => [e.name, e.ticker, cell(Math.round(e.m[P].vol * 1000) / 10, pct(e.m[P].vol)), cell(Math.round(e.m[P].ret * 1000) / 10, pct(e.m[P].ret)), sharpeWord((e.m[P].ret * 100 - rfP) / (e.m[P].vol * 100))]) },
+  });
   if (bm) traces.push({ type: "scatter", mode: "markers+text", name: "Referanse", x: [bm.vol * 100], y: [bm.ret * 100], customdata: [st.bench],
     text: [`<b>Referanse</b> ${esc(D.by[st.bench].name)}<br>Avkastning ${pct(bm.ret)} · svingninger ${pct(bm.vol)}`],
     texttemplate: ["Referanse"], textposition: "bottom right", textfont: { family: FONT, color: css("--chart-reference"), size: 12 }, hovertemplate: "%{text}<extra></extra>",
@@ -602,7 +632,7 @@ function renderExplorerChart() {
   }));
   const el = $("chart-explorer");
   if (!el._clickBound && el.on) {
-    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata; if (i && i !== st.bench) toggleSelect(i); });
+    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata; if (typeof i === "string" && i !== st.bench && st.chartTab !== "growth") toggleSelect(i); });
     el._clickBound = true;
   }
 }
@@ -611,12 +641,19 @@ function renderGrowthChart() {
   const P = st.period, len = 12 * P, start = D.end - len + 1, mine = mineSet();
   let rows = st.table ? st.table.getRows("active").map((r) => r.getData()) : [];
   rows = rows.filter((r) => D.ret[r.isin] && ok(D.by[r.isin].m?.[P]?.ret)).slice(0, 10);
-  $("exp-chart-note").textContent = `De 10 første radene i tabellen (etter sorteringen din), ${P} år. Verdi av 100 kr.`;
-  if (!rows.length) return emptyChart("chart-explorer", "Ingen ETF-er med nok historikk for perioden");
+  if (!rows.length) { figure("fig-explorer", { title: "Ingen ETF-er med nok historikk for perioden" }); return emptyChart("chart-explorer", "Ingen ETF-er med nok historikk for perioden"); }
   const dates = []; for (let i = start - 1; i <= D.end; i++) dates.push(monthEnd(i));
   const series = rows.map((r) => ({ isin: r.isin, label: r.ticker, name: r.name, mine: mine.has(r.isin), v: E.cumulative(D.ret[r.isin], start, D.end, 100) }));
   const b = benchSeries();
   if (b && E.isNum(b[start])) series.push({ isin: st.bench, label: "Referanse", name: D.by[st.bench].name, ref: true, v: E.cumulative(b, start, D.end, 100) });
+  const best = series.filter((x) => !x.ref).sort((a, b) => b.v[b.v.length - 1] - a.v[a.v.length - 1])[0];
+  figure("fig-explorer", {
+    title: `${esc(best.label)} har vokst mest av de 10 første i tabellen, ${P} år`,
+    subtitle: `Verdien av 100 kr investert for ${P} år siden, i kroner med utbytte reinvestert. De 10 første radene i tabellen etter sorteringen din, og referansen.`,
+    source: "Yahoo Finance (kurser og utbytte), Norges Bank (valuta), egne beregninger",
+    aria: `Linjediagram: utviklingen for de 10 første ETF-ene i tabellen. ${best.label} endte på ${num(best.v[best.v.length - 1], 0)} kr.`,
+    data: { name: `etf-utvikling-${P}-ar`, head: ["Måned", ...series.map((x) => x.label)], rows: dates.map((d, i) => [d.slice(0, 7), ...series.map((x) => cell(Math.round(x.v[i] * 10) / 10, num(x.v[i], 1)))]) },
+  });
   const traces = series.map((s) => ({
     x: dates, y: s.v, mode: "lines", name: s.label, showlegend: false,
     line: { color: s.ref ? css("--chart-reference") : s.mine ? css("--chart-focus") : css("--chart-context"), width: s.ref || s.mine ? 2.5 : 1.5 },
@@ -641,7 +678,13 @@ function renderGrowthChart() {
 // ---------------------------------------------------------------- portfolio membership (state lives in portefolje.js)
 function mineSet() { return typeof PF !== "undefined" && PF.ids ? PF.ids() : new Set(); }
 
-function toggleSelect(isin) { if (typeof PF !== "undefined") PF.toggle(isin); }
+function toggleSelect(isin) {
+  if (typeof PF === "undefined" || !PF.ready) return;
+  PF.toggle(isin);
+  const name = esc(PF.product(isin)?.name || isin), on = PF.ids().has(isin);
+  toast(on ? `${ICON.check}<span>Lagt til i porteføljen: <strong>${name}</strong>. <a href="#portefolje">Se porteføljen</a></span>`
+    : `<span>Fjernet fra porteføljen: <strong>${name}</strong>.</span>`);
+}
 
 /** Called by portefolje.js when the portfolio's members change. */
 function onPortfolioMembers() {
