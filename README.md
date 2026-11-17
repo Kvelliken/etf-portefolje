@@ -205,3 +205,5 @@ repo-variabelen `SKIP_NORDNET=true`, så hopper også de planlagte kjøringene o
 Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.
 
 Hele oppdraget, avklarte valg og statusnotater per fase står i [`docs/oppdrag.md`](docs/oppdrag.md).
+Designprofilen (Vargvind) står i [`docs/vargvind.md`](docs/vargvind.md), med filene i `site/vargvind/`, og
+oppdraget om ny design og enklere brukeropplevelse i [`docs/oppdrag-vargvind.md`](docs/oppdrag-vargvind.md).
