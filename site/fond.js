@@ -8,17 +8,18 @@ const FLS = { tab: "etfpf.tab", filters: "etfpf.fond.filters.v1" };
 const FDD = [["asset_class", "Aktivaklasse"], ["sector", "Sektor"], ["region", "Region"], ["theme", "Tema"],
   ["style", "Stil"], ["company", "Forvalter"]];
 const FS = { f: null, period: 5, xaxis: "vol", table: null, data: null, loading: null, list: [], by: {} };
-const TABS = ["pf", "fond", "etf"];
+const TABS = ["pf", "fond", "etf", "metode"];
+const TAB_HASH = { pf: "portefolje", fond: "fond", etf: "etf", metode: "metode" };
 // Nordnet har risikotall for 1, 3 og 5 år. For 10 år brukes 5 år.
 const riskP = (P) => (P >= 5 ? 5 : P);
 const rk = (k, P) => `${k}${riskP(P)}`;
 
-// ---------------------------------------------------------------- main tabs
-function showTab(tab, { scroll = false } = {}) {
+// ---------------------------------------------------------------- main tabs (the menu in the header; the tab lives in the URL)
+function showTab(tab, { scroll = false, focus = false } = {}) {
   for (const t of TABS) {
     $(`tab-${t}`).hidden = t !== tab;
-    $(`tabbtn-${t}`).setAttribute("aria-selected", t === tab ? "true" : "false");
-    document.querySelector(`.nav[data-for="${t}"]`).hidden = t !== tab;
+    const a = document.querySelector(`#main-nav a[data-tab="${t}"]`);
+    if (t === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   }
   store.set(FLS.tab, tab);
   // Charts and tables drawn while hidden have no width: let them measure again.
@@ -28,27 +29,37 @@ function showTab(tab, { scroll = false } = {}) {
     if (tab === "fond" && FS.table) FS.table.redraw(true);
   });
   if (scroll) window.scrollTo({ top: 0 });
+  if (focus) $(`h-${tab}`)?.focus({ preventScroll: true });
 }
 
+/** Tab for the current hash: a tab name (#fond) or any element inside a tab (#pf-risiko, #ordliste). */
 function tabFromHash() {
-  const h = location.hash;
-  if (!h || h.length < 2 || h.includes("=")) return null;
-  for (const t of TABS) if (document.querySelector(`#tab-${t} ${CSS.escape(h)}`)) return t;
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (!h || h.includes("=")) return null;
+  for (const t of TABS) if (TAB_HASH[t] === h) return t;
+  for (const t of TABS) if (document.querySelector(`#tab-${t} #${CSS.escape(h)}`)) return t;
   return null;
 }
 
 function setupTabs() {
-  document.querySelector(".main-tabs").addEventListener("click", (ev) => {
-    const b = ev.target.closest("button[data-tab]"); if (!b) return;
-    showTab(b.dataset.tab, { scroll: true });
-  });
-  window.addEventListener("hashchange", () => {
+  const go = (focus) => {
     const t = tabFromHash(); if (!t) return;
-    showTab(t);
-    requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView());
+    const id = decodeURIComponent(location.hash.slice(1)), isTab = TAB_HASH[t] === id;
+    showTab(t, { scroll: isTab, focus: focus && isTab });
+    if (!isTab) requestAnimationFrame(() => { const el = $(id); if (!el) return; if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView(); });
+  };
+  window.addEventListener("hashchange", () => go(true));
+  // A click on the tab that is already open scrolls back to the top.
+  $("main-nav").addEventListener("click", (ev) => {
+    const a = ev.target.closest("a[data-tab]");
+    if (a && a.getAttribute("href") === location.hash) { ev.preventDefault(); showTab(a.dataset.tab, { scroll: true, focus: true }); }
   });
+  for (const h of document.querySelectorAll(".page-head h1")) h.tabIndex = -1;
+  if (tabFromHash()) return go(false);
+  // No tab in the address: an empty portfolio always starts on Min portefølje, otherwise the last tab used.
+  const empty = !(store.get("etfpf.portfolio.v1", null)?.items?.length) || location.hash.startsWith("#pf=");
   const saved = store.get(FLS.tab, "pf");
-  showTab(tabFromHash() || (TABS.includes(saved) ? saved : "pf"));
+  showTab(empty || !TABS.includes(saved) ? "pf" : saved);
 }
 
 // ---------------------------------------------------------------- data
@@ -107,34 +118,15 @@ function prepareFunds() {
 // ---------------------------------------------------------------- filters
 function defaultFundFilters() {
   return { q: "", dd: Object.fromEntries(FDD.map(([k]) => [k, []])), kind: "all", cost: "", hist: 0, sfdr: "all", acc: "all",
-    ask: true, selection: false, unhedged: false, mine: false, period: 5, xaxis: "vol" };
+    ask: true, selection: false, unhedged: false, mine: false, period: 5, xaxis: "vol", cols: "simple" };
 }
 function saveFundFilters() { store.set(FLS.filters, { ...FS.f, period: FS.period, xaxis: FS.xaxis }); }
 const onFundFilter = debounce(() => { saveFundFilters(); refreshFunds(); }, 60);
 
 function setupFundFilters() {
   const F = FS.f;
-  const row = $("ff-dd-row");
-  row.innerHTML = FDD.map(([k, label]) => `<details class="dd" data-k="${k}"><summary><span class="dd-label">${esc(label)}:</span><span class="dd-val">alle</span></summary><div class="dd-panel"></div></details>`).join("");
-  row.querySelectorAll(".dd").forEach((dd) => {
-    const k = dd.dataset.k, counts = {};
-    for (const f of FS.list) { const v = f[k] ?? NONE; counts[v] = (counts[v] || 0) + 1; }
-    const opts = Object.entries(counts).sort((a, b) => (a[0] === NONE) - (b[0] === NONE) || b[1] - a[1] || a[0].localeCompare(b[0], "nb"));
-    dd.querySelector(".dd-panel").innerHTML = `<div class="dd-actions"><button type="button" data-a="all">Vis alle (fjern valg)</button></div>` +
-      opts.map(([v, n]) => `<label><input type="checkbox" value="${esc(v)}" ${F.dd[k]?.includes(v) ? "checked" : ""}> ${esc(v)} <span class="n">${num(n)}</span></label>`).join("");
-    dd.addEventListener("toggle", () => { if (dd.open) row.querySelectorAll(".dd[open]").forEach((o) => { if (o !== dd) o.open = false; }); });
-    dd.querySelector(".dd-panel").addEventListener("change", () => {
-      F.dd[k] = [...dd.querySelectorAll("input:checked")].map((i) => i.value); syncFundDD(); onFundFilter();
-    });
-    dd.querySelector(".dd-actions").addEventListener("click", (ev) => {
-      if (!ev.target.dataset.a) return;
-      dd.querySelectorAll("input").forEach((i) => { i.checked = false; });
-      F.dd[k] = []; syncFundDD(); onFundFilter();
-    });
-  });
-  document.addEventListener("click", (ev) => { if (!ev.target.closest("#ff-dd-row .dd")) row.querySelectorAll(".dd[open]").forEach((o) => { o.open = false; }); });
-  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") row.querySelectorAll(".dd[open]").forEach((o) => { o.open = false; }); });
-
+  const card = $("ff-search").closest("form");
+  FS.syncDD = setupDropdowns(card, FS.list, FDD, ["region"], $("ff-dd-row-main"), $("ff-dd-row"), F, () => onFundFilter());
   const bind = (id, key, kind = "value", ev = "change") => {
     const el = $(id);
     if (kind === "checked") el.checked = !!F[key]; else el.value = F[key];
@@ -143,34 +135,17 @@ function setupFundFilters() {
   const s = $("ff-search"); s.value = F.q; s.addEventListener("input", debounce(() => { F.q = s.value; onFundFilter(); }, 150));
   bind("ff-kind", "kind"); bind("ff-cost", "cost", "value", "input"); bind("ff-hist", "hist"); bind("ff-sfdr", "sfdr"); bind("ff-acc", "acc");
   bind("ff-ask", "ask", "checked"); bind("ff-selection", "selection", "checked"); bind("ff-hedged", "unhedged", "checked"); bind("ff-mine", "mine", "checked");
-  $("ff-reset").addEventListener("click", () => { store.set(FLS.filters, defaultFundFilters()); location.reload(); });
+  $("ff-reset").addEventListener("click", () => { store.set(FLS.filters, { ...defaultFundFilters(), cols: F.cols }); location.hash = "#fond"; location.reload(); });
   const pe = $("ff-period");
-  pe.innerHTML = FPERIODS.map((P) => `<button type="button" role="tab" data-p="${P}" aria-selected="${P === FS.period}">${P} år</button>`).join("");
-  pe.onclick = (ev) => {
-    const b = ev.target.closest("button"); if (!b) return;
-    FS.period = +b.dataset.p;
-    pe.querySelectorAll("button").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-    FS.table && FS.table.setColumns(fundColumns());
-    onFundFilter();
-  };
+  pe.innerHTML = FPERIODS.map((P) => `<button type="button" data-p="${P}" aria-pressed="${P === FS.period}">${P} år</button>`).join("");
+  bindToggle(pe, (b) => { FS.period = +b.dataset.p; FS.table && FS.table.setColumns(fundColumns()); onFundFilter(); });
   const xa = $("ff-xaxis");
-  xa.querySelectorAll("button").forEach((x) => x.setAttribute("aria-selected", x.dataset.x === FS.xaxis ? "true" : "false"));
-  xa.onclick = (ev) => {
-    const b = ev.target.closest("button"); if (!b) return;
-    FS.xaxis = b.dataset.x;
-    xa.querySelectorAll("button").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
-    saveFundFilters(); renderFundChart();
-  };
-  syncFundDD();
+  xa.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.x === FS.xaxis ? "true" : "false"));
+  bindToggle(xa, (b) => { FS.xaxis = b.dataset.x; saveFundFilters(); renderFundChart(); });
+  const cols = $("ff-cols");
+  cols.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.c === (F.cols || "simple") ? "true" : "false"));
+  bindToggle(cols, (b) => { F.cols = b.dataset.c; saveFundFilters(); FS.table && FS.table.setColumns(fundColumns()); });
 }
-function syncFundDD() {
-  document.querySelectorAll("#ff-dd-row .dd").forEach((dd) => {
-    const v = FS.f.dd[dd.dataset.k] || [];
-    dd.querySelector(".dd-val").textContent = !v.length ? "alle" : v.length === 1 ? v[0] : `${v.length} valgt`;
-    dd.classList.toggle("active", v.length > 0);
-  });
-}
-
 function fundPasses(f, F, mine) {
   if (F.mine) return mine.has(f.isin);
   if (F.ask && !f.ask) return false;
@@ -199,14 +174,14 @@ function renderFundKpis(list) {
   const P = FS.period;
   const act = list.filter((f) => !f.index), idx = list.filter((f) => f.index);
   const med = (a, k) => median(a.map((f) => f[k]));
-  const fmt = (v) => (ok(v) ? nf(2).format(v) + " %" : "–");
-  $("fond-kpis").innerHTML = [
-    kpi("Fond i utvalget", num(list.length), `av ${num(FS.list.length)} hos Nordnet`),
-    kpi("Median kostnad, aktive", fmt(med(act, "cost")), `${num(act.length)} aktive fond`),
-    kpi("Median kostnad, indeksfond", fmt(med(idx, "cost")), `${num(idx.length)} indeksfond`),
-    kpi(`Median avkastning ${P} år, aktive`, pct(med(act, rKey(P))), "per år, etter kostnader"),
-    kpi(`Median avkastning ${P} år, indeksfond`, pct(med(idx, rKey(P))), "per år, etter kostnader"),
-  ].join("");
+  const c = (v) => (ok(v) ? nf(2).format(v) + "\u00a0%" : "–");
+  const ci = med(idx, "cost"), ca = med(act, "cost"), ri = med(idx, rKey(P)), ra = med(act, rKey(P));
+  const parts = [];
+  if (idx.length && act.length) {
+    parts.push(`<p>Et typisk indeksfond i utvalget koster <strong>${c(ci)}</strong> per år, et typisk aktivt fond <strong>${c(ca)}</strong>.</p>`);
+    if (ok(ri) && ok(ra)) parts.push(`<p>Siste ${P} år har det typiske indeksfondet gitt ${pct(ri)} per år og det typiske aktive fondet ${pct(ra)}, etter kostnader. «Typisk» er medianen: halvparten ligger over, halvparten under.</p>`);
+  } else parts.push(`<p>Utvalget har ${num(list.length)} fond${ok(ci ?? ca) ? `, med typisk kostnad ${c(ci ?? ca)} per år` : ""}.</p>`);
+  $("fond-lead").innerHTML = `${ICON.insight.replace("<svg ", '<svg class="vv-callout__icon" ')}<div class="vv-callout__body">${parts.join("")}</div>`;
 }
 
 function renderFundChart() {
@@ -215,41 +190,46 @@ function renderFundChart() {
   const xOf = (f) => (byVol ? (ok(f[vk]) ? f[vk] * 100 : null) : f.cost);
   const pts = FS.filtered.filter((f) => ok(xOf(f)) && ok(f[k]));
   const noRisk = byVol ? FS.filtered.filter((f) => ok(f[k]) && !ok(f[vk])).length : 0;
-  $("fond-chart-note").textContent = `Annualisert avkastning ${P} år i NOK etter fondets kostnader, per ${dateNo(FS.data.as_of)}. ` +
-    (byVol ? `Volatilitet = årlig standardavvik ${RP} år i NOK${RP !== P ? " (Nordnet har ikke 10 år)" : ""}. ` : "") +
-    `${num(pts.length)} fond${noRisk ? ` (${num(noRisk)} mangler volatilitet)` : ""}. Klikk på en prikk for å legge fondet i porteføljen. ${byVol ? SHARPE_HINT : ""}`;
-  if (!pts.length) { emptyChart("chart-fond", "Ingen fond med tall for perioden – løsne på filtrene"); return; }
-  const mine = mineSet();
-  const groups = [["Aktive fond", (f) => !f.index && !mine.has(f.isin), css("--ink"), "circle", 7, 0.6],
-    ["Indeksfond", (f) => f.index && !mine.has(f.isin), css("--surface"), "diamond", 9, 1],
-    ["I porteføljen", (f) => mine.has(f.isin), css("--mine"), "star", 15, 1]];
-  const bg = byVol ? sharpeBackdrop(pts.map(xOf), pts.map((f) => f[k] * 100), D.summary.rf_now * 100) : null;
-  const traces = groups.map(([name, fn, col, sym, size, op]) => {
-    const g = pts.filter(fn);
-    return {
-      type: "scatter", mode: "markers", name, x: g.map(xOf), y: g.map((f) => f[k] * 100), ids: g.map((f) => f.isin),
-      marker: { size, color: col, symbol: sym, opacity: op, line: { color: sym === "diamond" ? css("--ink") : css("--surface"), width: sym === "diamond" ? 1.5 : 1 } },
-      customdata: g.map((f) => [f.name, f.company || "", f.isin, "", pctPP(f.cost), pct(f[vk]), num(f[rk("sharpe", P)], 2), pct(f[rk("alpha", P)]),
-        num(f[rk("beta", P)], 2), ok(f[rk("r2", P)]) ? num(f[rk("r2", P)] * 100, 0) : "–"]),
-      hovertemplate: "<b>%{customdata[0]}</b><br>%{customdata[1]}<br>Avkastning %{y:.1f} % per år · kostnad %{customdata[4]}" +
-        `<br>${RP} år: vol. %{customdata[5]} · Sharpe %{customdata[6]}<br>Alfa %{customdata[7]} · beta %{customdata[8]} · R² %{customdata[9]}<extra></extra>`,
-    };
-  }).filter((t) => t.x.length);
+  if (!pts.length) { figure("fig-fond", { title: "Ingen fond med tall for perioden. Løsne på filtrene." }); emptyChart("chart-fond", "Ingen fond med tall for perioden"); return; }
+  const mine = mineSet(), rfP = D.summary.rf_now * 100;
+  const bg = byVol ? sharpeLines(pts.map(xOf), pts.map((f) => f[k] * 100), rfP) : null;
+  const shortName = (n) => (n.length > 26 ? n.slice(0, 24) + "…" : n);
+  const sOf = (f) => (byVol ? (f[k] * 100 - rfP) / xOf(f) : f[rk("sharpe", P)]);
+  const good = pts.filter((f) => sOf(f) >= 0.5).length;
+  figure("fig-fond", {
+    title: byVol ? `Avkastning og svingninger for ${num(pts.length)} fond, ${P} år` : `Kostnad og avkastning for ${num(pts.length)} fond, ${P} år`,
+    subtitle: `Avkastning per år i kroner etter fondets kostnader, ${P} år til ${dateNo(FS.data.as_of)}. ` +
+      (byVol ? `Svingninger per år over ${RP} år${RP !== P ? " (Nordnet har ikke 10 år)" : ""}. ` : "Kostnad hos Nordnet per år. ") +
+      "Hver prikk er et fond, farget etter avkastning for risikoen. Trykk på en prikk for å legge fondet i porteføljen.",
+    takeaway: `${num(good)} av ${num(pts.length)} fond har gitt bra eller svært bra avkastning for risikoen.${byVol ? " " + SHARPE_HINT : ""}` +
+      (noRisk ? ` ${num(noRisk)} fond mangler svingningstall og er ikke med.` : ""),
+    source: `Nordnet (avkastning, kostnad og risikotall)${FS.data.risk_fetched ? `, risikotall hentet ${dateNo(FS.data.risk_fetched)}` : ""}`,
+    about: [["Utvalg", "Fondene som passer filtrene og har tall for perioden."], ["Metode", '<a href="#fond-data">Slik er fondstallene regnet</a>']],
+    aria: `Spredningsdiagram: ${num(pts.length)} fond etter ${byVol ? "svingninger" : "kostnad"} og avkastning, ${P} år.`,
+    data: { name: `fond-${byVol ? "risiko" : "kostnad"}-avkastning-${P}-ar`, head: ["Fond", byVol ? "Svingninger per år (%)" : "Kostnad per år (%)", "Avkastning per år (%)", "Avkastning for risikoen"], num: [false, true, true, false],
+      rows: pts.map((f) => [f.name, cell(Math.round(xOf(f) * 100) / 100, `${nf(2).format(xOf(f))}\u00a0%`), cell(Math.round(f[k] * 1000) / 10, pct(f[k])), sharpeWord(sOf(f))]) },
+  });
+  const traces = stepTraces(pts.map((f) => {
+    const x = xOf(f), y = f[k] * 100, s = byVol ? (y - rfP) / x : f[rk("sharpe", P)];
+    return { x, y, s, id: f.isin, mine: mine.has(f.isin), label: shortName(f.name),
+      text: `<b>${esc(f.name)}</b><br>${esc(f.company || "")} · ${f.index ? "indeksfond" : "aktivt fond"}<br>Avkastning ${pct(f[k])} per år · kostnad ${pctPP(f.cost)}` +
+        `<br>Svingninger ${pct(f[vk])} (${RP} år) · avkastning for risikoen: ${sharpeWord(s)}${ok(f[rk("sharpe", P)]) ? ` (Sharpe ${num(f[rk("sharpe", P)], 2)})` : ""}` };
+  }));
   plot("chart-fond", [...(bg ? bg.traces : []), ...traces], layout({
-    xaxis: byVol ? axis({ titleText: `Svingninger (volatilitet) ${RP} år (NOK, % per år)`, ticksuffix: " %", range: bg.xr, showgrid: false })
-      : axis({ titleText: "Kostnad hos Nordnet (% per år)", ticksuffix: " %", rangemode: "tozero" }),
-    yaxis: axis({ titleText: `Avkastning per år, ${P} år (NOK)`, ticksuffix: " %", ...(bg ? { range: bg.yr, showgrid: false } : {}) }),
-    hovermode: "closest", margin: { l: 64, r: 16, t: 32, b: 52 }, annotations: bg ? bg.annotations : [],
+    xaxis: byVol ? axis({ titleText: `Svingninger per år (volatilitet), ${RP} år`, ticksuffix: " %", range: bg.xr })
+      : axis({ titleText: "Kostnad hos Nordnet per år", ticksuffix: " %", rangemode: "tozero" }),
+    yaxis: axis({ titleText: `Avkastning per år, ${P} år`, ticksuffix: " %", ...(bg ? { range: bg.yr } : {}) }),
+    hovermode: "closest", margin: { l: 64, r: 16, t: 48, b: 52 }, annotations: bg ? bg.annotations : [], legend: stepLegend(),
   }));
   const el = $("chart-fond");
   if (!el._clickBound && el.on) {
-    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata?.[2]; if (i) toggleSelect(i); });
+    el.on("plotly_click", (ev) => { const i = ev.points?.[0]?.customdata; if (typeof i === "string") toggleSelect(i); });
     el._clickBound = true;
   }
 }
 
 // ---------------------------------------------------------------- table
-const pctPP = (v) => (ok(v) ? nf(2).format(v) + " %" : "–");
+const pctPP = (v) => (ok(v) ? nf(2).format(v) + "\u00a0%" : "–");
 const stars = (r) => (ok(r) && r > 0 ? `<span class="stars" title="Morningstar-rating ${r} av 5">${"★".repeat(r)}${"☆".repeat(5 - r)}</span>` : "–");
 
 function fundColumns() {
@@ -261,19 +241,30 @@ function fundColumns() {
     return a - b;
   };
   const retCol = (title, field, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
-    formatter: (c) => { const v = c.getValue(); return ok(v) && v < 0 ? `<span class="neg">${pct(v)}</span>` : pct(v); } });
+    formatter: (c) => pct(c.getValue()) });
   const costCol = (title, field, tip) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
     formatter: (c) => pctPP(c.getValue()) });
   const txt = (title, field, width) => ({ title, field, width, formatter: (c) => esc(c.getValue() ?? "–"), tooltip: true });
   const P = FS.period, RP = riskP(P);
   const numCol = (title, field, d, tip, mult = 1) => ({ title, field, hozAlign: "right", cssClass: "num", sorter: sorterNull, headerTooltip: tip,
-    formatter: (c) => { const v = c.getValue(); return ok(v) ? (v < 0 ? `<span class="neg">${num(v * mult, d)}</span>` : num(v * mult, d)) : "–"; } });
+    formatter: (c) => { const v = c.getValue(); return ok(v) ? num(v * mult, d) : "–"; } });
+  const wide = window.innerWidth >= 700;
+  const add = { title: "", field: "mine", frozen: wide, headerSort: false, width: 136, cssClass: "add-cell",
+    formatter: (c) => addBtn(!!c.getValue(), c.getRow().getData().name),
+    cellClick: (e, cell) => { if (!e.target.closest("button")) return; e.stopPropagation(); toggleSelect(cell.getRow().getData().isin); } };
+  const name = { title: "Fond", field: "name", frozen: wide, width: wide ? 300 : 200, tooltip: true,
+    formatter: (c) => { const d = c.getRow().getData(); return `${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>` : esc(d.name)}<span class="cell-sub">${esc(d.company || "")}</span>`; } };
+  if ((FS.f?.cols || "simple") === "simple") return [
+    add, name, { title: "Type", field: "kind", width: 100 },
+    costCol("Kostnad per år", "cost", "Det du betaler per år: forvaltningshonorar − returprovisjon + plattformavgift (Nordnets tall)"),
+    retCol(`Avkastning per år, ${P} år`, rKey(P), "Avkastning per år i kroner etter fondets kostnader (Nordnets tall)"),
+    retCol(`Svingninger, ${RP} år`, "vol", "Volatilitet: hvor mye verdien svinger i løpet av et år, i kroner"),
+    { title: "Avkastning for risikoen", field: "sharpe", sorter: sorterNull, headerTooltip: "Sharpe: avkastning utover risikofri rente delt på svingningene (Nordnet)",
+      formatter: (c) => (ok(c.getValue()) ? `${sharpeWord(c.getValue())} <span class="cell-sub-inline">(${num(c.getValue(), 2)})</span>` : "–") },
+    { title: "Eiere", field: "owners", visible: false, sorter: sorterNull },
+  ];
   return [
-    { title: "", field: "mine", frozen: true, headerSort: false, hozAlign: "center", width: 44,
-      formatter: (c) => `<button type="button" class="add-btn ${c.getValue() ? "on" : ""}" aria-label="${c.getValue() ? "Fjern fra" : "Legg til i"} porteføljen">${c.getValue() ? "✓" : "+"}</button>`,
-      cellClick: (e, cell) => { e.stopPropagation(); toggleSelect(cell.getRow().getData().isin); } },
-    { title: "Fond", field: "name", frozen: true, width: 260, tooltip: true,
-      formatter: (c) => { const d = c.getRow().getData(); return d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>` : esc(d.name); } },
+    add, name,
     txt("Forvalter", "company", 130),
     { title: "Type", field: "kind", width: 90 },
     txt("Sektor", "sector", 120), txt("Region", "region", 100),
@@ -283,13 +274,13 @@ function fundColumns() {
       costCol("Retur", "kickback", "Returprovisjon: del av honoraret Nordnet betaler tilbake til deg"),
       costCol("Plattform", "platform_fee", "Nordnets plattformavgift"),
     ] },
-    { title: "Annualisert avkastning i NOK", columns: [
+    { title: "Avkastning per år i kroner", columns: [
       retCol("1 år", "r1", "Annualisert avkastning i NOK etter fondets kostnader (Nordnets tall, utbytte medregnet)"),
       retCol("3 år", "r3", "Per år, ikke samlet. Nordnets fondsside viser samlet avkastning i fondets egen valuta"),
       retCol("5 år", "r5", "Per år, ikke samlet. Nordnets fondsside viser samlet avkastning i fondets egen valuta"),
       retCol("10 år", "r10", "Per år, ikke samlet. Nordnets fondsside viser samlet avkastning i fondets egen valuta")] },
     { title: `Risiko, ${RP} år (NOK)${RP !== P ? " – 10 år finnes ikke" : ""}`, columns: [
-      retCol("Vol.", "vol", "Volatilitet: årlig standardavvik av avkastningen i NOK (Nordnet)"),
+      retCol("Svingninger", "vol", "Volatilitet: årlig standardavvik av avkastningen i NOK (Nordnet)"),
       numCol("Sharpe", "sharpe", 2, "Sharpe-rate: avkastning utover risikofri rente delt på volatiliteten, i NOK (Nordnet)"),
       retCol("Alfa", "alpha", "Alfa: årlig meravkastning utover det beta mot fondets referanseindeks tilsier, i NOK (Nordnet). Mangler for fond uten referanseindeks"),
       numCol("Beta", "beta", 2, "Beta: hvor mye fondet svinger med referanseindeksen (1 = like mye), i NOK (Nordnet)"),
@@ -326,7 +317,7 @@ function fundRow(f, mine) {
 function setupFundTable() {
   if (!window.Tabulator) { $("fund-explorer").innerHTML = '<p class="muted">Tabellbiblioteket kunne ikke lastes.</p>'; return; }
   FS.table = new Tabulator("#fund-explorer", {
-    data: [], index: "isin", layout: "fitDataFill", maxHeight: "640px", placeholder: "Ingen treff – løsne på filtrene",
+    data: [], index: "isin", layout: "fitDataFill", maxHeight: "640px", placeholder: "Ingen treff. Løsne på filtrene.",
     columns: fundColumns(), initialSort: [{ column: "owners", dir: "desc" }], columnHeaderVertAlign: "bottom",
     rowFormatter: (row) => row.getElement().classList.toggle("is-mine", !!row.getData().mine),
   });
@@ -353,20 +344,20 @@ function altBox(f) {
   if (!tw) { box.innerHTML = '<span class="muted">Innholdet i fondene er ikke lastet ennå.</span>'; return box; }
   if (!tw.length) { box.innerHTML = `<span class="muted">Fant ingen fond eller ETF-er hos Nordnet med nesten samme innhold som ${esc(f.name)}.</span>`; return box; }
   const mine = mineSet();
-  const line = (p, sim, cls = "") => `<tr class="${cls}"><td>${cls ? "" : `<button type="button" class="add-btn ${mine.has(p.id) ? "on" : ""}" data-isin="${p.id}" aria-label="Legg i porteføljen">${mine.has(p.id) ? "✓" : "+"}</button>`}</td>
+  const line = (p, sim, cls = "") => `<tr class="${cls}"><td>${cls ? "" : addBtn(mine.has(p.id), p.name).replace("<button ", `<button data-isin="${p.id}" `)}</td>
       <td>${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</td><td>${esc(p.kindLabel)}</td>
-      <td class="num">${pctPP(p.cost)}</td><td class="num">${ok(p.cost) && ok(f.cost) && !cls ? pp((p.cost - f.cost) / 100, 2) : ""}</td>
-      <td class="num">${pct(p.ret[1])}</td><td class="num">${pct(p.ret[3])}</td><td class="num">${pct(p.ret[5])}</td><td class="num">${pct(p.vol)}</td>
-      <td class="num">${cls ? "" : sim}</td></tr>`;
+      <td class="vv-num">${pctPP(p.cost)}</td><td class="vv-num">${ok(p.cost) && ok(f.cost) && !cls ? pp((p.cost - f.cost) / 100, 2) : ""}</td>
+      <td class="vv-num">${pct(p.ret[1])}</td><td class="vv-num">${pct(p.ret[3])}</td><td class="vv-num">${pct(p.ret[5])}</td><td class="vv-num">${pct(p.vol)}</td>
+      <td class="vv-num">${cls ? "" : sim}</td></tr>`;
   box.innerHTML = `<strong>Tvillinger: nesten samme innhold</strong> <span class="muted">(${num(tw.length)} funnet, billigst først)</span>
-    <div class="table-scroll"><table class="data"><thead><tr><th></th><th>Navn</th><th>Type</th><th class="num">Kostnad</th><th class="num">Mot fondet</th>
-      <th class="num">1 år</th><th class="num">3 år</th><th class="num">5 år</th><th class="num">Vol. 5 år</th><th class="num">Likhet</th></tr></thead><tbody>
+    <div class="vv-table-wrap"><table class="vv-table"><thead><tr><th><span class="visually-hidden">Legg til</span></th><th>Navn</th><th>Type</th><th class="vv-num">Kostnad</th><th class="vv-num">Mot fondet</th>
+      <th class="vv-num">1 år</th><th class="vv-num">3 år</th><th class="vv-num">5 år</th><th class="vv-num">Svingninger 5 år</th><th class="vv-num">Likhet</th></tr></thead><tbody>
       ${line(PF.product(f.isin), "", "total")}${tw.slice(0, 10).map((t) => line(t.p, t.label)).join("")}</tbody></table></div>
-    <p class="muted small-text">Likhet er målt på hva fondene eier (land, bransjer og de største selskapene). ETF-er har kurtasje og kursforskjell ved kjøp i tillegg til årskostnaden.</p>`;
+    <p class="vv-table__source">Likhet er målt på hva fondene eier (land, bransjer og de største selskapene). ETF-er har kurtasje og kursforskjell ved kjøp i tillegg til årskostnaden.</p>`;
   box.addEventListener("click", (ev) => {
     const b = ev.target.closest("button[data-isin]"); if (!b) return;
     ev.stopPropagation(); toggleSelect(b.dataset.isin);
-    b.classList.toggle("on"); b.textContent = b.classList.contains("on") ? "✓" : "+";
+    b.outerHTML = addBtn(mineSet().has(b.dataset.isin), PF.product(b.dataset.isin)?.name || "").replace("<button ", `<button data-isin="${b.dataset.isin}" `);
   });
   return box;
 }
@@ -383,11 +374,10 @@ async function refreshFunds() {
   const mine = mineSet();
   const list = FS.list.filter((f) => fundPasses(f, FS.f, mine));
   FS.filtered = list;
-  $("ff-count").textContent = `${num(list.length)} fond`;
-  $("ff-cols-note").textContent = `Avkastning er Nordnets tall i NOK per ${dateNo(FS.data.as_of)}, per år (annualisert), etter fondets kostnader. ` +
+  $("ff-count").innerHTML = `<strong>${num(list.length)}</strong> av ${num(FS.list.length)} fond i utvalget`;
+  $("ff-cols-note").innerHTML = `Avkastning per år i kroner etter fondets kostnader, Nordnets tall til ${dateNo(FS.data.as_of)}. ` +
     "Nordnets fondsside viser i stedet samlet avkastning i fondets egen valuta, så tallene der er ikke direkte sammenlignbare. " +
-    `Risikotallene er Nordnets i NOK${FS.data.risk_fetched ? `, hentet ${dateNo(FS.data.risk_fetched)}` : ""}. ` +
-    "Hold musen over en kolonneoverskrift for forklaring.";
+    'Trykk på en rad for å se tvillinger: fond og ETF-er som eier nesten det samme. Fagordene er forklart i <a href="#ordliste">ordlisten</a>.';
   renderFundKpis(list);
   if (FS.table) { await FS.ready; await FS.table.replaceData(list.map((f) => fundRow(f, mine))); }
   renderFundChart();
@@ -410,8 +400,8 @@ function renderFundMethod() {
     <p><strong>Kostnad hos Nordnet</strong> = forvaltningshonorar − returprovisjon (det Nordnet betaler tilbake) + Nordnets plattformavgift.
       Det er Nordnets eget totaltall. Fond har ingen kurtasje.</p>
     <p><strong>Tvillinger</strong> (klikk en rad) er fond og ETF-er som eier nesten det samme, målt på land, bransjer og de største
-      selskapene i fondene (Nordnets tall fra Morningstar). Se «Slik er tallene regnet» under Min portefølje.</p>
-    <p class="muted">Modellverktøy, ikke finansiell rådgivning. Historisk avkastning er ingen garanti for fremtidig avkastning.</p>`;
+      selskapene i fondene (Nordnets tall fra Morningstar). Se <a href="#metode-tvilling">tvillinger</a> under porteføljen over.</p>
+    <p><a href="#forbehold">Forbehold</a> og <a href="#begrensninger">kjente begrensninger</a> står lenger ned.</p>`;
 }
 
 document.addEventListener("DOMContentLoaded", setupTabs);

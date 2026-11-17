@@ -8,28 +8,38 @@ kan gå, og om fordelingen kan bli bedre. Alt oppdateres månedlig av GitHub Act
 
 ## Slik brukes siden
 
-**Min portefølje** (forsiden). Legg inn sparingen din (beløp i dag, per måned, antall år), og velg fond og ETF-er:
-søk, start med Forsiktig/Balansert/Offensiv, eller trykk + under *Finn fond* / *Finn ETF-er*. Sett andelen til hver.
-Siden svarer så på:
+Siden har fire faner i menyen øverst. Fanen står i adressen (`#portefolje`, `#fond`, `#etf`, `#metode`), så tilbake-knappen
+og lenker virker. Hver fane har en metadatalinje med datoen for kurser, nøkkeltall og Nordnet-hentingen og neste oppdatering.
 
-1. **Hva eier jeg egentlig?** Innholdet i fondene legges sammen: «21 % av pengene dine ligger i de samme 10
-   amerikanske selskapene», fordeling på land og bransjer, og om to fond eier det samme.
-2. **Samme innhold, billigere tvilling.** Fond og ETF-er som eier nesten det samme som dine, men koster mindre,
-   med forskjellen i kroner for sparingen din og en «Bytt»-knapp.
-3. **Kostnad i kroner.** Hva kostnadene tar over årene, mot helt uten kostnader og mot de billigste tvillingene.
-4. **Risiko som en historie.** «I det verste året ville 100 000 kr blitt til 82 000 kr, og det tok 1 år og 9
-   måneder å komme tilbake», med grafen for akkurat din fordeling.
-5. **Kan fordelingen bli bedre?** Velg risiko med en glider; forslaget er den blandingen av fondene dine som gir
-   mest forventet avkastning for den risikoen. Risiko/avkastning-kartet har bakgrunn fra rødt til grønt etter Sharpe.
+**Min portefølje** (forsiden) bygges i tre steg:
 
-Forsiden har også en **anbefalt portefølje** (globalt indeksfond + fremvoksende markeder + små selskaper + pengemarkedsfond,
-med aksjeandel etter sparetid), valgt på nytt fra dataene hver måned, et «på ett blikk»-panel som følger med mens du
-justerer, rutekart over hva pengene er plassert i, avkastning år for år, hvem som står for svingningene, og en vifte
-over hva sparingen kan bli verdt (dårlig / mest sannsynlig / bra).
+1. *Sparingen din:* beløp i dag, per måned og antall år. Avkastning før kostnader kan overstyres under «Avanserte innstillinger».
+2. *Velg en anbefalt portefølje:* fem risikoprofiler fra Forsiktig til Bare aksjer (globalt indeksfond, fremvoksende markeder,
+   små selskaper og pengemarkedsfond, valgt på nytt fra dataene hver måned). Den som passer sparetiden er merket.
+3. *Dette er i porteføljen:* søk etter fond og ETF-er, eller trykk «Legg til» under *Finn fond* og *Finn ETF-er*, og sett andelen til hver.
 
-**Finn fond** og **Finn ETF-er** er utforskere med filtre, nøkkeltall (avkastning 1/3/5/10 år, volatilitet, Sharpe,
-alfa, beta, R²) og risiko/avkastning-graf med samme Sharpe-bakgrunn. Klikk en rad for tvillinger (fond) eller
-ETF-er på samme indeks.
+Ved siden av står «På ett blikk»: forventet avkastning (et anslag, med spenn for hva sparingen kan bli), verste år, kostnad og risikonivå.
+Når porteføljen har fond, kommer et sammendrag med ett hovedtall per spørsmål, og deretter én seksjon per spørsmål:
+
+1. **Hva eier jeg egentlig?** Innholdet i fondene lagt sammen: «19 % av pengene ligger i de samme 10 selskapene».
+   Land, bransjer, rutekart og overlapp mellom fondene ligger bak «Vis mer».
+2. **Samme innhold, billigere tvilling.** Én tabell med den billigste tvillingen per fond, forskjellen i kroner for sparingen din
+   og en «Bytt»-knapp; flere alternativer per rad.
+3. **Hva koster det i kroner?** Hva kostnadene tar over årene; tabellen per fond bak «Vis per fond».
+4. **Hvor mye kan det falle?** Verdiutviklingen for akkurat din fordeling med det største fallet markert; nøkkeltall, år for år,
+   hvem som står for svingningene og hva sparingen kan bli verdt (dårlig / mest sannsynlig / bra) bak «Vis mer».
+5. **Kan fordelingen bli bedre?** Velg risiko med en glider; forslaget er den blandingen av fondene dine som gir mest forventet
+   avkastning for den risikoen. Tabellen og risiko/avkastning-kartet ligger bak «Vis mer».
+
+Hver seksjon starter med hovedfunnet i én setning. Alle figurer har kilde, «Om dataene», «Vis som tabell» og «Last ned CSV».
+
+**Finn fond** og **Finn ETF-er** er utforskere med søk og de viktigste filtrene i én rad (flere under «Flere filtre»), en
+risiko/avkastning-graf og en tabell. Tabellen viser få kolonner som standard; «Alle nøkkeltall» viser avkastning 1/3/5/10 år,
+svingninger, Sharpe, alfa, beta, R² med mer. Punktene i grafene er farget etter avkastning for risikoen (Sharpe), fra svært
+dårlig til svært bra, og skrå linjer deler kartet i de samme trinnene. Trykk en rad for tvillinger (fond) eller ETF-er på samme indeks.
+
+**Data og metode** samler hvordan tallene er regnet, en ordliste med fagordene (som andre steder på siden lenker til),
+datakilder og dekning, kjente begrensninger, endringsloggen for Nordnet-listen og forbehold.
 
 Porteføljen, sparingen og filtrene lagres bare i nettleseren (localStorage). «Kopier lenke» lager en lenke med
 ISIN-er og andeler (ingen beløp). Ingen personlige data committes noen gang.
