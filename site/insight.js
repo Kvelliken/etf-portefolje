@@ -7,6 +7,8 @@
  *   proxySeries(...)                                  monthly returns for a fund without price history
  *   forRisk(points, vol)                              the frontier portfolio with the wanted risk
  *   projection(start, monthly, years, mu, vol)        bad / typical / good outcome of a savings plan
+ *   wholePercent, setShare                            shares in the builder that always sum to 100 %
+ *   buyPlan, monthsToTarget                           the monthly purchase plan towards the target shares
  *
  * A holdings record is {reg, sec, ast: {name: percent}, top: [[id, percent], ...]} (see holdings.py).
  */
@@ -218,7 +220,68 @@
     return out;
   }
 
-  const api = { savingsValue, projection, riskStory, overlap, topOverlap, similarity, lookThrough, proxySeries, forRisk };
+  // ------------------------------------------------------------ the builder: shares and purchase plan
+  /** Whole percent that sum to 100 (largest remainders). Share `keep` stays as it is (rounded). */
+  function wholePercent(w, keep = -1) {
+    const out = w.map((x) => Math.max(0, +x || 0)), idx = out.map((_, i) => i).filter((i) => i !== keep);
+    if (keep >= 0) out[keep] = Math.round(out[keep]);
+    const target = 100 - (keep >= 0 ? out[keep] : 0);
+    const fl = idx.map((i) => Math.floor(out[i] + 1e-9));
+    let rest = target - fl.reduce((a, b) => a + b, 0);
+    const order = idx.map((i, k) => [out[i] - fl[k], k]).sort((a, b) => b[0] - a[0]);
+    idx.forEach((i, k) => { out[i] = fl[k]; });
+    for (let k = 0; rest > 0 && order.length; k = (k + 1) % order.length, rest--) out[idx[order[k][1]]] += 1;
+    while (rest < 0) {                                // only when the kept share is too big: take from the largest
+      const j = idx.filter((i) => out[i] > 0).sort((a, b) => out[b] - out[a])[0];
+      if (j === undefined) break;
+      out[j] -= 1; rest++;
+    }
+    return out;
+  }
+
+  /** Set share i to v in shares w (percent, sum 100). Share a takes the difference first, then the other unlocked
+   *  shares in proportion; locked shares never move. Returns whole percent that sum to 100. */
+  function setShare(w, lock, i, v, a) {
+    const out = w.slice();
+    if (out.length === 1) return [100];
+    if (a < 0 || a === i) return out;
+    const locked = out.reduce((s, x, k) => s + (k !== i && lock[k] ? x : 0), 0);
+    v = Math.max(0, Math.min(Math.round(+v || 0), 100 - locked));
+    let d = v - out[i];
+    out[i] = v;
+    if (d <= 0) out[a] -= d;
+    else {
+      const take = Math.min(d, out[a]);
+      out[a] -= take; d -= take;
+      const others = out.map((_, k) => k).filter((k) => k !== i && k !== a && !lock[k]);
+      const s = others.reduce((x, k) => x + out[k], 0);
+      if (d > 0 && s > 0) others.forEach((k) => { out[k] -= d * out[k] / s; });
+    }
+    return wholePercent(out, i);
+  }
+
+  /** Split this month's saving M so the holdings `have` (kroner) move towards the target shares w (sum 1) without
+   *  selling: each fund gets money in proportion to how far it is below its target after the deposit. */
+  function buyPlan(have, w, M) {
+    const T = have.reduce((a, b) => a + b, 0) + M;
+    const def = w.map((x, i) => Math.max(0, x * T - have[i])), D = def.reduce((a, b) => a + b, 0);
+    return def.map((x, i) => (D > 0 ? M * x / D : M * w[i]));
+  }
+
+  /** Months of buyPlan until every share is within `tol` of its target (no returns, no selling); null if over 50 years. */
+  function monthsToTarget(have, w, M, tol = 0.01) {
+    if (!(M > 0)) return null;
+    const h = have.slice();
+    for (let m = 0; m <= 600; m++) {
+      const H = h.reduce((a, b) => a + b, 0);
+      if (H > 0 && h.every((x, i) => Math.abs(x / H - w[i]) <= tol)) return m;
+      buyPlan(h, w, M).forEach((b, i) => { h[i] += b; });
+    }
+    return null;
+  }
+
+  const api = { savingsValue, projection, riskStory, overlap, topOverlap, similarity, lookThrough, proxySeries, forRisk,
+    wholePercent, setShare, buyPlan, monthsToTarget };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Insight = api;
 })(typeof window !== "undefined" ? window : globalThis);

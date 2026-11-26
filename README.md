@@ -11,25 +11,35 @@ kan gå, og om fordelingen kan bli bedre. Alt oppdateres månedlig av GitHub Act
 Siden har fire faner i menyen øverst. Fanen står i adressen (`#portefolje`, `#fond`, `#etf`, `#metode`), så tilbake-knappen
 og lenker virker. Hver fane har en metadatalinje med datoen for kurser, nøkkeltall og Nordnet-hentingen og neste oppdatering.
 
-**Min portefølje** (forsiden) bygges i tre steg:
+**Min portefølje** (forsiden) bygges i fire steg:
 
 1. *Sparingen din:* beløp i dag, per måned og antall år. Avkastning før kostnader kan overstyres under «Avanserte innstillinger».
-2. *Velg en anbefalt portefølje:* fem risikoprofiler fra Forsiktig til Bare aksjer (globalt indeksfond, fremvoksende markeder,
-   små selskaper og pengemarkedsfond, valgt på nytt fra dataene hver måned). Den som passer sparetiden er merket.
-3. *Dette er i porteføljen:* søk etter fond og ETF-er, eller trykk «Legg til» under *Finn fond* og *Finn ETF-er*, og sett andelen til hver.
+   Fyller du inn «Eier i dag» i steg 3, er «Har i dag» summen av de beløpene.
+2. *Aksjeandel og anbefalt portefølje:* fem risikoprofiler fra Forsiktig til Bare aksjer. Aksjeandelen er det eneste risikovalget på siden.
+   Oppskriften kan være byggeklosser (globalt indeksfond, fremvoksende markeder og små selskaper hver for seg) eller hele verden i ett fond,
+   med eller uten Norge og Norden; fondene velges på nytt fra dataene hver måned. Er porteføljen tom, fyller «Bruk denne porteføljen» den.
+   Har du fond fra før, setter «Sett aksjeandelen» aksjeandelen uten å bytte fond, og «Legg til det som mangler» legger til fondene for roller du ikke har.
+3. *Dette er i porteføljen:* fondene er gruppert etter rolle (global kjerne, Norge og Norden, enkeltregioner, fremvoksende markeder,
+   små selskaper, bransje og tema, kombinasjonsfond, renter og høyrente, likviditet). Høyst 8 fond og ETF-er. Søket viser ett treff per innhold,
+   med antall tvillinger; «+ rolle» søker bare i én rolle, med det anbefalte fondet først. Summen er alltid 100 %: når du endrer en andel,
+   tar ett fond resten (merket «Tar resten»), og «Lås» holder en andel fast. Et nytt fond starter på 0 %. «Bytt» viser tvillinger og andre fond
+   i samme rolle. «Eier i dag» er beløpet du har i fondet nå.
+4. *Kjøpsplan for månedssparingen:* hva du bør kjøpe neste måned for å nå fordelingen uten å selge, hvor lang tid det tar, og den faste
+   spareavtalen når du er i mål.
 
 Ved siden av står «På ett blikk»: forventet avkastning (et anslag, med spenn for hva sparingen kan bli), verste år, kostnad og risikonivå.
 Når porteføljen har fond, kommer et sammendrag med ett hovedtall per spørsmål, og deretter én seksjon per spørsmål:
 
 1. **Hva eier jeg egentlig?** Innholdet i fondene lagt sammen: «19 % av pengene ligger i de samme 10 selskapene».
    Land, bransjer, rutekart og overlapp mellom fondene ligger bak «Vis mer».
-2. **Samme innhold, billigere tvilling.** Én tabell med den billigste tvillingen per fond, forskjellen i kroner for sparingen din
-   og en «Bytt»-knapp; flere alternativer per rad.
+2. **Samme innhold, billigere tvilling.** Én tabell med den beste tvillingen per fond, forskjellen i kroner for sparingen din
+   og en «Bytt»-knapp; flere alternativer per rad. For ETF-er regnes 0,25 % valutaveksling ved hvert kjøp i utenlandsk valuta
+   (månedlig spareavtale uten kurtasje); en tvilling som da gir mindre, vises ikke.
 3. **Hva koster det i kroner?** Hva kostnadene tar over årene; tabellen per fond bak «Vis per fond».
 4. **Hvor mye kan det falle?** Verdiutviklingen for akkurat din fordeling med det største fallet markert; nøkkeltall, år for år,
    hvem som står for svingningene og hva sparingen kan bli verdt (dårlig / mest sannsynlig / bra) bak «Vis mer».
-5. **Kan fordelingen bli bedre?** Velg risiko med en glider; forslaget er den blandingen av fondene dine som gir mest forventet
-   avkastning for den risikoen. Tabellen og risiko/avkastning-kartet ligger bak «Vis mer».
+5. **Kan fordelingen bli bedre?** Forslaget er den blandingen av fondene dine som gir mest forventet avkastning med samme risiko
+   som i dag (risikoen velges med aksjeandelen i steg 2). Tabellen og risiko/avkastning-kartet ligger bak «Vis mer».
 
 Hver seksjon starter med hovedfunnet i én setning. Alle figurer har kilde, «Om dataene», «Vis som tabell» og «Last ned CSV».
 
@@ -79,6 +89,9 @@ Alle beregninger gjøres i nettleseren, så andeler, sparing og risiko kan endre
 | `funddata.py`, `fundprobe.py` | fond-fanens data (`funds.json`) og målingen av Yahoo-dekning for fond |
 | `funddetails.py` | risikotall per fond fra Nordnet (volatilitet, Sharpe, alfa, beta i NOK; R² fra Morningstar) |
 | `holdings.py` | innholdet i fond og ETF-er fra Nordnet: land, bransjer, aktivaklasser og største beholdninger |
+
+Fond som eier andre fond (fond-i-fond) gjennomlyses i nettleseren (`holdingsOf` i `site/portefolje.js`): beholdninger som har samme navn
+som et fond eller en ETF i dataene (uten andelsklasse og valuta), erstattes av det fondets største beholdninger.
 
 ## Innhold, tvillinger og historikk for fond
 

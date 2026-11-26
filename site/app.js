@@ -683,9 +683,11 @@ function mineSet() { return typeof PF !== "undefined" && PF.ids ? PF.ids() : new
 
 function toggleSelect(isin) {
   if (typeof PF === "undefined" || !PF.ready) return;
-  PF.toggle(isin);
+  const did = PF.toggle(isin);
   const name = esc(PF.product(isin)?.name || isin), on = PF.ids().has(isin);
-  toast(on ? `${ICON.check}<span>Lagt til i porteføljen: <strong>${name}</strong>. <a href="#portefolje">Se porteføljen</a></span>`
+  if (did === "full") return toast(`<span>Porteføljen har allerede ${PF.max} fond og ETF-er. Fjern ett før du legger til <strong>${name}</strong>. <a href="#portefolje">Se porteføljen</a></span>`);
+  const w = Math.round(PF.items?.find((x) => x.id === isin)?.w ?? 0);
+  toast(on ? `${ICON.check}<span>Lagt til i porteføljen: <strong>${name}</strong> med andel ${w}\u00a0%. <a href="#portefolje">${w ? "Se porteføljen" : "Sett andelen"}</a></span>`
     : `<span>Fjernet fra porteføljen: <strong>${name}</strong>.</span>`);
 }
 

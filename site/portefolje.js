@@ -14,9 +14,15 @@ const MONTHS = ["jan.", "feb.", "mars", "april", "mai", "juni", "juli", "aug.", 
 const TWIN = { reg: 0.9, sec: 0.85, top: 0.6, ast: 0.9, cheaper: 0.05 };   // thresholds for "nearly the same content"
 const NARROW_CAP = 0.25;        // the suggestion never puts more than this in one narrow fund (sector, theme, single country, active)
 const CREDIT = { vol: 0.012, corr: 0.5 };   // NOK interest funds that swing more than this are assumed to follow shares this much
+const MAX_ITEMS = 8;            // the builder holds at most this many funds and ETFs
+const ETF_FX = 0.0025;          // Nordnet: automatic currency exchange on each ETF purchase in a foreign currency (prisliste, 2026)
+const EM_WORLD = 0.03;          // a global fund with at least this share of its shares in emerging markets also covers that role
+const EM_REGIONS = ["Asia Emerging", "Latin-Amerika", "Europe Emerging", "Afrika", "Midtøsten"];
+const NORDIC_CC = new Set(["NO", "SE", "DK", "FI", "IS"]);
 const PF = {
   ready: false, items: [], plan: { start: 100000, monthly: 1000, years: 20, ret: null }, risk: "same",
-  H: { items: {}, names: {} }, U: {}, S: {}, cand: null, res: null,
+  recipe: "blocks", nordic: false,
+  H: { items: {}, names: {} }, U: {}, S: {}, X: {}, cand: null, res: null,
 };
 
 // ---------------------------------------------------------------- small helpers
@@ -66,18 +72,59 @@ function product(id) {
     p = { id, kind: "etf", name: e.name, ticker: e.ticker, url: e.url, cost: e.fee, asset_class: e.asset_class, category: e.category,
       index: e.style !== "Aktiv", ask: !!e.ask, hedged: !!e.hedged, leveraged: !!e.leveraged || e.asset_class === "Giret/invers",
       owners: e.owners, cluster: e.cluster_size > 1 ? e.cluster : null, currency: e.currency, tradable: true,
+      region: e.region, sector: e.sector, theme: e.theme, style: e.style, esg: !!e.esg,
       ret: { 1: e.m?.[1]?.ret, 3: e.m?.[3]?.ret, 5: e.m?.[5]?.ret, 10: e.m?.[10]?.ret }, vol: e.m?.[5]?.vol ?? e.m?.[3]?.vol ?? e.m?.[1]?.vol,
       kindLabel: isRate(e) ? "Rente-ETF" : "ETF" };
   } else if (f) {
     p = { id, kind: "fond", name: f.name, ticker: "", url: f.url, cost: f.cost, asset_class: f.asset_class, category: f.category,
       index: !!f.index, ask: !!f.ask, hedged: !!f.hedged, leveraged: false, owners: f.owners, cluster: null, currency: f.currency,
       tradable: f.tradable !== false, ret: { 1: f.r1, 3: f.r3, 5: f.r5, 10: f.r10 }, vol: f.vol5 ?? f.vol3 ?? f.vol1,
+      region: f.region, sector: f.sector, theme: f.theme, style: f.style, esg: !!f.esg,
       kindLabel: isRate(f) ? "Rentefond" : f.index ? "Indeksfond" : f.asset_class === "Blandet" ? "Kombinasjonsfond" : "Aktivt fond" };
   }
   if (p) PF.U[id] = p;
   return p;
 }
-const holdingsOf = (id) => PF.H.items[id] || null;
+/** Holdings record of a fund or ETF. A fund of funds lists other funds among its largest holdings; those are
+ *  replaced by what the underlying funds own, so «Hva eier jeg?» shows companies and twins compare like with like. */
+function holdingsOf(id) {
+  const h = PF.H.items[id];
+  if (!h) return null;
+  if (PF.X[id]) return PF.X[id];
+  let out = h;
+  const map = fundNameIndex(), top = [];
+  let swapped = false;
+  for (const [hid, w] of h.top || []) {
+    const sub = map.get(normFundName(PF.H.names[hid]?.[0]));
+    const sh = sub && sub !== id ? PF.H.items[sub] : null;
+    if (sh?.top?.length) { swapped = true; for (const [cid, cw] of sh.top) top.push([cid, w * cw / 100]); } else top.push([hid, w]);
+  }
+  if (swapped) {
+    const m = new Map();
+    for (const [cid, w] of top) m.set(cid, (m.get(cid) || 0) + w);
+    out = { ...h, top: [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60) };
+  }
+  PF.X[id] = out;
+  return out;
+}
+/** Fund name without share class, currency and accumulation words, for matching a holding to a fund. */
+function normFundName(s) {
+  if (!s) return "";
+  let t = ` ${String(s).toLowerCase().replace(/\(.*?\)/g, " ")} `;
+  for (let k = 0; k < 3; k++) t = t.replace(/\s(a|b|c|d|e|n|s|r|i|u|p|p3|a1|a2|b1|w|acc|dist|nok|eur|usd|sek|1c|1d)(?=\s)/g, " ");
+  return t.replace(/[^a-z0-9æøå]+/g, " ").trim();
+}
+function fundNameIndex() {
+  if (PF.nameIdx) return PF.nameIdx;
+  const m = new Map();
+  for (const x of [...FS.list, ...D.list]) {
+    if (!PF.H.items[x.isin]) continue;
+    const k = normFundName(x.name);
+    if (k.split(" ").length >= 2 && !m.has(k)) m.set(k, x.isin);
+  }
+  PF.nameIdx = m;
+  return m;
+}
 function allProducts() {
   if (!PF.all) PF.all = [...FS.list.map((f) => f.isin), ...D.list.map((e) => e.isin)];
   return PF.all.map(product).filter(Boolean);
@@ -150,6 +197,64 @@ function isBroad(p) {
   return big(h.reg, 4) >= 3 && Math.max(0, ...Object.values(h.sec || {})) <= 40;
 }
 
+// ---------------------------------------------------------------- roles
+/** Each fund or ETF fills one role. The builder groups the portfolio by role, and «Bytt» offers funds in the same role. */
+const ROLE = {
+  core: { name: "Global kjerne", text: "Brede indeksfond for hele verden eller de rike landene.", words: "global verden world acwi all world" },
+  nordic: { name: "Norge og Norden", text: "Selskaper på børsene i Norge, Sverige, Danmark og Finland.", words: "norge norden nordic norway nordisk oslo" },
+  region: { name: "Enkeltregioner", text: "USA, Europa, Japan og andre enkeltregioner.", words: "usa europa japan" },
+  em: { name: "Fremvoksende markeder", text: "Kina, India, Taiwan, Brasil med flere.", words: "fremvoksende emerging em kina india" },
+  small: { name: "Små selskaper", text: "Mindre selskaper som de store indeksene hopper over.", words: "små selskaper small cap småselskap" },
+  sector: { name: "Bransje og tema", text: "Teknologi, helse, biotek, forsvar og andre smale fond.", words: "bransje tema sektor" },
+  mixed: { name: "Kombinasjonsfond", text: "Aksjer og renter i samme fond.", words: "kombinasjon balansert blandet" },
+  bond: { name: "Renter og høyrente", text: "Obligasjoner, kreditt og høyrente. Svinger mer enn likviditet.", words: "renter obligasjon kreditt høyrente high yield" },
+  safe: { name: "Likviditet", text: "Pengemarked og korte renter i kroner. Bufferen som demper fallene.", words: "likviditet pengemarked buffer rente" },
+  other: { name: "Annet", text: "Råvarer, alternative fond og annet.", words: "" },
+};
+/** Role name inside a sentence: lower case, except the country names. */
+const roleLc = (r) => ROLE[r].name.replace(/^\S+/, (w) => (/^Norge/.test(w) ? w : w.toLowerCase()));
+const ROLE_ORDER = ["core", "nordic", "region", "em", "small", "sector", "mixed", "bond", "safe", "other"];
+const ADD_ROLES = ["core", "nordic", "em", "small", "sector", "bond", "safe"];       // roles offered as «+ Legg til»
+
+function emShare(id) {
+  const r = holdingsOf(id)?.reg;
+  if (!r) return null;
+  const tot = Object.values(r).reduce((a, b) => a + b, 0);
+  return tot > 0 ? EM_REGIONS.reduce((a, k) => a + (r[k] || 0), 0) / tot : null;
+}
+function isNordic(p) {
+  if (/\b(norge|norsk|norden|nordic|nordisk|norway|obx|oslo)\b/i.test(p.name)) return true;
+  const top = holdingsOf(p.id)?.top;
+  if (!top?.length) return false;
+  let n = 0, all = 0;
+  for (const [hid, w] of top) { const cc = PF.H.names[hid]?.[1]; if (!cc) continue; all += w; if (NORDIC_CC.has(cc)) n += w; }
+  return all > 20 && n / all >= 0.7;
+}
+/** Share of shares in a fund (0..1): from its holdings, or from the asset class. */
+function eqShareOf(p) {
+  const a = holdingsOf(p.id)?.ast;
+  if (a && Object.keys(a).length) { const t = Object.values(a).reduce((x, y) => x + y, 0); if (t > 0) return Math.max(0, Math.min(1, (a.Aksjer || 0) / t)); }
+  return p.asset_class === "Aksjer" ? 1 : p.asset_class === "Blandet" ? 0.5 : 0;
+}
+function roleOf(p) {
+  if (!p) return "other";
+  if (p._role) return p._role;
+  let r;
+  if (isRate(p)) r = p.currency === "NOK" && (p.asset_class === "Pengemarked" || (ok(p.vol) && p.vol < CREDIT.vol)) ? "safe" : "bond";
+  else if (p.asset_class === "Blandet") r = "mixed";
+  else if (p.asset_class !== "Aksjer") r = "other";
+  else if (p.theme || (p.sector && p.sector !== "Bred")) r = "sector";
+  else if (isNordic(p)) r = "nordic";
+  else if (["Fremvoksende", "Kina", "India", "Latin-Amerika", "Midtøsten og Afrika"].includes(p.region)) r = "em";
+  else if (p.style === "Små/mellomstore" || /small|mid\/small/i.test(p.category || "")) r = "small";
+  else if (p.region === "Global") r = "core";
+  else r = "region";
+  p._role = r;
+  return r;
+}
+/** A global fund that also holds emerging markets («hele verden i ett fond»). */
+const isWorld = (p) => roleOf(p) === "core" && (emShare(p.id) ?? 0) >= EM_WORLD;
+
 // ---------------------------------------------------------------- twins
 function twinLabel(sameIndex, sim, rate) {
   if (sameIndex) return "Samme indeks";
@@ -192,47 +297,99 @@ function twinsOf(id, opt = {}) {
 }
 
 // ---------------------------------------------------------------- state
-function savePF() { assignColors(); store.set(PLS, { items: PF.items, plan: PF.plan, risk: PF.risk, profile: PF.profile ?? null }); }
+function savePF() {
+  assignColors();
+  store.set(PLS, { items: PF.items, plan: PF.plan, risk: PF.risk, profile: PF.profile ?? null, recipe: PF.recipe, nordic: PF.nordic });
+}
 PF.ids = () => new Set(PF.items.map((x) => x.id));
 PF.product = product;
 PF.twinsOf = twinsOf;
+PF.max = MAX_ITEMS;
+/** Add or remove a fund. Returns "added", "removed" or "full" (the portfolio already has MAX_ITEMS funds). */
 PF.toggle = (id) => {
   const i = PF.items.findIndex((x) => x.id === id);
-  if (i >= 0) removeItem(i); else addItem(id);
+  if (i >= 0) { removeItem(i); return "removed"; }
+  return addItem(id) ? "added" : "full";
 };
-PF.refresh = () => { PF.U = {}; PF.S = {}; PF.cand = null; if (PF.ready) { renderPfTable(); analyse(); renderReco(); } };
+PF.refresh = () => {
+  PF.U = {}; PF.S = {}; PF.X = {}; PF.nameIdx = null; PF.blocks = null; PF.cand = null;
+  if (PF.ready) { renderPfTable(); analyse(); renderReco(); }
+};
 
+// ---------------------------------------------------------------- shares that always sum to 100 %
+const sumW = () => PF.items.reduce((a, x) => a + (+x.w || 0), 0);
 function scaleTo100() {
-  const s = PF.items.reduce((a, x) => a + (+x.w || 0), 0);
+  const s = sumW();
   if (s <= 0) { PF.items.forEach((x) => { x.w = 100 / PF.items.length; }); return roundWeights(); }
   PF.items.forEach((x) => { x.w = (+x.w || 0) * 100 / s; });
   roundWeights();
 }
-/** Whole percent that still sum to 100 (largest remainders). */
-function roundWeights() {
-  const fl = PF.items.map((x) => Math.floor(x.w)), rest = 100 - fl.reduce((a, b) => a + b, 0);
-  const order = PF.items.map((x, i) => [x.w - fl[i], i]).sort((a, b) => b[0] - a[0]);
-  PF.items.forEach((x, i) => { x.w = fl[i]; });
-  for (let k = 0; k < rest && k < order.length; k++) PF.items[order[k][1]].w += 1;
+/** Whole percent that sum to 100 (largest remainders). The share of item `keep` is left as it is. */
+function roundWeights(keep = -1) {
+  I.wholePercent(PF.items.map((x) => x.w), keep).forEach((w, i) => { PF.items[i].w = w; });
 }
-function addItem(id) {
-  if (!product(id) || PF.items.some((x) => x.id === id)) return;
-  const n = PF.items.length;
-  PF.items.forEach((x) => { x.w = (+x.w || 0) * n / (n + 1); });
-  PF.items.push({ id, w: 100 / (n + 1) });
-  scaleTo100();
+const ABSORB = ["safe", "bond", "mixed", "core"];
+/** The fund that takes up the difference when another share changes: the first unlocked fund in the roles
+ *  Likviditet, Renter, Kombinasjon or Global kjerne, else the largest unlocked fund. -1 if every other fund is locked. */
+function absorberIndex(skip = -1) {
+  const free = PF.items.map((_, i) => i).filter((i) => i !== skip && !PF.items[i].lock);
+  if (!free.length) return -1;
+  for (const r of ABSORB) { const i = free.find((k) => roleOf(product(PF.items[k].id)) === r); if (i !== undefined) return i; }
+  return free.sort((a, b) => PF.items[b].w - PF.items[a].w)[0];
+}
+/** Set the share of item i. The fund that takes the rest (absorberIndex) moves first, then the other unlocked funds
+ *  in proportion; locked funds never move. Returns the share actually set. */
+function setWeight(i, v) {
+  const it = PF.items[i];
+  if (!it) return 0;
+  if (Math.abs(sumW() - 100) > 0.5) scaleTo100();
+  I.setShare(PF.items.map((x) => x.w), PF.items.map((x) => !!x.lock), i, v, PF.items.length === 1 ? 0 : absorberIndex(i))
+    .forEach((w, k) => { PF.items[k].w = w; });
+  return it.w;
+}
+/** Equal shares for the unlocked funds; locked funds keep theirs. */
+function equalShares() {
+  const free = PF.items.filter((x) => !x.lock);
+  if (!free.length) return;
+  const room = 100 - PF.items.filter((x) => x.lock).reduce((a, x) => a + x.w, 0);
+  free.forEach((x) => { x.w = room / free.length; });
+  roundWeights();
+}
+function addItem(id, w = 0) {
+  if (!product(id) || PF.items.some((x) => x.id === id) || PF.items.length >= MAX_ITEMS) return false;
+  if (PF.items.length && Math.abs(sumW() - 100) > 0.5) scaleTo100();
+  PF.items.push({ id, w: PF.items.length ? 0 : 100 });
+  if (w > 0 && PF.items.length > 1) setWeight(PF.items.length - 1, w);
+  PF.focusId = id;
   membersChanged();
+  return true;
+}
+/** Add from the builder; says so when the portfolio is full. */
+function tryAdd(id) {
+  if (PF.items.length >= MAX_ITEMS && !PF.items.some((x) => x.id === id)) {
+    toast(`<span>Porteføljen har allerede ${MAX_ITEMS} fond og ETF-er. Fjern ett før du legger til et nytt.</span>`);
+    return false;
+  }
+  return addItem(id);
 }
 function removeItem(i) {
-  PF.items.splice(i, 1);
-  if (PF.items.length) scaleTo100();
+  const [gone] = PF.items.splice(i, 1);
+  if (PF.items.length) {
+    const a = absorberIndex();
+    if (a >= 0 && gone) PF.items[a].w += gone.w; else scaleTo100();
+    roundWeights();
+  }
   membersChanged();
 }
 function swapItem(id, withId) {
   const it = PF.items.find((x) => x.id === id);
   if (!it || !product(withId)) return;
   const other = PF.items.find((x) => x.id === withId);
-  if (other) { other.w += it.w; PF.items.splice(PF.items.indexOf(it), 1); } else it.id = withId;
+  if (other) {
+    other.w += it.w;
+    if (ok(it.have)) other.have = (other.have || 0) + it.have;
+    PF.items.splice(PF.items.indexOf(it), 1);
+  } else { it.id = withId; }
   membersChanged();
 }
 function membersChanged() {
@@ -240,10 +397,11 @@ function membersChanged() {
   savePF();
   renderPfTable();
   analyse();
+  renderReco();
   if (typeof onPortfolioMembers === "function") onPortfolioMembers();
   if (typeof onPortfolioMembersFond === "function") onPortfolioMembersFond();
 }
-const analyseLater = debounce(() => { savePF(); analyse(); }, 150);
+const analyseLater = debounce(() => { savePF(); analyse(); renderReco(); }, 150);
 
 // ---------------------------------------------------------------- setup
 function setupPortfolio() {
@@ -254,8 +412,16 @@ function setupPortfolio() {
     if (H && H.items) PF.H = H;
     else notice($("pf-status"), "warning", "<strong>⚠ Innholdet i fondene mangler:</strong> «Hva eier jeg egentlig?» og tvillinger kan ikke vises før <code>data/innhold.json</code> er laget.");
     const saved = store.get(PLS, null);
-    if (saved) { PF.items = (saved.items || []).filter((x) => product(x.id)); Object.assign(PF.plan, saved.plan || {}); PF.risk = saved.risk ?? "same"; PF.profile = saved.profile ?? null; }
+    if (saved) {
+      PF.items = (saved.items || []).filter((x) => product(x.id));
+      Object.assign(PF.plan, saved.plan || {});
+      PF.profile = saved.profile ?? null;
+      PF.recipe = saved.recipe === "world" ? "world" : "blocks";
+      PF.nordic = !!saved.nordic;
+    }
     readPfHash();
+    if (PF.items.length && Math.abs(sumW() - 100) > 0.5) scaleTo100();    // older portfolios and shared links
+    PF.risk = "same";
     assignColors();
     bindPlan(); bindSearch(); bindButtons(); bindReco();
     $("reco").open = !PF.items.length;
@@ -263,6 +429,7 @@ function setupPortfolio() {
     PF.ready = true;
     renderPfTable();
     analyse();
+    renderReco();
     redraw.push(() => { if (PF.res) renderCharts(); });
     onPortfolioMembers(); onPortfolioMembersFond();
   });
@@ -276,60 +443,117 @@ function readPfHash() {
   history.replaceState(null, "", location.pathname + location.search + "#portefolje");
 }
 
+/** «Har i dag» follows the amounts in «Eier i dag» once any of them is filled in. */
+function haveSum() {
+  const xs = PF.items.filter((x) => ok(x.have) && x.have > 0);
+  return xs.length ? xs.reduce((a, x) => a + x.have, 0) : null;
+}
+function syncStart() {
+  const hs = haveSum(), el = $("pl-start"), note = $("pl-start-note");
+  if (ok(hs)) { PF.plan.start = hs; el.value = hs; }
+  el.readOnly = ok(hs);
+  if (note) note.hidden = !ok(hs);
+}
+
 function bindPlan() {
   const map = { "pl-start": "start", "pl-monthly": "monthly", "pl-years": "years", "pl-ret": "ret" };
   for (const [id, key] of Object.entries(map)) {
     const el = $(id);
     el.value = PF.plan[key] ?? "";
     el.addEventListener("input", () => {
+      if (el.readOnly) return;
       const v = el.value === "" ? null : +el.value;
       PF.plan[key] = key === "ret" ? (ok(v) && v >= 0 ? v : null) : key === "years" ? Math.max(1, Math.min(50, Math.round(v || 1))) : Math.max(0, v || 0);
-      updateAmounts(); analyseLater();
+      updateAmounts(); renderBuyPlan(); analyseLater();
       if (key === "years" && PF.profile == null) renderReco();
     });
   }
+  syncStart();
 }
 
-function searchProducts(q) {
+// ---------------------------------------------------------------- search
+function searchHay(p) {
+  if (p._hay) return p._hay;
+  const r = ROLE[roleOf(p)];
+  p._hay = [p.name, p.ticker, p.id, p.kindLabel, r.name, r.words, p.index ? "indeks index" : "", p.sector && p.sector !== "Bred" ? p.sector : "",
+    p.theme || "", p.region || "", isWorld(p) ? ROLE.em.words : ""].join(" ").toLowerCase();
+  return p._hay;
+}
+/** Two products with nearly the same content (same index, or twins by holdings, or the same kind of interest fund). */
+function sameContent(a, b) {
+  if (a.cluster !== null && a.cluster === b.cluster) return true;
+  if (a.asset_class !== b.asset_class || a.hedged !== b.hedged) return false;
+  if (isRate(a)) return rateTwin(a, b);
+  return isTwin(I.similarity(holdingsOf(a.id), holdingsOf(b.id)));
+}
+/** Search hits as groups: one fund or ETF per content, with its twins. `role` limits the hits to one role. */
+function searchProducts(q, role = null) {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  const mine = PF.ids();
-  return allProducts().filter((p) => {
-    if (mine.has(p.id) || p.leveraged || !p.tradable) return false;
-    const hay = `${p.name} ${p.ticker} ${p.id} ${p.kindLabel}`.toLowerCase();
-    return words.every((w) => hay.includes(w));
-  }).sort((a, b) => (b.owners || 0) - (a.owners || 0)).slice(0, 12);
+  if (!words.length && !role) return [];
+  const mine = PF.ids(), pin = role ? recoPick(role) : null;
+  const hits = allProducts().filter((p) => !mine.has(p.id) && !p.leveraged && p.tradable && (!role || roleOf(p) === role) && words.every((w) => searchHay(p).includes(w)))
+    .sort((a, b) => (b.id === pin) - (a.id === pin) || (b.owners || 0) - (a.owners || 0)).slice(0, 80);
+  const groups = [];
+  for (const p of hits) {
+    const g = groups.find((x) => sameContent(x.p, p));
+    if (g) g.twins.push(p); else if (groups.length < 12) groups.push({ p, twins: [], pin: p.id === pin });
+  }
+  return groups;
 }
 function bindSearch() {
-  const q = $("pf-q"), box = $("pf-results");
+  const q = $("pf-q"), box = $("pf-results"), chip = $("pf-q-role");
   const close = () => { box.hidden = true; q.setAttribute("aria-expanded", "false"); };
+  const setRole = (r) => {
+    PF.searchRole = r;
+    chip.hidden = !r;
+    chip.innerHTML = r ? `Bare ${esc(roleLc(r))} <span aria-hidden="true">×</span><span class="visually-hidden">: vis alle</span>` : "";
+    q.placeholder = r ? `Søk i ${roleLc(r)}, eller velg fra listen` : "Søk på navn, for eksempel «global indeks», «teknologi» eller «høyrente»";
+  };
   const show = () => {
-    const res = searchProducts(q.value);
-    if (!q.value.trim()) return close();
-    box.innerHTML = res.length ? res.map((p) => `<button type="button" role="option" data-id="${esc(p.id)}">
-        <span class="nm">${esc(p.name)}</span><span class="tag">${esc(p.kindLabel)}</span>
-        <span class="muted">${ok(p.cost) ? nf(2).format(p.cost) + " % per år" : ""}${ok(p.ret[5]) ? " · 5 år: " + pct(p.ret[5]) : ""}</span></button>`).join("")
-      : '<p class="muted">Ingen treff. Prøv færre ord, eller bruk Finn fond / Finn ETF-er.</p>';
+    const r = PF.searchRole;
+    if (!q.value.trim() && !r) return close();
+    const res = searchProducts(q.value, r);
+    box.innerHTML = res.length ? res.map(({ p, twins, pin }) => {
+      const cheap = twins.filter((t) => ok(t.cost) && ok(p.cost) && t.cost < p.cost - TWIN.cheaper).sort((a, b) => a.cost - b.cost)[0];
+      const tw = twins.length ? `<span class="tw small-text">${twins.length === 1 ? "1 annen" : `${twins.length} andre`} med nesten samme innhold${cheap ? `, billigst ${esc(cheap.name)} (${nf(2).format(cheap.cost)} %)` : ""}</span>` : "";
+      return `<button type="button" role="option" data-id="${esc(p.id)}">
+        <span class="nm">${esc(p.name)}</span><span class="tag">${esc(p.kindLabel)}</span><span class="tag tag-role">${esc(ROLE[roleOf(p)].name)}</span>
+        ${pin ? '<span class="vv-badge vv-badge--info">Anbefalt</span>' : ""}${isWorld(p) ? '<span class="tag">inkl. fremvoksende</span>' : ""}
+        <span class="muted">${ok(p.cost) ? nf(2).format(p.cost) + " % per år" : ""}${ok(p.ret[5]) ? " · 5 år: " + pct(p.ret[5]) : ""}</span>${tw}</button>`;
+    }).join("") : '<p class="muted">Ingen treff. Prøv færre ord, eller bruk Finn fond / Finn ETF-er.</p>';
     box.hidden = false; q.setAttribute("aria-expanded", "true");
   };
+  PF.openSearch = (r) => { setRole(r); q.value = ""; q.focus(); show(); };
   q.addEventListener("input", debounce(show, 120));
   q.addEventListener("focus", show);
   q.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape") close();
+    if (ev.key === "Escape") { close(); if (PF.searchRole) setRole(null); }
     if (ev.key === "Enter") { const b = box.querySelector("button[data-id]"); if (b && !box.hidden) b.click(); }
+    if (ev.key === "ArrowDown") { const b = box.querySelector("button[data-id]"); if (b && !box.hidden) { ev.preventDefault(); b.focus(); } }
+  });
+  box.addEventListener("keydown", (ev) => {
+    const all = [...box.querySelectorAll("button[data-id]")], i = all.indexOf(document.activeElement);
+    if (ev.key === "ArrowDown" && i >= 0) { ev.preventDefault(); all[Math.min(all.length - 1, i + 1)].focus(); }
+    if (ev.key === "ArrowUp" && i >= 0) { ev.preventDefault(); (i ? all[i - 1] : q).focus(); }
+    if (ev.key === "Escape") { close(); q.focus(); }
   });
   box.addEventListener("click", (ev) => {
     const b = ev.target.closest("button[data-id]"); if (!b) return;
-    addItem(b.dataset.id); q.value = ""; close(); q.focus();
+    tryAdd(b.dataset.id); q.value = ""; setRole(null); close();
   });
-  document.addEventListener("click", (ev) => { if (!ev.target.closest(".pf-search")) close(); });
+  chip.addEventListener("click", () => { setRole(null); q.focus(); show(); });
+  document.addEventListener("click", (ev) => { if (!ev.target.closest(".pf-search") && !ev.target.closest("[data-addrole]")) close(); });
+  setRole(null);
 }
 
 // ---------------------------------------------------------------- recommended portfolio
 const PROFILES = [[20, "Forsiktig"], [40, "Moderat"], [60, "Balansert"], [80, "Offensiv"], [100, "Bare aksjer"]];
-const RECO = { core: 0.8, em: 0.1, small: 0.1, minPiece: 3 };       // split of the share part; pieces under 3 % go to the core
-const ROLES = {
+const RECO = { core: 0.8, em: 0.1, small: 0.1, nordic: 0.1, minPiece: 3 };   // split of the share part; pieces under 3 % go to the core
+const RECO_TEXT = {
   core: ["Kjernen", "Rundt 1 500 store selskaper i hele den rike verden, i ett billig fond."],
+  world: ["Kjernen", "Hele verden i ett fond: de rike landene og fremvoksende markeder."],
+  nordic: ["Norge og Norden", "Selskapene på børsene i Norge, Sverige, Danmark og Finland."],
+  norway: ["Norge og Norden", "Selskapene på Oslo Børs, i kroner."],
   em: ["Fremvoksende markeder", "Kina, India, Taiwan, Brasil med flere – de mangler i det globale fondet."],
   small: ["Små selskaper", "Tusenvis av mindre selskaper verden over, som de store indeksene hopper over."],
   safe: ["Bufferen", "Korte, sikre renter i kroner. Demper fallene, og gir ro til å sitte stille når aksjer faller."],
@@ -346,23 +570,41 @@ function recoBlocks() {
     return c.filter((f) => f.r5 >= best - 0.005).sort((a, b) => a.cost - b.cost || (b.owners || 0) - (a.owners || 0))[0].isin;
   };
   const idx = (cat) => (f) => f.index && f.ask && !f.esg && f.category === cat;
-  PF.blocks = { core: pick(idx("Global Equity Large Cap")), em: pick(idx("Global Emerging Markets Equity")), small: pick(idx("Global Equity Mid/Small Cap")),
-    safe: pick((f) => isRate(f) && ok(f.vol5) && f.vol5 < 0.012) };
+  const em = (f) => emShare(f.isin) ?? 0;
+  PF.blocks = {
+    core: pick((f) => idx("Global Equity Large Cap")(f) && em(f) < EM_WORLD),
+    world: pick((f) => idx("Global Equity Large Cap")(f) && em(f) >= EM_WORLD),
+    nordic: pick((f) => f.index && f.ask && !f.esg && f.asset_class === "Aksjer" && roleOf(product(f.isin)) === "nordic"),
+    em: pick(idx("Global Emerging Markets Equity")), small: pick(idx("Global Equity Mid/Small Cap")),
+    safe: pick((f) => isRate(f) && ok(f.vol5) && f.vol5 < 0.012),
+  };
   return PF.blocks;
 }
-function defaultProfile() { const y = PF.plan.years; return y <= 2 ? 20 : y <= 5 ? 40 : y <= 9 ? 60 : 80; }
-/** [{id, w (percent), role}] for a share of equities (percent). */
-function recoFor(eq) {
+/** The recommended fund for a builder role, if the recipe has one. */
+function recoPick(role) {
   const B = recoBlocks();
-  if (!B.core || !B.safe) return null;
-  const raw = { core: eq * RECO.core, em: B.em ? eq * RECO.em : 0, small: B.small ? eq * RECO.small : 0, safe: 100 - eq };
-  raw.core = eq - raw.em - raw.small;
-  for (const k of ["em", "small"]) if (raw[k] < RECO.minPiece) { raw.core += raw[k]; raw[k] = 0; }
-  const out = ["core", "em", "small", "safe"].filter((k) => raw[k] > 0).map((k) => ({ id: B[k], w: Math.round(raw[k]), role: k }));
+  return role === "core" ? (PF.recipe === "world" && B.world) || B.core : B[role] || null;
+}
+function defaultProfile() { const y = PF.plan.years; return y <= 2 ? 20 : y <= 5 ? 40 : y <= 9 ? 60 : 80; }
+/** [{id, w (percent), role}] for a share of equities (percent), following the chosen recipe. */
+function recoFor(eq) {
+  const B = recoBlocks(), world = PF.recipe === "world" && B.world ? B.world : null, nordic = PF.nordic && B.nordic;
+  const core = world || B.core;
+  if (!core || !B.safe) return null;
+  const raw = { nordic: nordic ? eq * RECO.nordic : 0, em: !world && B.em ? eq * RECO.em : 0, small: !world && B.small ? eq * RECO.small : 0, safe: 100 - eq };
+  for (const k of ["nordic", "em", "small"]) if (raw[k] < RECO.minPiece) raw[k] = 0;
+  raw.core = eq - raw.nordic - raw.em - raw.small;
+  const ids = { ...B, core };
+  const out = ["core", "nordic", "em", "small", "safe"].filter((k) => raw[k] > 0).map((k) => ({ id: ids[k], w: Math.round(raw[k]), role: k, text: k === "core" && world ? "world" : k === "nordic" && !/nord/i.test(product(ids[k]).name) ? "norway" : k }));
   out[0].w += 100 - out.reduce((a, x) => a + x.w, 0);
   return out;
 }
-const ROLE_COLOR = { core: 1, em: 3, small: 4, safe: 2 };
+/** Colour slot per recipe role: four colours; with Norden the small companies share the neutral colour. */
+function recoColor(role) {
+  const m = PF.nordic ? { core: 1, safe: 2, em: 3, nordic: 4 } : { core: 1, safe: 2, em: 3, small: 4 };
+  return m[role] || null;
+}
+const recoTok = (role) => (recoColor(role) ? `--chart-${recoColor(role)}` : "--chart-context");
 const PROFILE_TEXT = {
   20: "Lite svingninger. For penger du trenger om få år.",
   40: "Noe svingninger. For sparing i tre til fem år.",
@@ -370,14 +612,24 @@ const PROFILE_TEXT = {
   80: "Mest vekst, med en liten buffer. For lang sparing.",
   100: "Størst svingninger og høyest forventet avkastning.",
 };
+/** Share of shares in the portfolio (0..1). */
+function equityShare() {
+  const s = sumW();
+  return s > 0 ? PF.items.reduce((a, x) => a + (x.w / s) * eqShareOf(product(x.id)), 0) : 0;
+}
+/** The builder role a recipe role fills. */
+const recoRole = (k) => (k === "core" ? "core" : k);
+
 function renderReco() {
+  if (!PF.ready) return;
   const prof = PF.profile ?? defaultProfile(), rec = recoFor(prof), box = $("reco");
   if (!rec) { box.hidden = true; return; }
-  const y = PF.plan.years, d = defaultProfile(), dn = PROFILES.find((x) => x[0] === d)[1];
+  const y = PF.plan.years, d = defaultProfile(), dn = PROFILES.find((x) => x[0] === d)[1], has = PF.items.length > 0;
+  const eqNow = equityShare();
   const cards = $("reco-profile");
   if (!cards.children.length) {
     cards.innerHTML = PROFILES.map(([e, name]) => `<label class="radio-card"><input type="radio" name="reco-profile" value="${e}">
-      <span class="rc-name">${name}</span><span class="rc-eq">${e}\u00a0% aksjer</span><span class="rc-text">${PROFILE_TEXT[e]}</span>
+      <span class="rc-name">${name}</span><span class="rc-eq">${e} % aksjer</span><span class="rc-text">${PROFILE_TEXT[e]}</span>
       <span class="vv-badge vv-badge--info rc-default" hidden></span></label>`).join("");
   }
   cards.querySelectorAll(".radio-card").forEach((l) => {
@@ -386,61 +638,165 @@ function renderReco() {
     l.classList.toggle("is-checked", e === prof);
     b.hidden = e !== d; b.textContent = `Passer for ${y} år`;
   });
+  $("reco-hint").textContent = has ? `Porteføljen din: ${pc0(eqNow)} aksjer` : "eller velg fondene selv i steg 3";
   const why = y <= 2 ? "pengene skal brukes snart og bør ikke svinge mye" : y <= 5 ? "noen få år er for kort tid til å hente inn et stort aksjefall"
     : y <= 9 ? "du har tid til å hente inn et fall, men ikke ubegrenset" : "du har god tid til å hente inn fall, og aksjer har gitt mest over tid";
-  $("reco-why").innerHTML = `Med ${y} års sparing foreslår vi <strong>${dn}</strong>, fordi ${why}. Det viktigste er en fordeling du klarer å holde fast ved når det faller.`;
-  mixbar("reco-bar", rec.map((x) => ({ label: ROLES[x.role][0], w: x.w / 100, tok: `--chart-${ROLE_COLOR[x.role]}` })));
-  $("reco-list").innerHTML = rec.map((x) => { const p = product(x.id); return `<div class="reco-row"><span class="swatch" style="background:${css(`--chart-${ROLE_COLOR[x.role]}`)}"></span>
-      <div class="reco-w">${x.w}\u00a0%</div><div><strong>${esc(ROLES[x.role][0])}:</strong> ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}
-      <span class="vv-badge">${nf(2).format(p.cost)}\u00a0% per år</span><br><span class="small-text">${esc(ROLES[x.role][1])}</span></div></div>`; }).join("");
+  $("reco-why").innerHTML = `Med ${y} års sparing foreslår vi <strong>${dn}</strong>, fordi ${why}. Det viktigste er en fordeling du klarer å holde fast ved når det faller.` +
+    (has ? ` Porteføljen din har <strong>${pc0(eqNow)} aksjer</strong>.` : "");
+  const B = recoBlocks();
+  const opt = $("reco-opts");
+  if (!opt.children.length) {
+    opt.innerHTML = `<fieldset class="reco-recipe"><legend>Oppskrift</legend>
+        <label class="check"><input type="radio" name="reco-recipe" value="blocks"> Byggeklosser: globalt fond, fremvoksende markeder og små selskaper hver for seg</label>
+        <label class="check"><input type="radio" name="reco-recipe" value="world"> Hele verden i ett fond: færre fond å følge med på</label></fieldset>
+      <label class="check"><input type="checkbox" id="reco-nordic"> Ta med Norge og Norden (${pc0(RECO.nordic)} av aksjene)</label>`;
+  }
+  opt.querySelectorAll("input[name=reco-recipe]").forEach((r) => { r.checked = r.value === PF.recipe; r.disabled = r.value === "world" && !B.world; });
+  $("reco-nordic").checked = PF.nordic; $("reco-nordic").disabled = !B.nordic;
+  const mine = (k) => PF.items.find((x) => roleOf(product(x.id)) === recoRole(k) && (k !== "core" || PF.recipe !== "world" || isWorld(product(x.id))));
+  mixbar("reco-bar", rec.map((x) => ({ label: RECO_TEXT[x.text][0], w: x.w / 100, tok: recoTok(x.role) })));
+  $("reco-list").innerHTML = rec.map((x) => {
+    const p = product(x.id), own = has ? mine(x.role) : null;
+    const ownTxt = own ? `<span class="vv-badge vv-badge--info">${ICON.check}Du har ${esc(product(own.id).name)}</span>` : has ? '<span class="vv-badge">Mangler i porteføljen din</span>' : "";
+    return `<div class="reco-row"><span class="swatch" style="background:${css(recoTok(x.role))}"></span>
+      <div class="reco-w">${x.w} %</div><div><strong>${esc(RECO_TEXT[x.text][0])}:</strong> ${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}
+      <span class="vv-badge">${nf(2).format(p.cost)} % per år</span> ${ownTxt}<br><span class="small-text">${esc(RECO_TEXT[x.text][1])}</span></div></div>`;
+  }).join("");
   const use = rec.map((x) => ({ item: x, p: product(x.id), w: x.w / 100, ser: seriesOf(x.id) }));
   const ev = evaluate(use);
   $("reco-stats").innerHTML = [
     ["Forventet avkastning", ev.model ? pct(ev.model.now.ret) + " per år" : "–"],
     ["Verste år", ev.story ? `${pct(ev.story.worst.ret, 0)}` : "–"],
-    ["Kostnad", `${nf(2).format(ev.cost * 100)}\u00a0% per år`],
+    ["Kostnad", `${nf(2).format(ev.cost * 100)} % per år`],
+    ["Antall fond", String(rec.length)],
   ].map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join("");
+  const missing = rec.filter((x) => !mine(x.role));
+  const eqOff = Math.abs(eqNow * 100 - prof) >= 1;
+  $("reco-actions").innerHTML = !has
+    ? '<button class="vv-btn vv-btn--primary" type="button" data-reco="use">Bruk denne porteføljen</button>'
+    : [`<button class="vv-btn vv-btn--primary" type="button" data-reco="equity"${eqOff ? "" : " disabled"}>Sett aksjeandelen til ${prof} %</button>`,
+      missing.length ? `<button class="vv-btn vv-btn--secondary" type="button" data-reco="missing">Legg til det som mangler (${missing.length})</button>` : "",
+      '<button class="vv-btn vv-btn--ghost" type="button" data-reco="replace">Erstatt med oppskriften</button>'].join("");
+  $("reco-note").textContent = has ? (eqOff ? `«Sett aksjeandelen» endrer bare andelene. Aksjefondene og rentefondene beholder innbyrdes forhold, og låste fond står fast.` : `Porteføljen din har allerede ${prof} % aksjer.`) : "";
   PF.reco = rec;
 }
 
+/** Move the portfolio to a share of equities (percent) by scaling the share funds and the other funds; adds the recipe's
+ *  buffer or core fund if one side is missing. Locked funds stay when that is possible. */
+function setEquity(T) {
+  const t = T / 100, B = recoBlocks(), heavy = (x) => eqShareOf(product(x.id)) >= 0.5;
+  if (t < 0.999 && !PF.items.some((x) => !heavy(x)) && B.safe && PF.items.length < MAX_ITEMS) PF.items.push({ id: B.safe, w: 0 });
+  if (t > 0.001 && !PF.items.some(heavy) && recoPick("core") && PF.items.length < MAX_ITEMS) PF.items.push({ id: recoPick("core"), w: 0 });
+  const solve = (useLocks) => {
+    const fixed = PF.items.filter((x) => useLocks && x.lock), free = PF.items.filter((x) => !(useLocks && x.lock));
+    const L = fixed.reduce((a, x) => a + x.w / 100, 0), Le = fixed.reduce((a, x) => a + x.w / 100 * eqShareOf(product(x.id)), 0);
+    const G = free.filter(heavy), R = free.filter((x) => !heavy(x));
+    const base = (xs) => { const s = xs.reduce((a, x) => a + x.w, 0); return xs.map((x) => (s > 0 ? x.w : 1)); };
+    const bg = base(G), br = base(R);
+    const g = bg.reduce((a, b) => a + b, 0) / 100, r = br.reduce((a, b) => a + b, 0) / 100;
+    const ge = G.reduce((a, x, k) => a + bg[k] / 100 * eqShareOf(product(x.id)), 0), re = R.reduce((a, x, k) => a + br[k] / 100 * eqShareOf(product(x.id)), 0);
+    let a, b;
+    if (!R.length) { a = g > 0 ? (1 - L) / g : 0; b = 0; } else if (!G.length) { a = 0; b = r > 0 ? (1 - L) / r : 0; } else {
+      const det = g * re - r * ge;
+      if (Math.abs(det) < 1e-9) return false;
+      a = ((1 - L) * re - r * (t - Le)) / det; b = (g * (t - Le) - ge * (1 - L)) / det;
+    }
+    if (!(a >= 0 && b >= 0)) return false;
+    G.forEach((x, k) => { x.w = bg[k] * a; }); R.forEach((x, k) => { x.w = br[k] * b; });
+    return true;
+  };
+  if (!solve(true) && !solve(false)) return;
+  roundWeights();
+  membersChanged();
+}
+/** Add the recipe funds whose role the portfolio lacks, at the recipe's shares; the funds already there share the rest. */
+function addMissing() {
+  const rec = PF.reco; if (!rec) return;
+  const has = (k) => PF.items.some((x) => roleOf(product(x.id)) === recoRole(k) && (k !== "core" || PF.recipe !== "world" || isWorld(product(x.id))));
+  const add = rec.filter((x) => !has(x.role) && !PF.items.some((i) => i.id === x.id)).slice(0, MAX_ITEMS - PF.items.length);
+  if (!add.length) return;
+  const room = 100 - add.reduce((a, x) => a + x.w, 0), s = sumW() || 1;
+  PF.items.forEach((x) => { x.w = x.w * room / s; });
+  add.forEach((x) => PF.items.push({ id: x.id, w: x.w }));
+  roundWeights();
+  setEquity(PF.profile ?? defaultProfile());           // keep the chosen share of equities
+}
+function useReco(replace) {
+  if (!PF.reco) return;
+  if (replace && PF.items.length && !confirm("Erstatte porteføljen din med den anbefalte? Beløpene under «Eier i dag» forsvinner.")) return;
+  PF.items = PF.reco.map((x) => ({ id: x.id, w: x.w, c: recoColor(x.role) ? recoColor(x.role) - 1 : SLOTS }));
+  $("reco").open = false;
+  membersChanged();
+  syncStart();
+  $("pf-bygg").scrollIntoView();
+}
 function bindReco() {
   $("reco-profile").addEventListener("change", (ev) => {
     const r = ev.target.closest("input[name=reco-profile]"); if (!r) return;
     PF.profile = +r.value; savePF(); renderReco();
   });
-  $("reco-use").addEventListener("click", () => {
-    if (!PF.reco) return;
-    if (PF.items.length && !confirm("Erstatte porteføljen din med den anbefalte?")) return;
-    PF.items = PF.reco.map((x) => ({ id: x.id, w: x.w, c: ROLE_COLOR[x.role] - 1 }));
-    $("reco").open = false;
-    membersChanged();
-    $("pf-sammendrag").scrollIntoView();
-    $("h-sum").focus({ preventScroll: true });
+  $("reco-opts").addEventListener("change", (ev) => {
+    const r = ev.target.closest("input[name=reco-recipe]");
+    if (r) PF.recipe = r.value;
+    if (ev.target.id === "reco-nordic") PF.nordic = ev.target.checked;
+    savePF(); renderReco();
   });
-  renderReco();
+  $("reco-actions").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-reco]"); if (!b) return;
+    const k = b.dataset.reco;
+    if (k === "use") useReco(false);
+    if (k === "replace") useReco(true);
+    if (k === "equity") setEquity(PF.profile ?? defaultProfile());
+    if (k === "missing") addMissing();
+  });
 }
 
+// ---------------------------------------------------------------- buttons
 function bindButtons() {
-  $("pf-equal").addEventListener("click", () => { PF.items.forEach((x) => { x.w = 100 / PF.items.length; }); roundWeights(); membersChanged(); });
-  $("pf-norm").addEventListener("click", () => { scaleTo100(); membersChanged(); });
-  $("pf-clear").addEventListener("click", () => { if (PF.items.length && confirm("Fjerne alt fra porteføljen?")) { PF.items = []; membersChanged(); } });
+  $("pf-equal").addEventListener("click", () => { equalShares(); membersChanged(); });
+  $("pf-clear").addEventListener("click", () => { if (PF.items.length && confirm("Fjerne alt fra porteføljen?")) { PF.items = []; membersChanged(); syncStart(); } });
   $("pf-link").addEventListener("click", () => {
     const url = `${location.origin}${location.pathname}#pf=${PF.items.map((x) => `${x.id}:${Math.round(x.w)}`).join(",")}`;
     const msg = $("pf-copied"), done = () => { msg.textContent = "Lenken er kopiert."; setTimeout(() => { msg.textContent = ""; }, 3000); };
     (navigator.clipboard?.writeText(url) || Promise.reject()).then(done).catch(() => prompt("Kopier lenken:", url));
   });
-  $("pf-table").addEventListener("input", (ev) => {
-    const el = ev.target.closest("input[data-i]"); if (!el) return;
-    const it = PF.items[+el.dataset.i]; if (!it) return;
-    it.w = Math.max(0, Math.min(100, +el.value || 0));
-    const tr = el.closest("tr");
-    tr.querySelectorAll("input[data-i]").forEach((o) => { if (o !== el) o.value = it.w; });
-    PF.risk = "same";
-    updateAmounts(); analyseLater();
+  const list = $("pf-table");
+  list.addEventListener("input", (ev) => {
+    const w = ev.target.closest("input[data-w]");
+    if (w) {
+      if (w.value === "") return;
+      const i = +w.dataset.w;
+      setWeight(i, +w.value);
+      PF.risk = "same";
+      syncRows(w); analyseLater();
+      return;
+    }
+    const h = ev.target.closest("input[data-have]");
+    if (h) {
+      const it = PF.items[+h.dataset.have]; if (!it) return;
+      it.have = h.value === "" ? null : Math.max(0, +h.value || 0);
+      syncStart(); updateAmounts(); renderBuyPlan(); analyseLater();
+    }
   });
-  $("pf-table").addEventListener("click", (ev) => {
-    const b = ev.target.closest("button[data-rm]"); if (b) removeItem(+b.dataset.rm);
+  list.addEventListener("change", (ev) => { const w = ev.target.closest("input[data-w]"); if (w) syncRows(); });
+  list.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    if (b.dataset.rm !== undefined) return removeItem(+b.dataset.rm);
+    if (b.dataset.lock !== undefined) { const it = PF.items[+b.dataset.lock]; it.lock = !it.lock; savePF(); renderPfTable(); return; }
+    if (b.dataset.alt !== undefined) {
+      const row = $(`pf-alt-${b.dataset.alt}`), open = b.getAttribute("aria-expanded") !== "true";
+      if (open && !row.dataset.done) { row.innerHTML = altsHtml(PF.items[+b.dataset.alt].id); row.dataset.done = "1"; }
+      row.hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false");
+      return;
+    }
+    if (b.dataset.swapfrom) return swapItem(b.dataset.swapfrom, b.dataset.swapto);
   });
+  $("pf-roles-add").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button[data-addrole]"); if (!b) return;
+    if (PF.items.length >= MAX_ITEMS) return tryAdd("");
+    PF.openSearch(b.dataset.addrole);
+  });
+  $("glance-body").addEventListener("click", (ev) => { if (ev.target.closest("button[data-world]")) mergeWorld(); });
   $("twins").addEventListener("click", (ev) => {
     const b = ev.target.closest("button[data-swap]"); if (b) return swapItem(b.dataset.swap, b.dataset.with);
     const m = ev.target.closest("button[data-more]"); if (!m) return;
@@ -448,64 +804,179 @@ function bindButtons() {
     row.hidden = !open; m.setAttribute("aria-expanded", open ? "true" : "false");
     m.textContent = open ? "Skjul alternativer" : "Vis flere alternativer";
   });
-  $("sg-risk").addEventListener("input", () => { PF.risk = +$("sg-risk").value; savePF(); renderSuggestion(); renderMap(); });
-  $("sg-same").addEventListener("click", () => { PF.risk = "same"; savePF(); renderSuggestion(); renderMap(); });
   $("sg-apply").addEventListener("click", () => {
     const sg = PF.res?.sg; if (!sg) return;
     PF.res.use.forEach((u, k) => { u.item.w = sg.w[k] * 100; });
-    PF.items = PF.items.filter((x) => x.w >= 0.5 || !PF.res.use.some((u) => u.item === x));
+    PF.items = PF.items.filter((x) => x.w >= 0.5 || !PF.res.use.some((u) => u.item === x) || ok(x.have));
     scaleTo100(); membersChanged();
     $("pf-bygg").scrollIntoView();
   });
 }
 
-// ---------------------------------------------------------------- portfolio table
-/** Badge with an info icon and a tooltip; the explanation is also read by screen readers. */
+// ---------------------------------------------------------------- the builder: funds grouped by role
 const infoBadge = (label, tip) => `<span class="vv-badge vv-badge--info tip" tabindex="0" data-tip="${esc(tip)}">${ICON.info}${esc(label)}<span class="visually-hidden">: ${esc(tip)}</span></span>`;
 function estTip(p, s) {
   return s?.kind === "proxy"
     ? `Fond har ikke kurshistorikk hos oss. Svingningene måned for måned er lånt fra ${D.by[s.proxy]?.name || "en lignende ETF"} og justert til fondets egen avkastning og risiko.`
     : "Fond har ikke kurshistorikk hos oss. Svingningene er anslått fra fondets egen avkastning og risiko.";
 }
+const pName = (p) => (p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name));
+
 function renderPfTable() {
   const el = $("pf-table"), n = PF.items.length;
   const cnt = $("pf-count"); cnt.hidden = !n; cnt.innerHTML = `${n}<span class="visually-hidden"> fond i porteføljen</span>`;
   $("pf-body").hidden = !n; $("pf-empty").hidden = !!n; $("glance-body").hidden = !n; $("glance-empty").hidden = !!n;
   assignColors();
   ["pf-equal", "pf-link", "pf-clear"].forEach((id) => { $(id).hidden = !n; });
+  renderRoleChips();
   if (!n) {
-    $("pf-norm").hidden = true;
-    el.innerHTML = `<tbody><tr><td class="empty">Porteføljen er tom. Velg en anbefalt portefølje i steg 2, eller søk etter fondene du allerede har.</td></tr></tbody>`;
+    el.innerHTML = '<p class="pf-empty-row">Porteføljen er tom. Velg en anbefalt portefølje i steg 2, legg til en rolle under, eller søk etter fondene du allerede har.</p>';
+    $("pf-foot").innerHTML = "";
+    renderBuyPlan();
     return;
   }
-  const rows = PF.items.map((it, i) => {
-    const p = product(it.id), s = seriesOf(it.id);
-    const est = p.kind === "fond" ? infoBadge("historikk anslått", estTip(p, s)) : "";
-    return `<tr><th scope="row" class="pf-name">${swatch(it)}${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}
-        <span class="pf-badges"><span class="vv-badge">${esc(p.kindLabel)}</span>${est}</span></th>
-      <td class="share" data-label="Andel"><input type="range" min="0" max="100" step="1" value="${Math.round(it.w)}" data-i="${i}" aria-label="Andel ${esc(p.name)}" tabindex="-1">
-        <span class="unit"><input type="number" min="0" max="100" step="1" value="${Math.round(it.w)}" data-i="${i}" aria-label="Andel ${esc(p.name)} i prosent"><i>%</i></span></td>
-      <td class="vv-num" data-label="Beløp i dag" data-kr="${i}"></td><td class="vv-num" data-label="Kostnad per år">${ok(p.cost) ? nf(2).format(p.cost) + "\u00a0%" : "–"}</td>
-      <td class="vv-num hide-narrow">${pct(p.ret[5])}</td>
-      <td class="rm"><button type="button" class="vv-btn vv-btn--ghost" data-rm="${i}" aria-label="Fjern ${esc(p.name)}">Fjern</button></td></tr>`;
-  }).join("");
-  el.innerHTML = `<thead><tr><th scope="col">Fond / ETF</th><th scope="col">Andel</th><th scope="col" class="vv-num">Beløp i dag</th><th scope="col" class="vv-num">Kostnad per år</th>
-    <th scope="col" class="vv-num hide-narrow">Avkastning per år, 5 år</th><th scope="col"><span class="visually-hidden">Fjern</span></th></tr></thead>
-    <tbody>${rows}</tbody><tfoot><tr><th scope="row">Sum</th><td id="pf-sum" data-label="Andel"></td><td class="vv-num" id="pf-sum-kr" data-label="Beløp i dag"></td><td class="vv-num" id="pf-sum-cost" data-label="Kostnad per år"></td><td class="hide-narrow"></td><td class="rm"></td></tr></tfoot>`;
-  el.classList.add("stack-table");
+  const groups = ROLE_ORDER.map((r) => ({ r, rows: PF.items.map((it, i) => ({ it, i })).filter(({ it }) => roleOf(product(it.id)) === r) })).filter((g) => g.rows.length);
+  el.innerHTML = groups.map(({ r, rows }) => `<section class="role-group" aria-labelledby="role-h-${r}">
+      <div class="role-head"><h3 id="role-h-${r}">${esc(ROLE[r].name)}</h3><span class="role-sum" data-rolesum="${r}"></span></div>
+      ${rows.map(({ it, i }) => rowHtml(it, i)).join("")}</section>`).join("");
   updateAmounts();
+  renderBuyPlan();
+  if (PF.focusId) {
+    const i = PF.items.findIndex((x) => x.id === PF.focusId);
+    PF.focusId = null;
+    const inp = el.querySelector(`input[type=number][data-w="${i}"]`);
+    if (inp && n > 1) { inp.focus(); inp.select?.(); }
+  }
+}
+function rowHtml(it, i) {
+  const p = product(it.id), s = seriesOf(it.id);
+  const est = p.kind === "fond" ? infoBadge("historikk anslått", estTip(p, s)) : "";
+  const world = isWorld(p) ? infoBadge("inkl. fremvoksende", `Fondet har ${pc0(emShare(p.id))} av aksjene i fremvoksende markeder, så det dekker også den rollen.`) : "";
+  const meta = [ok(p.cost) ? `${nf(2).format(p.cost)} % per år` : "", ok(p.ret[5]) ? `5 år: ${pct(p.ret[5])} per år` : ""].filter(Boolean).join(" · ");
+  return `<div class="pf-row${it.lock ? " is-locked" : ""}" data-row="${i}">
+    <div class="pf-row-name">${swatch(it)}${pName(p)}</div>
+    <div class="pf-badges"><span class="vv-badge">${esc(p.kindLabel)}</span>${world}${est}<span class="vv-badge vv-badge--info rest-badge" data-rest="${i}" hidden>Tar resten</span></div>
+    <p class="pf-row-meta small-text muted">${meta}<span data-target="${i}"></span></p>
+    <div class="pf-row-ctrl">
+      <div class="share"><label for="w-${i}">Andel</label>
+        <input type="range" min="0" max="100" step="1" value="${Math.round(it.w)}" data-w="${i}" aria-label="Andel ${esc(p.name)}" tabindex="-1">
+        <span class="unit"><input id="w-${i}" type="number" inputmode="numeric" min="0" max="100" step="1" value="${Math.round(it.w)}" data-w="${i}"><i>%</i></span></div>
+      <div class="have"><label for="h-${i}">Eier i dag</label>
+        <span class="unit"><input id="h-${i}" type="number" inputmode="numeric" min="0" step="1000" placeholder="0" value="${ok(it.have) ? it.have : ""}" data-have="${i}"><i>kr</i></span></div>
+      <div class="row-btns">
+        <button type="button" class="vv-btn vv-btn--ghost" data-lock="${i}" aria-pressed="${!!it.lock}" title="${it.lock ? "Låst: andelen står fast når du endrer de andre" : "Lås andelen, så den står fast når du endrer de andre"}">${it.lock ? "Låst" : "Lås"}<span class="visually-hidden"> andelen for ${esc(p.name)}</span></button>
+        <button type="button" class="vv-btn vv-btn--ghost" data-alt="${i}" aria-expanded="false" aria-controls="pf-alt-${i}">Bytt<span class="visually-hidden"> ${esc(p.name)}</span></button>
+        <button type="button" class="vv-btn vv-btn--ghost" data-rm="${i}" aria-label="Fjern ${esc(p.name)}">Fjern</button>
+      </div>
+    </div>
+    <div class="pf-alt" id="pf-alt-${i}" hidden></div>
+  </div>`;
+}
+/** Funds to swap to: twins first (cheapest), then the most owned in the same role (same sector or region). */
+function altsHtml(id) {
+  const p = product(id), role = roleOf(p);
+  const tw = twinsOf(id, { all: true }).slice(0, 4), seen = new Set([id, ...tw.map((t) => t.p.id), ...PF.ids()]);
+  const key = (c) => (role === "sector" ? `${c.sector}|${c.theme || ""}` : role === "em" || role === "region" ? c.region : role === "bond" ? c.sector : "");
+  const k0 = key(p);
+  const others = allProducts().filter((c) => !seen.has(c.id) && roleOf(c) === role && key(c) === k0 && c.tradable && !c.leveraged && ok(c.cost) && (!p.ask || c.ask))
+    .sort((a, b) => (b.owners || 0) - (a.owners || 0)).slice(0, 4);
+  const line = (c, label) => `<li><div><span class="nm">${pName(c)}</span> <span class="vv-badge">${esc(c.kindLabel)}</span>${label ? ` <span class="vv-badge vv-badge--info">${esc(label)}</span>` : ""}
+      <span class="small-text muted">${ok(c.cost) ? nf(2).format(c.cost) + " % per år" : ""}${ok(c.ret[5]) ? ` · 5 år: ${pct(c.ret[5])}` : ""}</span></div>
+      <button type="button" class="vv-btn vv-btn--secondary" data-swapfrom="${esc(id)}" data-swapto="${esc(c.id)}">Bytt til denne<span class="visually-hidden">: ${esc(c.name)}</span></button></li>`;
+  const tws = tw.filter((t) => !PF.ids().has(t.p.id));
+  return (tws.length ? `<h4>Samme innhold</h4><ul class="alt-list">${tws.map((t) => line(t.p, t.label)).join("")}</ul>` : "") +
+    (others.length ? `<h4>Andre i ${esc(roleLc(role))}</h4><ul class="alt-list">${others.map((c) => line(c, "")).join("")}</ul>` : "") +
+    (!tws.length && !others.length ? '<p class="small-text muted">Vi finner ingen andre fond i samme rolle.</p>' : "") +
+    '<p class="small-text muted">Andelen og beløpet følger med til fondet du bytter til.</p>';
+}
+function renderRoleChips() {
+  const have = new Set(PF.items.map((x) => roleOf(product(x.id))));
+  if (have.has("core") && PF.items.some((x) => isWorld(product(x.id)))) have.add("em");
+  const full = PF.items.length >= MAX_ITEMS;
+  $("pf-roles-add").innerHTML = `<span class="small-text muted">${full ? `Porteføljen er full (${MAX_ITEMS} fond).` : "Legg til en rolle:"}</span>` + (full ? "" :
+    ADD_ROLES.filter((r) => r === "sector" || r === "bond" || !have.has(r)).map((r) =>
+      `<button type="button" class="vv-btn vv-btn--secondary role-chip" data-addrole="${r}" title="${esc(ROLE[r].text)}">+ ${esc(ROLE[r].name)}</button>`).join(""));
+}
+/** Update inputs, sums and badges after a share changed, without rebuilding the rows (keeps focus). */
+function syncRows(active = null) {
+  document.querySelectorAll("#pf-table input[data-w]").forEach((inp) => {
+    if (inp === active) return;
+    const it = PF.items[+inp.dataset.w]; if (it) inp.value = Math.round(it.w);
+  });
+  updateAmounts(); renderBuyPlan();
+}
+function updateAmounts() {
+  const sum = sumW(), n = PF.items.length;
+  PF.items.forEach((it, i) => { const c = document.querySelector(`[data-target="${i}"]`); if (c) c.textContent = ` · Mål i dag: ${kr(PF.plan.start * (sum > 0 ? it.w / sum : 0))}`; });
+  const a = absorberIndex();
+  document.querySelectorAll("#pf-table [data-rest]").forEach((b) => { b.hidden = +b.dataset.rest !== a || n < 2; });
+  document.querySelectorAll("#pf-table [data-rolesum]").forEach((s) => {
+    const r = s.dataset.rolesum;
+    s.textContent = pc0(PF.items.filter((x) => roleOf(product(x.id)) === r).reduce((x, it) => x + it.w, 0) / 100);
+  });
+  if (!n) return;
+  const cost = sum > 0 ? PF.items.reduce((x, it) => x + (it.w / sum) * (product(it.id).cost ?? 0), 0) : null;
+  const zero = PF.items.filter((x) => !(x.w > 0)).length;
+  $("pf-foot").innerHTML = `<p class="pf-total"><strong>Sum ${nf(0).format(sum)} %</strong><span>${n} av høyst ${MAX_ITEMS} fond</span><span>${pc0(equityShare())} aksjer</span><span>${ok(cost) ? nf(2).format(cost) + " % per år" : ""}</span></p>` +
+    (n > 1 ? `<p class="small-text muted">Når du endrer en andel, tar ${a >= 0 ? `<strong>${esc(product(PF.items[a].id).name)}</strong>` : "ingen"} resten, så summen alltid er 100 %. Lås et fond for å holde andelen fast.</p>` : "") +
+    (zero ? `<p class="small-text">${zero === 1 ? "Ett fond har" : `${zero} fond har`} andel 0 % og er ikke med i tallene. Skriv inn andelen.</p>` : "") +
+    (n > MAX_ITEMS ? `<p class="small-text">Porteføljen har ${n} fond. Byggeren tar høyst ${MAX_ITEMS}; fjern noen for å legge til nye.</p>` : "");
+  renderCount();
 }
 
-function updateAmounts() {
-  const sum = PF.items.reduce((a, x) => a + (+x.w || 0), 0);
-  PF.items.forEach((it, i) => { const c = document.querySelector(`[data-kr="${i}"]`); if (c) c.textContent = kr(PF.plan.start * (sum > 0 ? it.w / sum : 0)); });
-  const s = $("pf-sum"); if (!s) return;
-  const off = Math.abs(sum - 100) > 0.5;
-  s.innerHTML = `${nf(0).format(sum)}\u00a0%${off ? ' <span class="vv-badge">regnes om til 100 %</span>' : ""}`;
-  $("pf-norm").hidden = !off;
-  $("pf-sum-kr").textContent = kr(PF.plan.start);
-  const cost = sum > 0 ? PF.items.reduce((a, x) => a + (x.w / sum) * (product(x.id).cost ?? 0), 0) : null;
-  $("pf-sum-cost").textContent = ok(cost) ? nf(2).format(cost) + "\u00a0%" : "–";
+/** Glance panel: number of funds and a way to fewer funds. */
+function renderCount() {
+  const n = PF.items.length, B = recoBlocks();
+  const core = PF.items.find((x) => roleOf(product(x.id)) === "core" && !isWorld(product(x.id)));
+  const em = PF.items.filter((x) => roleOf(product(x.id)) === "em" && x.w > 0);
+  const world = B.world && !PF.ids().has(B.world) ? product(B.world) : null;
+  $("pf-count-note").innerHTML = `<span><strong>${n}</strong> av høyst ${MAX_ITEMS} fond</span><span><strong>${pc0(equityShare())}</strong> aksjer</span>` +
+    (core && em.length && world ? `<span class="glance-tip">Kan bli færre: ${esc(world.name)} (${nf(2).format(world.cost)} %) har global kjerne og fremvoksende markeder i ett fond.
+      <button type="button" class="vv-btn vv-btn--ghost" data-world>Slå sammen til ett verdensfond</button></span>` : "");
+}
+/** Replace the core fund and the emerging markets funds with one world fund, keeping their total share. */
+function mergeWorld() {
+  const B = recoBlocks(); if (!B.world) return;
+  const core = PF.items.find((x) => roleOf(product(x.id)) === "core" && !isWorld(product(x.id)));
+  const em = PF.items.filter((x) => roleOf(product(x.id)) === "em");
+  if (!core) return;
+  const w = core.w + em.reduce((a, x) => a + x.w, 0), have = [core, ...em].reduce((a, x) => a + (x.have || 0), 0);
+  PF.items = PF.items.filter((x) => x !== core && !em.includes(x));
+  PF.items.push({ id: B.world, w, c: core.c, have: have || null });
+  roundWeights();
+  membersChanged();
+}
+
+// ---------------------------------------------------------------- purchase plan for the monthly saving
+const buyPlan = (have, w, M) => I.buyPlan(have, w, M);
+const monthsToTarget = (have, w, M) => I.monthsToTarget(have, w, M);
+/** Whole kroner that sum to M. */
+function roundKr(xs, M) {
+  const fl = xs.map((x) => Math.floor(x)), rest = Math.round(M) - fl.reduce((a, b) => a + b, 0);
+  xs.map((x, i) => [x - fl[i], i]).sort((a, b) => b[0] - a[0]).slice(0, Math.max(0, rest)).forEach(([, i]) => { fl[i] += 1; });
+  return fl;
+}
+function renderBuyPlan() {
+  const card = $("pf-plan-card"), M = PF.plan.monthly, n = PF.items.length;
+  card.hidden = !n || !(M > 0);
+  if (card.hidden) return;
+  const s = sumW() || 1, w = PF.items.map((x) => x.w / s), have = PF.items.map((x) => (ok(x.have) ? x.have : 0));
+  const anyHave = have.some((x) => x > 0);
+  const fixed = roundKr(w.map((x) => x * M), M);
+  const buy = anyHave ? roundKr(buyPlan(have, w, M), M) : fixed;
+  const months = anyHave ? monthsToTarget(have, w, M) : 0;
+  const H = have.reduce((a, b) => a + b, 0);
+  $("buy-lead").innerHTML = !anyHave
+    ? `Med ${kr(M)} i måneden setter du opp én spareavtale med beløpene under. Skriv inn hva du eier i dag i hvert fond i steg 3, så viser vi hvordan du når fordelingen uten å selge.`
+    : months === 0 ? `Porteføljen er allerede i mål. Bruk den faste spareavtalen under, så holder fordelingen seg.`
+    : `Kjøp for beløpene i kolonnen «Neste måned». ${ok(months) ? `Med ${kr(M)} i måneden er du innenfor 1 prosentpoeng av målet om <strong>${duration(months)}</strong>, uten å selge noe (før kursendringer).` : "Med dette sparebeløpet tar det svært lang tid å nå målet uten å selge. Vurder å flytte penger mellom fondene én gang."}`;
+  table($("buy-table"), [{ t: "Fond / ETF" }, { t: "Eier i dag", num: true }, { t: "Mål", num: true }, { t: "Neste måned", num: true }, { t: "Fast spareavtale", num: true }],
+    [...PF.items.map((it, i) => ({ cells: [{ html: swatch(it) + esc(product(it.id).name) }, anyHave ? `${kr(have[i])} (${pc0(H > 0 ? have[i] / H : 0)})` : "–", pc0(w[i]), { html: `<strong>${kr(buy[i])}</strong>` }, kr(fixed[i])] })),
+      { _cls: "total", cells: ["Sum", anyHave ? kr(H) : "–", "100 %", kr(M), kr(M)] }], { caption: "Kjøpsplan per måned" });
+  $("buy-table").classList.add("stack-table");
+  $("buy-note").textContent = "«Neste måned» fyller opp fondene som ligger mest under målet. «Fast spareavtale» er fordelingen når du er i mål. " +
+    (PF.items.some((x) => product(x.id).kind === "etf") ? "ETF-er kan spares månedlig uten kurtasje hos Nordnet bare hvis ETF-en er med i utvalget for spareavtale; sjekk det hos Nordnet. " : "") +
+    "Kursendringer flytter fordelingen, så se på planen igjen et par ganger i året.";
 }
 
 // ---------------------------------------------------------------- analysis
@@ -735,17 +1206,36 @@ function renderTree(comps, eqShare, bondShare, src) {
 // ---------------------------------------------------------------- 2. cheaper twins + 3. cost in kroner
 function planValue(cost, gross = grossReturn()) { return I.savingsValue(PF.plan.start, PF.plan.monthly, PF.plan.years, gross, cost); }
 
+/** Kroner more after the plan if the share `w` (0..1) held in p moved to c: the yearly cost is lower, but an ETF in another
+ *  currency than NOK pays currency exchange on every purchase. Monthly purchases of ETFs are assumed to go through Nordnet's
+ *  monthly savings agreement, which has no brokerage fee; the money already in p is moved once. */
+function twinGain(p, c, w) {
+  const pl = PF.plan, g = grossReturn();
+  const fx = (x) => (x.kind === "etf" && x.currency && x.currency !== "NOK" ? ETF_FX : 0);
+  const fc = fx(c), fp = fx(p);
+  return I.savingsValue(pl.start * w * (1 - fc), pl.monthly * w * (1 - fc), pl.years, g, (c.cost ?? 0) / 100)
+    - I.savingsValue(pl.start * w, pl.monthly * w * (1 - fp), pl.years, g, (p.cost ?? 0) / 100);
+}
+/** Per fund in the portfolio: its twins with the gain in kroner, best first (only those that leave you with more). */
+function twinPicks() {
+  const res = PF.res, key = `${PF.plan.start}|${PF.plan.monthly}|${PF.plan.years}|${grossReturn()}`;
+  if (res.picks && res.picksKey === key) return res.picks;
+  res.picks = res.use.map((u, k) => res.twins[k].map((t) => ({ ...t, gain: twinGain(u.p, t.p, u.w) })).filter((t) => t.gain > 0).sort((a, b) => b.gain - a.gain));
+  res.picksKey = key;
+  return res.picks;
+}
 function renderTwins() {
-  const res = PF.res, yrs = PF.plan.years, base = planValue(res.cost);
+  const res = PF.res, yrs = PF.plan.years, picks = twinPicks();
   const name = (p) => (p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name));
   const costTxt = (p) => (ok(p.cost) ? nf(2).format(p.cost) + "\u00a0%" : "–");
   let anyEtf = false, nTw = 0;
   const rows = res.use.map((u, k) => {
-    const tw = res.twins[k], p = u.p;
+    const tw = picks[k], p = u.p;
     const own = `<th scope="row" class="tw-own">${esc(p.name)}<span class="small-text muted">${pc0(u.w)} av porteføljen, ${costTxt(p)} per år</span></th>`;
     if (!tw.length) {
-      const any = twinsOf(p.id, { all: true }).length;
-      const why = any ? "Dette er allerede den billigste av tvillingene vi finner." : holdingsOf(p.id) || isRate(p) ? "Vi finner ingen billigere fond eller ETF-er med nesten samme innhold." : "Vi har ikke innholdet i dette fondet, så vi kan ikke lete etter tvillinger.";
+      const any = twinsOf(p.id, { all: true }).length, fxEats = res.twins[k].length > 0;
+      const why = fxEats ? "Tvillingene koster mindre per år, men valutavekslingen ved hvert kjøp tar igjen forskjellen for sparingen din."
+        : any ? "Dette er allerede den billigste av tvillingene vi finner." : holdingsOf(p.id) || isRate(p) ? "Vi finner ingen billigere fond eller ETF-er med nesten samme innhold." : "Vi har ikke innholdet i dette fondet, så vi kan ikke lete etter tvillinger.";
       return `<tr>${own}<td colspan="4" class="tw-none">${any ? `<span class="vv-badge">${ICON.check}Billigst allerede</span> ` : ""}<span class="small-text">${why}</span></td></tr>`;
     }
     nTw++;
@@ -753,7 +1243,7 @@ function renderTwins() {
     const show = tw.slice(0, 3), fund = tw.find((t) => t.p.kind === "fond");
     if (fund && !show.includes(fund)) show[2] = fund;
     if (show.some((t) => t.p.kind === "etf")) anyEtf = true;
-    const gain = (t) => planValue(res.cost - u.w * (p.cost - t.p.cost) / 100) - base;
+    const gain = (t) => t.gain;
     const t = show[0], more = show.slice(1);
     const sub = more.map((x) => {
       const d5 = ok(x.p.ret[5]) && ok(p.ret[5]) ? x.p.ret[5] - p.ret[5] : null;
@@ -763,7 +1253,7 @@ function renderTwins() {
         <td><button type="button" class="vv-btn vv-btn--secondary" data-swap="${esc(p.id)}" data-with="${esc(x.p.id)}">Bytt</button></td></tr>`;
     }).join("");
     return `<tr>${own}
-      <td data-label="Billigste tvilling">${name(t.p)}<span class="pf-badges"><span class="vv-badge">${esc(t.p.kindLabel)}</span><span class="vv-badge vv-badge--info">${esc(t.label)}</span></span></td>
+      <td data-label="Beste tvilling">${name(t.p)}<span class="pf-badges"><span class="vv-badge">${esc(t.p.kindLabel)}</span><span class="vv-badge vv-badge--info">${esc(t.label)}</span></span></td>
       <td class="vv-num" data-label="Kostnad per år">${costTxt(t.p)}<span class="small-text muted">mot ${costTxt(p)}</span></td>
       <td class="vv-num" data-label="Du sitter igjen med"><strong>${kr(gain(t))}</strong><span class="small-text muted">mer etter ${yrs} år</span></td>
       <td class="tw-actions"><button type="button" class="vv-btn vv-btn--secondary" data-swap="${esc(p.id)}" data-with="${esc(t.p.id)}" aria-label="Bytt ${esc(p.name)} med ${esc(t.p.name)}">Bytt</button>
@@ -772,11 +1262,11 @@ function renderTwins() {
         <thead><tr><th scope="col">Tvilling</th><th scope="col" class="vv-num">Kostnad per år</th><th scope="col" class="vv-num">Du sitter igjen med etter ${yrs} år</th><th scope="col" class="vv-num hide-narrow">Avkastning per år, 5 år</th><th scope="col"><span class="visually-hidden">Bytt</span></th></tr></thead>
         <tbody>${sub}</tbody></table></td></tr>` : ""}`;
   }).join("");
-  $("twins").innerHTML = `<thead><tr><th scope="col">Fondet ditt</th><th scope="col">Billigste tvilling</th><th scope="col" class="vv-num">Kostnad per år</th><th scope="col" class="vv-num">Du sitter igjen med</th><th scope="col"><span class="visually-hidden">Handling</span></th></tr></thead><tbody>${rows}</tbody>`;
+  $("twins").innerHTML = `<thead><tr><th scope="col">Fondet ditt</th><th scope="col">Beste tvilling</th><th scope="col" class="vv-num">Kostnad per år</th><th scope="col" class="vv-num">Du sitter igjen med</th><th scope="col"><span class="visually-hidden">Handling</span></th></tr></thead><tbody>${rows}</tbody>`;
   $("twins").classList.add("stack-table");
-  const save = planValue(cheapestCost()) - base;
+  const save = picks.reduce((a, tw) => a + (tw[0]?.gain || 0), 0);
   if (save > 500) {
-    callout("twin-lead", `<p>Bytter du til de billigste tvillingene, sitter du igjen med <strong>${krRound(save)} mer</strong> etter ${yrs} år.</p>
+    callout("twin-lead", `<p>Bytter du til tvillingene i tabellen, sitter du igjen med <strong>${krRound(save)} mer</strong> etter ${yrs} år.</p>
       <p>${nTw === res.use.length ? (nTw === 1 ? "Fondet ditt har" : `Alle de ${nTw} fondene har`) : `${nTw} av ${res.use.length} fond har`} en billigere tvilling med nesten samme innhold.</p>`);
     res.sum.twin = { value: krRound(save), text: `mer etter ${yrs} år med billigere tvillinger` };
   } else {
@@ -784,22 +1274,23 @@ function renderTwins() {
     res.sum.twin = { value: "0 kr", text: "å spare: du har allerede de billigste fondene vi finner" };
   }
   $("twin-note").textContent = "Tvillinger eier nesten det samme som fondet ditt i dag, målt på land, bransjer og de største selskapene. «Du sitter igjen med» er hvor mye mer sparingen er verdt etter " +
-    `${yrs} år med lavere kostnad.` + (anyEtf ? " ETF-er kjøpes på børs, så kurtasje og kursforskjell kommer i tillegg. For små månedlige beløp er et fond ofte enklest." : "");
+    `${yrs} år med lavere kostnad.` + (anyEtf ? ` For ETF-er regner vi med månedlig spareavtale uten kurtasje (Nordnet tilbyr det for et utvalg ETF-er) og ${nf(2).format(ETF_FX * 100)}\u00a0% valutaveksling ved hvert kjøp i utenlandsk valuta. Kurtasje ved engangskjøp og salg og kursforskjell kommer i tillegg.` : "");
 }
 
+/** Yearly cost after moving to the best twins, and the kroner gained by it. */
 function cheapestCost() {
-  const res = PF.res;
-  return res.use.reduce((a, u, k) => a + u.w * ((res.twins[k][0]?.p.cost ?? u.p.cost ?? 0)), 0) / 100;
+  const res = PF.res, picks = twinPicks();
+  return { cost: res.use.reduce((a, u, k) => a + u.w * ((picks[k][0]?.p.cost ?? u.p.cost ?? 0)), 0) / 100, gain: picks.reduce((a, tw) => a + (tw[0]?.gain || 0), 0) };
 }
 
 function renderCost() {
   const res = PF.res, pl = PF.plan, g = grossReturn();
   const paid = pl.start + pl.monthly * 12 * pl.years;
-  const v0 = planValue(0), v1 = planValue(res.cost), cheap = cheapestCost(), v2 = planValue(cheap);
-  const hasTwin = v2 - v1 > 500;
+  const v0 = planValue(0), v1 = planValue(res.cost), best = cheapestCost(), cheap = best.cost;
+  const hasTwin = best.gain > 500;
   const saving = [pl.start > 0 ? `${kr(pl.start)} i dag` : "", pl.monthly > 0 ? `${kr(pl.monthly)} i måneden` : ""].filter(Boolean).join(" og ");
   callout("cost-lead", `<p>Kostnadene tar <strong>${krRound(v0 - v1)}</strong> av sparingen din over ${pl.years} år.</p>
-    <p>${hasTwin ? `Med de billigste tvillingene (${nf(2).format(cheap * 100)}\u00a0% per år) sitter du igjen med ${krRound(v2 - v1)} mer.` : "Du betaler allerede lite for dette innholdet."}</p>`);
+    <p>${hasTwin ? `Med de beste tvillingene (${nf(2).format(cheap * 100)}\u00a0% per år) sitter du igjen med ${krRound(best.gain)} mer.` : "Du betaler allerede lite for dette innholdet."}</p>`);
   res.sum.cost = { value: krRound(v0 - v1), text: `tar kostnadene av sparingen over ${pl.years} år (${nf(2).format(res.cost * 100)}\u00a0% per år)` };
 
   const ys = Array.from({ length: pl.years + 1 }, (_, y) => y);
@@ -1010,17 +1501,16 @@ function suggestion(risk = PF.risk) {
 }
 
 function renderSuggestion() {
-  const res = PF.res, m = res.model, sl = $("sg-risk");
+  const res = PF.res, m = res.model;
   const sg = res.sg = suggestion();
   const same = PF.risk === "same" ? sg : suggestion("same");
   const changedAt = (x) => x && res.use.some((u, k) => Math.abs(x.w[k] - u.w) >= 0.015);
   res.sum.better = !same ? { value: "–", text: res.use.length < 2 ? "Legg til minst to fond, så foreslår vi en bedre fordeling" : "Vi mangler historikk til å foreslå en fordeling" }
     : !changedAt(same) ? { value: "Allerede god", text: "Vi finner ingen bedre fordeling av disse fondene med samme risiko" }
     : { value: pp(same.perf.ret - m.now.ret), text: "høyere forventet avkastning med samme risiko, bare ved å endre andelene" };
-  const off = (msg) => { callout("sg-lead", `<p>${msg}</p>`); $("sg-table").innerHTML = ""; $("sg-bars").innerHTML = ""; $("sg-risk-now").textContent = ""; sl.disabled = true; $("sg-apply").disabled = true; $("sg-same").disabled = true; figure("fig-map", { title: "Risiko og avkastning" }); };
+  const off = (msg) => { callout("sg-lead", `<p>${msg}</p>`); $("sg-table").innerHTML = ""; $("sg-bars").innerHTML = ""; $("sg-risk-now").textContent = ""; $("sg-apply").disabled = true; figure("fig-map", { title: "Risiko og avkastning" }); };
   if (!sg) return off(res.use.length < 2 ? "Legg til minst to fond eller ETF-er, så foreslår vi hvordan pengene bør fordeles mellom dem."
     : "Vi mangler historikk for å kunne foreslå en fordeling for disse fondene.");
-  sl.disabled = false; $("sg-same").disabled = PF.risk === "same"; sl.value = sg.pos;
   const now = m.now, d = sg.perf.ret - now.ret, dv = sg.perf.vol - now.vol;
   const changed = changedAt(sg);
   $("sg-apply").disabled = !changed;
@@ -1028,7 +1518,7 @@ function renderSuggestion() {
   const gainKr = planValue(0, sg.perf.ret) - planValue(0, now.ret);
   const riskTxt = Math.abs(dv) < 0.004 ? "med samme risiko som i dag" : dv < 0 ? "med lavere risiko enn i dag" : "med høyere risiko enn i dag";
   callout("sg-lead", !changed
-    ? "<p>Fordelingen din er allerede omtrent så god som den kan bli med disse fondene og denne risikoen.</p><p>Vil du ha mer eller mindre risiko, dra i glideren.</p>"
+    ? "<p>Fordelingen din er allerede omtrent så god som den kan bli med disse fondene og denne risikoen.</p><p>Vil du ha mer eller mindre risiko, endre aksjeandelen i steg 2.</p>"
     : `<p>Forslaget ${riskTxt} gir forventet avkastning på <strong>${pct(sg.perf.ret)}</strong> per år, mot ${pct(now.ret)} i dag (${pp(d)}).</p>` +
       `<p>${Math.abs(gainKr) >= 1000 ? `Det er omtrent ${krRound(Math.abs(gainKr))} ${gainKr >= 0 ? "mer" : "mindre"} etter ${PF.plan.years} år. ` : ""}Verste år i historikken: ${pct(sg.story?.worst.ret, 0)} (i dag ${pct(res.story.worst.ret, 0)}).</p>` +
       (res.capped?.length ? `<p class="small-text">Smale fond (${listNo(res.capped.map(esc))}) får aldri mer enn ${pc0(NARROW_CAP)} hver i forslaget, så ett fond som har gått bra ikke får dominere.</p>` : ""));
@@ -1120,7 +1610,19 @@ function renderPfMethod() {
     <h3 id="metode-tvilling">Tvillinger</h3>
     <p>To fond regnes som tvillinger når de har minst ${pc0(TWIN.reg)} felles landfordeling, ${pc0(TWIN.sec)} felles bransjefordeling og de største beholdningene overlapper minst ${pc0(TWIN.top)},
       samme aktivaklasse og samme valutasikring. ETF-er som følger samme indeks (tracking error under ${pct(D.summary.te_threshold, 1)}) er alltid tvillinger. Rentefond sammenlignes på type, valuta og svingninger.
-      Ligger fondet ditt på aksjesparekonto, foreslås bare tvillinger som også kan ligge der. «Likt» betyr likt innhold i dag – et aktivt fond kan endre seg.</p>
+      Ligger fondet ditt på aksjesparekonto, foreslås bare tvillinger som også kan ligge der. «Likt» betyr likt innhold i dag – et aktivt fond kan endre seg.
+      «Du sitter igjen med» regner hvert fond for seg: lavere årlig kostnad, minus ${nf(2).format(ETF_FX * 100)} % valutaveksling ved hvert kjøp når tvillingen er en ETF i utenlandsk valuta
+      (Nordnets automatiske veksling). Vi regner med at ETF-en spares månedlig med spareavtale, som er uten kurtasje hos Nordnet for et utvalg ETF-er, og at pengene du har i dag flyttes én gang.
+      En tvilling som gir mindre etter dette, vises ikke.</p>
+    <h3 id="metode-roller">Roller i byggeren</h3>
+    <p>Hvert fond og hver ETF får én rolle, ut fra aktivaklasse, region, bransje, tema og stil: ${listNo(ROLE_ORDER.map(roleLc))}.
+      Norge og Norden kjennes igjen på navnet eller på at minst 70 % av de største beholdningene er nordiske selskaper. Et globalt fond med minst ${pc0(EM_WORLD)} av aksjene i
+      fremvoksende markeder dekker også den rollen («inkl. fremvoksende»). Fond som eier andre fond (fond-i-fond) blir gjennomlyst: de underliggende fondenes største selskaper erstatter fondene i listen.
+      Porteføljen har høyst ${MAX_ITEMS} fond og ETF-er. Når du endrer en andel, tar ett fond resten, så summen alltid er 100 %: det første ulåste fondet i rollene likviditet, renter, kombinasjon
+      eller global kjerne, ellers det største ulåste fondet. Aksjeandelen er summen av andel × aksjeandelen i hvert fond (fra fondets fordeling på aktivaklasser).</p>
+    <h3 id="metode-kjopsplan">Kjøpsplan</h3>
+    <p>Neste måneds sparebeløp fordeles på fondene som ligger under målet etter innskuddet, i forhold til hvor mye som mangler. Slik nærmer porteføljen seg målet uten salg.
+      Tiden til målet er regnet uten kursendringer, til alle andeler er innenfor 1 prosentpoeng av målet.</p>
     <h3 id="metode-kostnad">Kostnad i kroner</h3>
     <p>Innskudd i starten av hver måned, årlig avkastning før kostnader minus kostnaden, månedlig rentes rente. Eksempel: 1 000 kr i måneden i 20 år med 7 % gir
       ${krRound(I.savingsValue(0, 1000, 20, 0.07, 0.002))} med 0,2 % i kostnad og ${krRound(I.savingsValue(0, 1000, 20, 0.07, 0.015))} med 1,5 %. Står avkastningsfeltet tomt, brukes anslaget for porteføljen din.</p>
@@ -1131,7 +1633,9 @@ function renderPfMethod() {
       (kreditt- og høyrentefond) antas å følge aksjemarkedet et stykke på vei (korrelasjon ${nf(1).format(CREDIT.corr)}), fordi de faller sammen med aksjer i kriser.
       Slike fond er merket «historikk anslått».</p>
     <h3 id="metode-anbefalt">Den anbefalte porteføljen</h3>
-    <p>Oppskriften er fast: aksjedelen deles ${pc0(RECO.core)} i et globalt indeksfond, ${pc0(RECO.em)} i fremvoksende markeder og ${pc0(RECO.small)} i små selskaper globalt; resten i et pengemarkedsfond i kroner.
+    <p>Byggeklosser: aksjedelen deles ${pc0(RECO.core)} i et globalt indeksfond, ${pc0(RECO.em)} i fremvoksende markeder og ${pc0(RECO.small)} i små selskaper globalt; resten i et pengemarkedsfond i kroner.
+      Hele verden i ett fond: hele aksjedelen i ett globalt indeksfond som også eier fremvoksende markeder (minst ${pc0(EM_WORLD)} av aksjene). Med Norge og Norden går ${pc0(RECO.nordic)} av aksjedelen til et nordisk indeksfond, og det globale fondet får mindre.
+      Har du fond fra før, setter «Sett aksjeandelen» aksjeandelen ved å skalere aksjefondene og de andre fondene hver for seg; «Legg til det som mangler» legger til fondene for roller du ikke har.
       Aksjeandelen følger sparetiden (til og med 2 år: 20 %, 5 år: 40 %, 9 år: 60 %, lenger: 80 %) og kan overstyres. Fondene velges på nytt fra dataene hver måned: indeksfond i kroner med minst 1 000 eiere hos Nordnet
       og kostnad innenfor 0,15 prosentpoeng av det billigste; blant dem som ligger innenfor et halvt prosentpoeng av beste femårsavkastning (de følger markedet sitt godt), det billigste.
       Dette er en generell oppskrift, ikke personlig rådgivning – den kjenner ikke gjelden, bufferen eller skatten din.</p>
