@@ -281,8 +281,10 @@ details.card > summary h3 { margin: 0; }
 .tip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .tip::after { content: attr(data-tip); position: absolute; z-index: 40; left: 0; top: calc(100% + 6px); width: min(300px, 80vw); padding: var(--space-3);
   background: var(--bg-000); color: var(--ink-700); border: 1px solid var(--line-200); border-radius: var(--radius-md); box-shadow: var(--shadow-md);
-  font: 400 13px/20px var(--font-sans); white-space: normal; text-transform: none; letter-spacing: 0; opacity: 0; visibility: hidden; pointer-events: none; }
-.tip:hover::after, .tip:focus::after { opacity: 1; visibility: visible; }
+  font: 400 13px/20px var(--font-sans); white-space: normal; text-transform: none; letter-spacing: 0; display: none; pointer-events: none; }
+.tip:hover::after, .tip:focus::after { display: block; }
+.pf-badges { position: relative; }
+.pf-badges .tip { position: static; }          /* tooltip anchored to the badge row, so it stays inside the card */
 
 /* ---------------------------------------------------------------- portfolio builder */
 .build { padding-top: var(--space-8); }
@@ -334,7 +336,7 @@ details.step:not([open]) > summary .step-head { margin-bottom: 0; }
 .reco-list { display: grid; gap: var(--space-3); margin: var(--space-4) 0; }
 .reco-row { display: grid; grid-template-columns: 12px 48px minmax(0, 1fr); gap: var(--space-1) var(--space-3); align-items: baseline; font-size: 14px; line-height: 22px; }
 .reco-row .swatch { margin: 0; align-self: center; }
-.reco-row .vv-badge { margin-left: var(--space-1); }
+.reco-row .vv-badge { margin-left: var(--space-1); white-space: normal; max-width: 100%; }
 .reco-w { font-size: 18px; font-weight: 600; color: var(--ink-900); font-variant-numeric: tabular-nums; }
 .reco-foot { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); align-items: center; justify-content: space-between; border-top: 1px solid var(--line-200); padding-top: var(--space-4); }
 .reco-stats { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-8); margin: 0; }
@@ -353,17 +355,65 @@ details.step:not([open]) > summary .step-head { margin-bottom: 0; }
 .pf-results .nm { font-weight: 600; }
 .pf-results .muted { font-size: 13px; margin-left: auto; }
 .pf-results p { margin: var(--space-2); }
-#pf-table td, #pf-table th { vertical-align: middle; }
-#pf-table td.empty { padding: var(--space-4) var(--space-2); color: var(--ink-700); }
-#pf-table .pf-name { min-width: 200px; font-weight: 500; }
-.pf-badges { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-1); }
-#pf-table td.share { white-space: nowrap; }
-#pf-table td.vv-num, #pf-table tfoot td { white-space: nowrap; }
-#pf-table td.share input[type="range"] { width: 90px; min-height: 0; padding: 0; border: 0; background: transparent; accent-color: var(--brand-900); vertical-align: middle; margin-right: var(--space-2); }
-#pf-table td.share .unit { align-self: auto; vertical-align: middle; }
-#pf-table td.share .unit input { width: 84px; text-align: right; padding-right: 30px; }
-#pf-table td.rm { text-align: right; width: 1%; }
-#pf-table tfoot th, #pf-table tfoot td { font-weight: 600; border-top: 1px solid var(--ink-900); border-bottom: 0; }
+/* the builder: one group per role, one row per fund (a grid, not a table, so it never scrolls sideways) */
+.pf-search-label { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); }
+.pf-search-label label { margin: 0; }
+.role-filter { cursor: pointer; border: 0; font: inherit; font-size: 12px; }
+.pf-results .tw { flex-basis: 100%; color: var(--ink-500); }
+.pf-results .tag-role { color: var(--ink-700); }
+.role-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-4); }
+.role-add .vv-btn { min-height: 36px; padding: var(--space-1) var(--space-3); font-size: 14px; }
+.pf-empty-row { margin: 0; padding: var(--space-4) 0; color: var(--ink-700); border-top: 1px solid var(--line-200); }
+.role-group { border-top: 1px solid var(--line-200); padding-top: var(--space-3); margin-top: var(--space-3); }
+.role-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.role-head h3 { margin: 0; font-size: 12px; line-height: 18px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-500); }
+.role-sum { font-size: 14px; font-weight: 600; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+.pf-row { padding: var(--space-3) 0; }
+.pf-row + .pf-row { border-top: 1px dashed var(--line-200); }
+.pf-row-name { font-weight: 600; color: var(--ink-900); }
+.pf-badges { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+.pf-row-name .swatch { margin-right: var(--space-2); }
+.pf-row-meta { margin: var(--space-1) 0 var(--space-2); }
+.pf-row-ctrl { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2) var(--space-4); }
+.pf-row-ctrl label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-500); margin-bottom: 2px; }
+.pf-row-ctrl .share input[type="range"] { width: 120px; min-height: 0; padding: 0; border: 0; background: transparent; accent-color: var(--brand-900); vertical-align: middle; margin-right: var(--space-2); }
+.pf-row-ctrl .unit { align-self: auto; vertical-align: middle; }
+.pf-row-ctrl .share .unit input { width: 84px; text-align: right; padding-right: 30px; }
+.pf-row-ctrl .have .unit input { width: 130px; text-align: right; padding-right: 30px; }
+.pf-row-ctrl .row-btns { display: flex; gap: var(--space-1); margin-left: auto; }
+.pf-row-ctrl .row-btns .vv-btn { min-height: 44px; padding: var(--space-2) var(--space-3); }
+.pf-row .vv-btn[aria-pressed="true"] { background: var(--brand-100); color: var(--ink-900); box-shadow: inset 0 0 0 1px var(--brand-900); }
+.pf-row.is-locked .share input { color: var(--ink-700); }
+.pf-alt { margin-top: var(--space-3); padding: var(--space-3); background: var(--bg-100); border-radius: var(--radius-md); }
+.pf-alt h4 { margin: 0 0 var(--space-2); font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink-700); }
+.alt-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-2); }
+.alt-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.alt-list .nm { font-weight: 500; }
+.alt-list .small-text { display: block; }
+.pf-alt p { margin: 0; }
+.pf-foot { border-top: 1px solid var(--ink-900); margin-top: var(--space-3); padding-top: var(--space-3); }
+.pf-foot p { margin: 0 0 var(--space-2); }
+.pf-total { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-6); font-variant-numeric: tabular-nums; color: var(--ink-700); }
+.pf-total strong { color: var(--ink-900); }
+.glance-count { padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
+.glance-count:empty { display: none; }
+.glance-count .glance-tip { flex-basis: 100%; color: var(--ink-700); border-top: 1px solid var(--line-200); padding-top: var(--space-2); margin-top: var(--space-1); }
+.glance-count .glance-tip .vv-btn { margin-top: var(--space-2); }
+.reco-opts { display: grid; gap: var(--space-2); margin: 0 0 var(--space-4); }
+.reco-recipe { border: 0; margin: 0; padding: 0; display: grid; gap: var(--space-1); min-width: 0; }
+.reco-recipe legend { padding: 0; margin-bottom: var(--space-1); font-size: 14px; font-weight: 600; color: var(--ink-900); }
+.reco-opts .check { display: flex; gap: var(--space-2); align-items: flex-start; font-size: 14px; line-height: 22px; color: var(--ink-900); }
+.reco-opts .check input { margin-top: 4px; }
+.reco-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+#reco-note { margin: var(--space-3) 0 0; }
+#reco-note:empty { display: none; }
+#buy-table td.vv-num, #buy-table th.vv-num { white-space: nowrap; }
+.buy-lead { margin: 0 0 var(--space-3); max-width: var(--measure); }
+@media (max-width: 640px) {
+  .pf-row-ctrl .row-btns { margin-left: 0; width: 100%; }
+  .pf-row-ctrl .share input[type="range"] { display: none; }     /* the number field is enough on a phone */
+  .pf-row-ctrl .have .unit input { width: 120px; }
+}
 .pf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-4); }
 .pf-copied { color: var(--ink-700); }
 .pf-more { margin: var(--space-3) 0 0; }

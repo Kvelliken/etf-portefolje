@@ -140,3 +140,33 @@ console.log(JSON.stringify({{
     assert pr["p10"][20] < pr["p50"][20] < pr["p90"][20] and pr["p10"][0] == 100000
     assert 0.75 < pr["p50"][20] / (100000 * 1.07 ** 20 + 1000 * sum(1.07 ** (k / 12) for k in range(1, 241))) < 1.0  # median below the mean
     assert out["mid"] == pytest.approx([0.75, 0.25]) and out["low"] == [1, 0] and out["high"] == [0, 1]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node mangler")
+def test_builder_shares_and_purchase_plan():
+    out = node(f"""
+const I = require({json.dumps(str(ROOT / 'site' / 'insight.js'))});
+const w = [64, 8, 8, 20], free = [false, false, false, false];
+console.log(JSON.stringify({{
+  up: I.setShare(w, free, 1, 15, 3),                             // the buffer (index 3) takes the difference
+  down: I.setShare(w, free, 0, 54, 3),
+  spill: I.setShare(w, free, 1, 40, 3),                          // more than the buffer has: the others give the rest
+  locked: I.setShare(w, [false, false, true, true], 1, 20, 0),   // buffer locked: the core takes it
+  cap: I.setShare(w, [false, false, true, true], 1, 90, 0),      // cannot take from locked funds
+  one: I.setShare([100], [false], 0, 40, -1),
+  round: I.wholePercent([33.3, 33.3, 33.4]), keep: I.wholePercent([50.4, 30.3, 19.3], 0),
+  buy: I.buyPlan([300000, 10000, 0, 50000], [0.6, 0.2, 0.1, 0.1], 1000),
+  even: I.buyPlan([0, 0], [0.75, 0.25], 1000),
+  months: I.monthsToTarget([300000, 10000, 0, 50000], [0.6, 0.2, 0.1, 0.1], 1000),
+  done: I.monthsToTarget([600, 400], [0.6, 0.4], 1000), never: I.monthsToTarget([1e7, 0], [0.5, 0.5], 100),
+}}));
+""")
+    assert out["up"] == [64, 15, 8, 13] and out["down"] == [54, 8, 8, 30]
+    assert out["spill"][1] == 40 and out["spill"][3] == 0 and sum(out["spill"]) == 100 and out["spill"][0] > out["spill"][2]
+    assert out["locked"] == [52, 20, 8, 20] and out["cap"] == [0, 72, 8, 20]
+    assert out["one"] == [100]
+    assert out["round"] == [33, 33, 34] and out["keep"] == [50, 31, 19] and sum(out["keep"]) == 100
+    buy = out["buy"]
+    assert abs(sum(buy) - 1000) < 1e-9 and buy[0] == 0 and buy[3] == 0 and buy[1] > buy[2] > 0
+    assert abs(out["even"][0] - 750) < 1e-9 and abs(out["even"][1] - 250) < 1e-9
+    assert out["done"] == 0 and out["never"] is None and 100 < out["months"] < 600

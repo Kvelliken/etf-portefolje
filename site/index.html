@@ -61,6 +61,7 @@
               <label for="pl-monthly">Sparer per måned <span class="unit"><input id="pl-monthly" type="number" inputmode="numeric" min="0" step="500"><i>kr</i></span></label>
               <label for="pl-years">Antall år <span class="unit"><input id="pl-years" type="number" inputmode="numeric" min="1" max="50" step="1"><i>år</i></span></label>
             </div>
+            <p class="small-text muted plan-help" id="pl-start-note" hidden>«Har i dag» er summen av «Eier i dag» i steg 3. Tøm de beløpene for å skrive inn selv.</p>
             <details class="vv-details" id="pl-advanced">
               <summary>Avanserte innstillinger</summary>
               <div class="plan">
@@ -71,36 +72,46 @@
           </div>
 
           <details class="card step reco" id="reco" open>
-            <summary><div class="step-head"><span class="step-no" aria-hidden="true">2</span><h2 class="step-title">Velg en anbefalt portefølje</h2><span class="muted small-text sum-hint">eller velg fondene selv i steg 3</span></div></summary>
+            <summary><div class="step-head"><span class="step-no" aria-hidden="true">2</span><h2 class="step-title">Aksjeandel og anbefalt portefølje</h2><span class="muted small-text sum-hint" id="reco-hint">eller velg fondene selv i steg 3</span></div></summary>
             <fieldset class="radio-cards-wrap">
               <legend class="reco-intro">Hvor mye svingninger tåler du? Få, brede og billige indeksfond er et godt utgangspunkt for de fleste.</legend>
               <div class="radio-cards" id="reco-profile"></div>
             </fieldset>
             <p class="small-text" id="reco-why"></p>
+            <div class="reco-opts" id="reco-opts"></div>
             <div class="mixbar" id="reco-bar" role="img" aria-label="Fordeling i den anbefalte porteføljen"></div>
             <div id="reco-list" class="reco-list"></div>
             <div class="reco-foot">
               <dl class="reco-stats" id="reco-stats"></dl>
-              <button class="vv-btn vv-btn--primary" id="reco-use" type="button">Bruk denne porteføljen</button>
+              <div class="reco-actions" id="reco-actions"></div>
             </div>
+            <p class="small-text muted" id="reco-note"></p>
           </details>
 
           <div class="card step">
             <div class="step-head"><span class="step-no" aria-hidden="true">3</span><h2 class="step-title">Dette er i porteføljen</h2></div>
             <div class="pf-search">
-              <label for="pf-q">Legg til fond eller ETF</label>
-              <input id="pf-q" type="search" autocomplete="off" placeholder="Søk på navn, for eksempel «global indeks» eller «obligasjon»" role="combobox" aria-autocomplete="list" aria-controls="pf-results" aria-expanded="false">
+              <div class="pf-search-label"><label for="pf-q">Legg til fond eller ETF</label><button type="button" class="vv-badge vv-badge--info role-filter" id="pf-q-role" hidden></button></div>
+              <input id="pf-q" type="search" autocomplete="off" placeholder="Søk på navn, for eksempel «global indeks», «teknologi» eller «høyrente»" role="combobox" aria-autocomplete="list" aria-controls="pf-results" aria-expanded="false">
               <div id="pf-results" class="pf-results" role="listbox" aria-label="Treff" hidden></div>
             </div>
-            <div class="vv-table-wrap"><table class="vv-table" id="pf-table"></table></div>
+            <div class="role-add" id="pf-roles-add"></div>
+            <div class="pf-list" id="pf-table"></div>
+            <div class="pf-foot" id="pf-foot" aria-live="polite"></div>
             <div class="pf-actions">
-              <button class="vv-btn vv-btn--secondary" id="pf-norm" type="button" hidden>Juster til 100 %</button>
               <button class="vv-btn vv-btn--secondary" id="pf-equal" type="button">Fordel likt</button>
               <button class="vv-btn vv-btn--ghost" id="pf-link" type="button">Kopier lenke</button>
               <button class="vv-btn vv-btn--ghost" id="pf-clear" type="button">Tøm</button>
               <span class="pf-copied small-text" id="pf-copied" role="status" aria-live="polite"></span>
             </div>
             <p class="small-text muted pf-more">Flere fond finner du under <a href="#fond">Finn fond</a> og <a href="#etf">Finn ETF-er</a>.</p>
+          </div>
+
+          <div class="card step" id="pf-plan-card" hidden>
+            <div class="step-head"><span class="step-no" aria-hidden="true">4</span><h2 class="step-title">Kjøpsplan for månedssparingen</h2></div>
+            <p class="buy-lead" id="buy-lead"></p>
+            <div class="vv-table-wrap"><table class="vv-table" id="buy-table"></table></div>
+            <p class="small-text muted" id="buy-note"></p>
           </div>
         </div>
 
@@ -112,6 +123,7 @@
               <div class="mixbar" id="pf-mix" role="img" aria-label="Fordeling mellom fondene"></div>
               <div class="mix-legend" id="pf-mix-legend"></div>
             </div>
+            <div class="card glance-count small-text" id="pf-count-note"></div>
             <div class="kpi-stack" id="pf-kpis"></div>
           </div>
         </aside>
@@ -127,7 +139,7 @@
           <li><strong>Finnes det en billigere tvilling?</strong> Fond med nesten samme innhold som koster mindre.</li>
           <li><strong>Hva koster det i kroner?</strong> Hva kostnadene tar av sparingen over årene.</li>
           <li><strong>Hvor mye kan det falle?</strong> Hvordan porteføljen hadde gått gjennom tidligere nedturer.</li>
-          <li><strong>Kan fordelingen bli bedre?</strong> Andre andeler av de samme fondene.</li>
+          <li><strong>Kan fordelingen bli bedre?</strong> Andre andeler av de samme fondene, med samme risiko.</li>
         </ol>
       </div>
     </section>
@@ -203,13 +215,10 @@
       <h2 id="h-better">Kan fordelingen bli bedre?</h2>
       <div class="vv-callout vv-callout--insight" id="sg-lead"></div>
       <div class="card">
-        <label class="range risk-range" for="sg-risk">Hvor mye svingninger tåler du?
-          <span><span class="muted small-text">Tryggest</span><input id="sg-risk" type="range" min="0" max="100" step="1" aria-describedby="sg-risk-now"><span class="muted small-text">Mest avkastning</span></span></label>
         <p class="small-text muted" id="sg-risk-now"></p>
         <div class="ba" id="sg-bars"></div>
         <div class="pf-actions">
           <button class="vv-btn vv-btn--primary" id="sg-apply" type="button">Bruk forslaget</button>
-          <button class="vv-btn vv-btn--ghost" id="sg-same" type="button">Samme risiko som i dag</button>
         </div>
       </div>
       <details class="vv-details more">
