@@ -73,6 +73,7 @@ function product(id) {
       index: e.style !== "Aktiv", ask: !!e.ask, hedged: !!e.hedged, leveraged: !!e.leveraged || e.asset_class === "Giret/invers",
       owners: e.owners, cluster: e.cluster_size > 1 ? e.cluster : null, currency: e.currency, tradable: true,
       region: e.region, sector: e.sector, theme: e.theme, style: e.style, esg: !!e.esg,
+      acc: e.acc, yield12: e.yield12 ?? null, divMissing: !!e.div_missing, divFix: e.div_fix || null,
       ret: { 1: e.m?.[1]?.ret, 3: e.m?.[3]?.ret, 5: e.m?.[5]?.ret, 10: e.m?.[10]?.ret }, vol: e.m?.[5]?.vol ?? e.m?.[3]?.vol ?? e.m?.[1]?.vol,
       kindLabel: isRate(e) ? "Rente-ETF" : "ETF" };
   } else if (f) {
@@ -80,6 +81,7 @@ function product(id) {
       index: !!f.index, ask: !!f.ask, hedged: !!f.hedged, leveraged: false, owners: f.owners, cluster: null, currency: f.currency,
       tradable: f.tradable !== false, ret: { 1: f.r1, 3: f.r3, 5: f.r5, 10: f.r10 }, vol: f.vol5 ?? f.vol3 ?? f.vol1,
       region: f.region, sector: f.sector, theme: f.theme, style: f.style, esg: !!f.esg,
+      acc: f.acc, yield12: null, divMissing: false, divFix: null,
       kindLabel: isRate(f) ? "Rentefond" : f.index ? "Indeksfond" : f.asset_class === "Blandet" ? "Kombinasjonsfond" : "Aktivt fond" };
   }
   if (p) PF.U[id] = p;
@@ -518,7 +520,7 @@ function bindSearch() {
       const tw = twins.length ? `<span class="tw small-text">${twins.length === 1 ? "1 annen" : `${twins.length} andre`} med nesten samme innhold${cheap ? `, billigst ${esc(cheap.name)} (${nf(2).format(cheap.cost)} %)` : ""}</span>` : "";
       return `<button type="button" role="option" data-id="${esc(p.id)}">
         <span class="nm">${esc(p.name)}</span><span class="tag">${esc(p.kindLabel)}</span><span class="tag tag-role">${esc(ROLE[roleOf(p)].name)}</span>
-        ${pin ? '<span class="vv-badge vv-badge--info">Anbefalt</span>' : ""}${isWorld(p) ? '<span class="tag">inkl. fremvoksende</span>' : ""}
+        ${pin ? '<span class="vv-badge vv-badge--info">Anbefalt</span>' : ""}${isWorld(p) ? '<span class="tag">inkl. fremvoksende</span>' : ""}${p.acc === false ? '<span class="tag">utdelende</span>' : ""}${p.divMissing ? '<span class="tag tag-warn">utbytte mangler i kursene</span>' : ""}
         <span class="muted">${ok(p.cost) ? nf(2).format(p.cost) + " % per år" : ""}${ok(p.ret[5]) ? " · 5 år: " + pct(p.ret[5]) : ""}</span>${tw}</button>`;
     }).join("") : '<p class="muted">Ingen treff. Prøv færre ord, eller bruk Finn fond / Finn ETF-er.</p>';
     box.hidden = false; q.setAttribute("aria-expanded", "true");
@@ -851,11 +853,12 @@ function renderPfTable() {
 function rowHtml(it, i) {
   const p = product(it.id), s = seriesOf(it.id);
   const est = p.kind === "fond" ? infoBadge("historikk anslått", estTip(p, s)) : "";
+  const div = divBadges(p);
   const world = isWorld(p) ? infoBadge("inkl. fremvoksende", `Fondet har ${pc0(emShare(p.id))} av aksjene i fremvoksende markeder, så det dekker også den rollen.`) : "";
   const meta = [ok(p.cost) ? `${nf(2).format(p.cost)} % per år` : "", ok(p.ret[5]) ? `5 år: ${pct(p.ret[5])} per år` : ""].filter(Boolean).join(" · ");
   return `<div class="pf-row${it.lock ? " is-locked" : ""}" data-row="${i}">
     <div class="pf-row-name">${swatch(it)}${pName(p)}</div>
-    <div class="pf-badges"><span class="vv-badge">${esc(p.kindLabel)}</span>${world}${est}<span class="vv-badge vv-badge--info rest-badge" data-rest="${i}" hidden>Tar resten</span></div>
+    <div class="pf-badges"><span class="vv-badge">${esc(p.kindLabel)}</span>${world}${div}${est}<span class="vv-badge vv-badge--info rest-badge" data-rest="${i}" hidden>Tar resten</span></div>
     <p class="pf-row-meta small-text muted">${meta}<span data-target="${i}"></span></p>
     <div class="pf-row-ctrl">
       <div class="share"><label for="w-${i}">Andel</label>
@@ -871,6 +874,16 @@ function rowHtml(it, i) {
     </div>
     <div class="pf-alt" id="pf-alt-${i}" hidden></div>
   </div>`;
+}
+/** Badges for distributing funds: the yield, and notes when the price data missed dividends (see dividends.py). */
+function divBadges(p) {
+  const out = [];
+  if (p.acc === false) out.push(infoBadge(ok(p.yield12) && p.yield12 > 0 ? `Utdelende, ${nf(1).format(p.yield12 * 100)}\u00a0% i utbytte` : "Utdelende",
+    "Utbyttet kommer som kontanter på kontoen. Tallene på siden regner med at du kjøper for utbyttet igjen. Se kjøpsplanen." +
+    (ok(p.yield12) && p.yield12 > 0 ? " Prosenten er utbyttet de siste 12 månedene delt på kursen." : "")));
+  if (p.divFix) out.push(infoBadge("Utbytte rettet", `Kursdataene manglet utbytte for denne ETF-en. Avkastningen er hentet fra ${D.by[p.divFix]?.name || "en akkumulerende ETF på samme indeks"} og justert for forskjellen i kostnad.`));
+  if (p.divMissing) out.push(`<span class="vv-badge vv-badge--negative tip" tabindex="0" data-tip="Kursdataene har ikke utbytte for de siste 12 månedene. Avkastningen på siden kan derfor være for lav. Sjekk utbyttet hos Nordnet.">Utbytte mangler i kursene<span class="visually-hidden">: Kursdataene har ikke utbytte for de siste 12 månedene. Avkastningen på siden kan derfor være for lav.</span></span>`);
+  return out.join("");
 }
 /** Funds to swap to: twins first (cheapest), then the most owned in the same role (same sector or region). */
 function altsHtml(id) {
@@ -974,6 +987,15 @@ function renderBuyPlan() {
     [...PF.items.map((it, i) => ({ cells: [{ html: swatch(it) + esc(product(it.id).name) }, anyHave ? `${kr(have[i])} (${pc0(H > 0 ? have[i] / H : 0)})` : "–", pc0(w[i]), { html: `<strong>${kr(buy[i])}</strong>` }, kr(fixed[i])] })),
       { _cls: "total", cells: ["Sum", anyHave ? kr(H) : "–", "100 %", kr(M), kr(M)] }], { caption: "Kjøpsplan per måned" });
   $("buy-table").classList.add("stack-table");
+  // distributing funds pay cash: the plan only holds if that money is invested again
+  const dist = PF.items.map((it, i) => ({ p: product(it.id), base: anyHave ? have[i] : PF.plan.start * w[i] })).filter((x) => x.p.acc === false);
+  const known = dist.filter((x) => ok(x.p.yield12) && x.p.yield12 > 0), unknown = dist.filter((x) => !(ok(x.p.yield12) && x.p.yield12 > 0));
+  const yearly = known.reduce((a, x) => a + x.base * x.p.yield12, 0);
+  $("buy-div").hidden = !dist.length;
+  $("buy-div").innerHTML = !dist.length ? "" : `${dist.length === 1 ? `${esc(dist[0].p.name)} er utdelende og betaler` : `${dist.length} av fondene er utdelende og betaler`} utbytte som kontanter på kontoen.` +
+    (yearly >= 1 ? ` Med utbyttet de siste 12 månedene blir det omtrent <strong>${kr(yearly)} i året</strong>, ${kr(yearly / 12)} i måneden i snitt${anyHave ? "" : ` for ${kr(PF.plan.start)}`}.` : "") +
+    (unknown.length ? ` For ${listNo(unknown.map((x) => esc(x.p.name)))} har vi ikke utbyttet.` : "") +
+    " Kjøp for utbyttet når det kommer, fordelt som i kolonnen «Neste måned». Ellers blir avkastningen lavere enn tallene på siden.";
   $("buy-note").textContent = "«Neste måned» fyller opp fondene som ligger mest under målet. «Fast spareavtale» er fordelingen når du er i mål. " +
     (PF.items.some((x) => product(x.id).kind === "etf") ? "ETF-er kan spares månedlig uten kurtasje hos Nordnet bare hvis ETF-en er med i utvalget for spareavtale; sjekk det hos Nordnet. " : "") +
     "Kursendringer flytter fordelingen, så se på planen igjen et par ganger i året.";
@@ -1632,6 +1654,13 @@ function renderPfMethod() {
       skalerer dem til fondets egen risiko og forskyver dem så de siste årene gir nøyaktig fondets egen avkastning (Nordnets tall). Norske rentefond anslås fra styringsrenten pluss fondets egen meravkastning og risiko; rentefond som svinger mer enn ${pct(CREDIT.vol)} i året
       (kreditt- og høyrentefond) antas å følge aksjemarkedet et stykke på vei (korrelasjon ${nf(1).format(CREDIT.corr)}), fordi de faller sammen med aksjer i kriser.
       Slike fond er merket «historikk anslått».</p>
+    <h3 id="metode-utbytte">Utbytte</h3>
+    <p>All avkastning på siden er totalavkastning: utbytte regnes som kjøpt for igjen. For ETF-er legger vi utbyttet fra Yahoo tilbake i kursen. Nordnets avkastning for fond er allerede totalavkastning.
+      Yahoo mangler utbytte for noen utdelende ETF-er, og da ser de dårligere ut enn de er. Henger en utdelende ETF mer enn 0,5 prosentpoeng i året etter en akkumulerende andelsklasse på samme indeks
+      (justert for kostnad, de siste inntil 5 årene), bygger vi avkastningen på nytt fra den akkumulerende. Er den akkumulerende en annen ETF, må etterslepet være over 1 prosentpoeng og større enn utbyttet som er registrert.
+      ${ok(D.quality?.dividends?.n_repaired) ? `Denne måneden gjelder det ${D.quality.dividends.n_repaired} ETF-er, merket «utbytte rettet». ` : ""}Utdelende ETF-er uten registrert utbytte de siste 12 månedene og uten noe å rette fra
+      er merket «utbytte mangler i kursene»${ok(D.quality?.dividends?.n_missing) ? ` (${D.quality.dividends.n_missing} denne måneden)` : ""}; avkastningen deres kan være for lav.
+      «Utdelende, x % i utbytte» er utbyttet de siste 12 månedene delt på kursen. På aksjesparekonto skattlegges utbytte først ved uttak, men det kommer som kontanter på kontoen og må kjøpes for igjen, ellers blir avkastningen lavere enn tallene på siden.</p>
     <h3 id="metode-anbefalt">Den anbefalte porteføljen</h3>
     <p>Byggeklosser: aksjedelen deles ${pc0(RECO.core)} i et globalt indeksfond, ${pc0(RECO.em)} i fremvoksende markeder og ${pc0(RECO.small)} i små selskaper globalt; resten i et pengemarkedsfond i kroner.
       Hele verden i ett fond: hele aksjedelen i ett globalt indeksfond som også eier fremvoksende markeder (minst ${pc0(EM_WORLD)} av aksjene). Med Norge og Norden går ${pc0(RECO.nordic)} av aksjedelen til et nordisk indeksfond, og det globale fondet får mindre.

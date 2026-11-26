@@ -179,7 +179,8 @@ def build_etfs(u, prices, months):
 
 # ---------------------------------------------------------------- export
 
-def export(conn, prices, cfg, out_dir, price_root=None, coverage=None, universe_report=None, now=None):
+def export(conn, prices, cfg, out_dir, price_root=None, coverage=None, universe_report=None, now=None, dividends=None):
+    """`dividends` = (info per ISIN, report) from dividends.check: yield, repaired and missing dividends."""
     out = Path(out_dir)
     now = now or datetime.now(timezone.utc).isoformat(timespec="seconds")
     sc = cfg.get("site", {})
@@ -190,8 +191,16 @@ def export(conn, prices, cfg, out_dir, price_root=None, coverage=None, universe_
     enc = encode_returns(r)
     rf, rf_source = rates.monthly_rf(months, price_root)
     etfs = build_etfs(u, prices, months)
+    dinfo, drep = dividends or ({}, None)
     for e in etfs:
         e["has_returns"] = e["isin"] in enc
+        d = dinfo.get(e["isin"]) or {}
+        if e["acc"] is False and d.get("yield12") is not None:
+            e["yield12"] = d["yield12"]
+        if d.get("div_missing"):
+            e["div_missing"] = True
+        if d.get("div_fix"):
+            e["div_fix"] = d["div_fix"]
     write_json(out / "etfs.json", {"etfs": etfs})
     write_json(out / "returns.json", {
         "start": months[0].strftime("%Y-%m"), "end": months[-1].strftime("%Y-%m"), "n": len(months),
@@ -210,7 +219,7 @@ def export(conn, prices, cfg, out_dir, price_root=None, coverage=None, universe_
     write_json(out / "changes.json", {"runs": runs})
 
     write_json(out / "quality.json", {"coverage": coverage or {}, "universe": universe_report or {},
-                                      "n_with_returns": len(enc)})
+                                      "n_with_returns": len(enc), "dividends": drep or {}})
     last_run = conn.execute("SELECT run_at, n_found FROM runs ORDER BY run_id DESC LIMIT 1").fetchone()
     write_json(out / "summary.json", {
         "generated_at": now, "data_until": str(prices.index.max().date()),

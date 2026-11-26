@@ -486,6 +486,7 @@ function rowOf(e, mine) {
     isin: e.isin, ticker: e.ticker, name: e.name, sector: e.sector, theme: e.theme, region: e.region, style: e.style,
     asset_class: e.asset_class, category: e.category, issuer: e.issuer, fee: e.fee, size: e.size_m, history_years: e.history_years,
     acc: e.acc, hedged: e.hedged, esg: e.esg, cluster: e.cluster, cluster_size: e.cluster_size, mine: mine.has(e.isin),
+    divMissing: !!e.div_missing, divFix: !!e.div_fix,
     r1: e.m?.[1]?.ret ?? null, r3: e.m?.[3]?.ret ?? null, r5: e.m?.[5]?.ret ?? null, r10: e.m?.[10]?.ret ?? null,
     vol: m.vol ?? null, sharpe: m.sharpe ?? null, alpha: m.alpha ?? null, beta: m.beta ?? null, r2: m.r2 ?? null,
     te: m.te ?? null, ir: m.ir ?? null, mdd: m.mdd ?? null, _group: e[st.f.group] ?? NONE,
@@ -493,6 +494,9 @@ function rowOf(e, mine) {
 }
 
 // ---------------------------------------------------------------- explorer table
+/** Name and ticker, and a note when the price data miss dividends (see dividends.py). */
+const divNote = (d) => (d.divMissing ? " · utbytte mangler i kursene" : d.divFix ? " · utbytte rettet" : "");
+const nameCell = (c) => { const d = c.getRow().getData(); return `<span class="cell-name">${esc(c.getValue())}</span><span class="cell-sub">${esc(d.ticker)}${divNote(d)}</span>`; };
 function explorerColumns() {
   const sorterNull = (a, b, aRow, bRow, col, dir) => {
     const na = !ok(a), nb = !ok(b);
@@ -514,7 +518,7 @@ function explorerColumns() {
   if ((st.f?.cols || "simple") === "simple") return [
     add,
     { title: "ETF", field: "name", frozen: wide, width: wide ? 300 : 200, tooltip: true,
-      formatter: (c) => `<span class="cell-name">${esc(c.getValue())}</span><span class="cell-sub">${esc(c.getRow().getData().ticker)}</span>` },
+      formatter: nameCell },
     txt("Sektor", "sector", 130), txt("Region", "region", 110), fee,
     pctCol(`Avkastning per år, ${P} år`, P === 1 ? "r1" : P === 3 ? "r3" : P === 5 ? "r5" : "r10", 1, "Annualisert totalavkastning i kroner"),
     pctCol(`Svingninger, ${P} år`, "vol", 1, "Volatilitet: hvor mye verdien svinger i løpet av et år"),
@@ -524,7 +528,7 @@ function explorerColumns() {
   return [
     add,
     { title: "Ticker", field: "ticker", frozen: wide, formatter: (c) => `<strong>${esc(c.getValue())}</strong>` },
-    txt("Navn", "name", 250), txt("Sektor", "sector", 130), txt("Tema", "theme", 130), txt("Region", "region", 100), fee,
+    { title: "Navn", field: "name", width: 250, tooltip: true, formatter: (c) => `${esc(c.getValue())}${divNote(c.getRow().getData()) ? `<span class="cell-sub-inline">${divNote(c.getRow().getData())}</span>` : ""}` }, txt("Sektor", "sector", 130), txt("Tema", "theme", 130), txt("Region", "region", 100), fee,
     numCol("Størrelse (mill.)", "size", 0, "Fondsstørrelse i millioner (fondets valuta, fra Nordnet)"),
     numCol("Historikk (år)", "history_years", 1, "Lengde på renset kurshistorikk"),
     { title: "Avkastning per år", columns: [pctCol("1 år", "r1"), pctCol("3 år", "r3"), pctCol("5 år", "r5"), pctCol("10 år", "r10")] },

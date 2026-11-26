@@ -132,6 +132,14 @@ universe:
   hysteresis_fee_pp: 0.05      # bytt bare representant hvis ny er minst 0,05 pp billigere (effektiv avgift)
   report_dir: data/universe
 
+dividends:
+  # Utdelende ETF-er der Yahoo mangler utbytte (se src/etfpf/dividends.py)
+  max_lag: 0.005               # henger mer enn 0,5 pp per år etter akkumulerende andelsklasse av samme ETF (justert for avgift): bygg på nytt
+  max_lag_other: 0.01          # samme, når den akkumulerende er en annen ETF på samme indeks (og etterslepet er større enn registrert utbytte)
+  min_years: 2                 # minst så mange års felles historikk for å sammenligne
+  window_years: 5              # sammenlign over høyst de siste 5 årene
+  min_days: 400                # utdelende uten registrert utbytte siste 12 måneder etter så mange dager med kurser: merkes div_missing
+
 site:
   # Standardverdier på nettsiden (kan endres der). Nøkkeltall, optimering og backtest regnes i nettleseren
   # fra månedlig totalavkastning i NOK (site/data/returns.json).

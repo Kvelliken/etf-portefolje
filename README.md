@@ -90,6 +90,12 @@ Alle beregninger gjøres i nettleseren, så andeler, sparing og risiko kan endre
 | `funddetails.py` | risikotall per fond fra Nordnet (volatilitet, Sharpe, alfa, beta i NOK; R² fra Morningstar) |
 | `holdings.py` | innholdet i fond og ETF-er fra Nordnet: land, bransjer, aktivaklasser og største beholdninger |
 
+**Utbytte** (`src/etfpf/dividends.py`, kjøres i `build_site.py`): all avkastning er totalavkastning. Yahoo mangler utbytte for noen
+utdelende ETF-er. Henger en utdelende ETF mer enn 0,5 pp i året etter en akkumulerende andelsklasse på samme indeks (justert for kostnad),
+bygges kursserien på nytt fra den akkumulerende (`div_fix` i `etfs.json`). Er den akkumulerende en annen ETF, må etterslepet være over 1 pp
+og større enn registrert utbytte. Utdelende ETF-er uten utbytte de siste 12 månedene og uten noe å rette fra får `div_missing`.
+`yield12` er utbyttet de siste 12 månedene delt på kursen. Tersklene står under `dividends` i `config.yaml`, og rapporten i `quality.json`.
+
 Fond som eier andre fond (fond-i-fond) gjennomlyses i nettleseren (`holdingsOf` i `site/portefolje.js`): beholdninger som har samme navn
 som et fond eller en ETF i dataene (uten andelsklasse og valuta), erstattes av det fondets største beholdninger.
 

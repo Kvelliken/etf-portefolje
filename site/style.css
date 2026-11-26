@@ -540,3 +540,4 @@ details.more > .grid-2 { margin-top: var(--space-4); }
 @media (forced-colors: active) { .swatch, .mixbar .seg { forced-color-adjust: none; border: 1px solid CanvasText; } }
 @media print { .site-header, .vv-footer, .filters { display: none; } .card { break-inside: avoid; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+.pf-results .tag-warn { color: var(--negative-600); }
